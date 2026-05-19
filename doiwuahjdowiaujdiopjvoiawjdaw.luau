@@ -1,4 +1,4 @@
-print("HI")
+warn("MUD")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1279,6 +1279,10 @@ local Library do
 
 		if self.NotifHolder and self.NotifHolder.Instance then
 			TableInsert(Roots, self.NotifHolder.Instance)
+		end
+
+		if self.WatermarkGui and self.WatermarkGui.Instance then
+			TableInsert(Roots, self.WatermarkGui.Instance)
 		end
 
 		if #Roots == 0 then
@@ -4485,6 +4489,7 @@ local Library do
 		end)
 
 		Library.WatermarkGui = Items["WatermarkGui"]
+		self:ApplyFontSettings()
 
 		return Watermark
 	end
