@@ -1,4 +1,4 @@
-print("YO")
+warn("BRUH")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -60,7 +60,7 @@ local function GetAutoloadPath()
 	return Folder_Configs.Configs .. "/" .. GameId .. "/autoload.json"
 end
 
-for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Configs", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configs .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
+for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/fonts", "solixhub/Configs", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configs .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
 	if not isfolder(folder) then
 		makefolder(folder)
 	end
@@ -205,36 +205,43 @@ local Library do
 
 		Fonts = {
 			["Inter"] = {
-				Id = "InterSemibold",
+				Id = "InterSemibold.ttf",
 				Url = "https://raw.githubusercontent.com/sametexe001/luas/main/fonts/InterSemibold.ttf",
-				Weight = 400,
-				Style = "Regular",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1,
 			},
 			["Tahoma"] = {
-				Id = "Tahoma",
+				Id = "Tahoma.ttf",
 				Url = "https://github.com/LuckyHub1/LuckyHub/raw/main/zekton_rg.ttf",
-				Weight = 400,
-				Style = "Regular",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1.2,
 			},
 			["Minecraftia"] = {
-				Id = "Minecraftia",
+				Id = "Minecraftia.ttf",
 				Url = "https://github.com/LuckyHub1/LuckyHub/raw/refs/heads/main/Minecraftia.ttf",
-				Weight = 400,
-				Style = "Regular",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1,
 			},
 			["Silkscreen"] = {
-				Id = "Silkscreen",
+				Id = "Silkscreen.ttf",
 				Url = "https://github.com/LuckyHub1/LuckyHub/raw/refs/heads/main/Silkscreen.ttf",
-				Weight = 400,
-				Style = "Regular",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1,
 			},
 			["ProggyClean"] = {
-				Id = "ProggyClean",
+				Id = "ProggyClean.ttf",
 				Url = "https://github.com/LuckyHub1/LuckyHub/raw/main/ProggyClean.ttf",
-				Weight = 400,
-				Style = "Regular",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1,
 			},
 		},
+
+		FontFaces = {},
 
 		FontSettings = {
 			Name = "Inter",
@@ -700,6 +707,20 @@ local Library do
 					end)
 				end
 
+				if Class == "TextLabel" or Class == "TextButton" or Class == "TextBox" then
+					local TextSize = NewItem.Instance.TextSize
+
+					if TextSize and TextSize > 0 then
+						if TextSize <= 12 then
+							NewItem.Instance:SetAttribute("SolixUIFontBucket", "Small")
+						elseif TextSize >= 18 then
+							NewItem.Instance:SetAttribute("SolixUIFontBucket", "Title")
+						else
+							NewItem.Instance:SetAttribute("SolixUIFontBucket", "Main")
+						end
+					end
+				end
+
 				return NewItem
 			end)
 
@@ -1145,43 +1166,68 @@ local Library do
 		end
 	end
 
-	local CustomFont = {} do
-		function CustomFont:New(Name, Weight, Style, Data)
-			local TtfPath = GetFolders().Assets .. "/" .. Data.Id .. ".ttf"
+	local FontsFolder = GetFolders().Assets .. "/fonts"
 
-			if not isfile(TtfPath) then
-				writefile(TtfPath, game:HttpGet(Data.Url))
-			end
+	local function RegisterFont(Name, Weight, Style, TtfFile, Url)
+		local TtfPath = FontsFolder .. "/" .. TtfFile
 
-			local AssetSuccess, AssetId = pcall(getcustomasset, TtfPath)
-			if not AssetSuccess then
-				return Font.fromEnum(Enum.Font.Gotham)
-			end
-
-			local FontData = {
-				name = Name,
-				faces = {
-					{
-						name = Name,
-						weight = Weight,
-						style = Style,
-						assetId = AssetId
-					}
-				}
-			}
-
-			local FontPath = GetFolders().Assets .. "/" .. Name .. ".font"
-			if not isfile(FontPath) then
-				writefile(FontPath, HttpService:JSONEncode(FontData))
-			end
-
-			local FontAssetSuccess, FontAssetId = pcall(getcustomasset, FontPath)
-			if not FontAssetSuccess then
-				return Font.fromEnum(Enum.Font.Gotham)
-			end
-
-			return Font.new(FontAssetId)
+		if not isfile(TtfPath) then
+			writefile(TtfPath, game:HttpGet(Url))
 		end
+
+		local FontMetaPath = FontsFolder .. "/" .. Name .. ".font"
+
+		if isfile(FontMetaPath) then
+			delfile(FontMetaPath)
+		end
+
+		local AssetSuccess, AssetId = pcall(getcustomasset, TtfPath)
+
+		if not AssetSuccess then
+			return nil
+		end
+
+		local FontData = {
+			name = Name,
+			faces = {
+				{
+					name = "Regular",
+					weight = Weight,
+					style = Style,
+					assetId = AssetId,
+				},
+			},
+		}
+
+		writefile(FontMetaPath, HttpService:JSONEncode(FontData))
+
+		local FontAssetSuccess, FontAssetId = pcall(getcustomasset, FontMetaPath)
+
+		if not FontAssetSuccess then
+			return nil
+		end
+
+		return FontAssetId
+	end
+
+	do
+		for Name, Data in Library.Fonts do
+			local Success, AssetPath = pcall(function()
+				return RegisterFont(Name, Data.Weight or 200, Data.Style or "normal", Data.Id, Data.Url)
+			end)
+
+			if Success and AssetPath then
+				local FaceSuccess, Face = pcall(function()
+					return Font.new(AssetPath, Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+				end)
+
+				if FaceSuccess and Face then
+					Library.FontFaces[Name] = Face
+				end
+			end
+		end
+
+		Library.Font = Library.FontFaces[Library.FontSettings.Name] or Font.fromEnum(Enum.Font.Gotham)
 	end
 
 	Library.GetFontNames = function(self)
@@ -1194,6 +1240,22 @@ local Library do
 		table.sort(Names)
 
 		return Names
+	end
+
+	Library.GetFontTextMultiplier = function(self)
+		local FontData = self.Fonts[self.FontSettings.Name]
+
+		return (FontData and FontData.TextMultiplier) or 1
+	end
+
+	Library.GetTextSizeForBucket = function(self, Bucket)
+		if Bucket == "Small" then
+			return self.FontSettings.SmallTextSize
+		elseif Bucket == "Title" then
+			return self.FontSettings.TitleTextSize
+		end
+
+		return self.FontSettings.TextSize
 	end
 
 	Library.ApplyFontSettings = function(self)
@@ -1219,23 +1281,21 @@ local Library do
 			TableInsert(Roots, self.NotifHolder.Instance)
 		end
 
-		local MainSize = self.FontSettings.TextSize
-		local SmallSize = self.FontSettings.SmallTextSize
-		local TitleSize = self.FontSettings.TitleTextSize
+		if #Roots == 0 then
+			return
+		end
+
+		local Multiplier = self:GetFontTextMultiplier()
 
 		for _, Root in Roots do
 			for _, Instance in Root:GetDescendants() do
 				if Instance:IsA("TextLabel") or Instance:IsA("TextButton") or Instance:IsA("TextBox") then
 					pcall(function()
-						Instance.FontFace = self.Font
+						local Bucket = Instance:GetAttribute("SolixUIFontBucket") or "Main"
+						local BaseSize = self:GetTextSizeForBucket(Bucket)
 
-						if Instance.TextSize <= 12 then
-							Instance.TextSize = SmallSize
-						elseif Instance.TextSize >= 18 then
-							Instance.TextSize = TitleSize
-						else
-							Instance.TextSize = MainSize
-						end
+						Instance.FontFace = self.Font
+						Instance.TextSize = MathMax(1, MathFloor(BaseSize * Multiplier))
 					end)
 				end
 			end
@@ -1243,51 +1303,33 @@ local Library do
 	end
 
 	Library.SetFont = function(self, FontName)
-		local FontData = self.Fonts[FontName]
+		local Face = self.FontFaces[FontName]
 
-		if not FontData then
+		if not Face then
 			return false
 		end
 
-		local Success, NewFont = pcall(function()
-			return CustomFont:New(FontData.Id, FontData.Weight or 400, FontData.Style or "Regular", FontData)
-		end)
-
-		if Success and NewFont then
-			self.Font = NewFont
-			self.FontSettings.Name = FontName
-			self:ApplyFontSettings()
-			return true
-		end
-
-		self.Font = Font.fromEnum(Enum.Font.Gotham)
+		self.Font = Face
+		self.FontSettings.Name = FontName
 		self:ApplyFontSettings()
 
-		return false
+		return true
 	end
 
 	Library.SetTextSizes = function(self, Main, Small, Title)
 		if Main then
-			self.FontSettings.TextSize = Main
+			self.FontSettings.TextSize = MathClamp(MathFloor(Main), 10, 20)
 		end
 
 		if Small then
-			self.FontSettings.SmallTextSize = Small
+			self.FontSettings.SmallTextSize = MathClamp(MathFloor(Small), 8, 16)
 		end
 
 		if Title then
-			self.FontSettings.TitleTextSize = Title
+			self.FontSettings.TitleTextSize = MathClamp(MathFloor(Title), 14, 28)
 		end
 
 		self:ApplyFontSettings()
-	end
-
-	do
-		local FontSuccess = Library:SetFont(Library.FontSettings.Name)
-
-		if not FontSuccess then
-			Library.Font = Font.fromEnum(Enum.Font.Gotham)
-		end
 	end
 
 	Library.Holder = Instances:Create("ScreenGui", {
@@ -1457,7 +1499,7 @@ local Library do
 		PaddingRight = UDimNew(0, 12),
 		PaddingTop = UDimNew(0, 12),
 		PaddingBottom = UDimNew(0, 12)
-	})    
+	})
 
 	Library.GetDataFromPlayer = function(self, Section)
 		local Player = Players.LocalPlayer
@@ -8354,10 +8396,8 @@ local Library do
 			Default = self.FontSettings.Name,
 			Multi = false,
 			Callback = function(Value)
-				task.spawn(function()
-					local Success = self:SetFont(Value)
-
-					if not Success then
+				task.defer(function()
+					if not self:SetFont(Value) then
 						self:Notification({
 							Name = "Font Error",
 							Description = "Failed to load font: " .. tostring(Value),
@@ -8407,6 +8447,10 @@ local Library do
 				self:SetTextSizes(nil, nil, Value)
 			end
 		})
+
+		defer(function()
+			self:ApplyFontSettings()
+		end)
 
 		return Section
 	end
