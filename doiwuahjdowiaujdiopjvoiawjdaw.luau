@@ -1,3 +1,5 @@
+print("YO")
+
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -746,6 +748,28 @@ local Library do
 			self = nil
 		end
 
+		local function ShouldBlockWindowDrag(Target)
+			if not Target then
+				return false
+			end
+
+			local Current = Target
+
+			while Current do
+				if Current:IsA("ViewportFrame") then
+					return true
+				end
+
+				if Current:GetAttribute("BlockWindowDrag") == true then
+					return true
+				end
+
+				Current = Current.Parent
+			end
+
+			return false
+		end
+
 		Instances.MakeDraggable = function(self)
 			if not self.Instance then 
 				return
@@ -767,6 +791,10 @@ local Library do
 			local Changed
 
 			self:Connect("InputBegan", function(Input)
+				if ShouldBlockWindowDrag(Input.Target) then
+					return
+				end
+
 				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 					Dragging = true
 
@@ -5331,14 +5359,6 @@ local Library do
 		local hovering = false
 		local lastpos = Vector2.zero
 
-		local function getPath(obj)
-			if not obj or obj.Parent == nil then
-				return ""
-			end
-
-			return obj:GetFullName()
-		end
-
 		local function stopAutoRefresh()
 			if autoRefreshThread then
 				task.cancel(autoRefreshThread)
@@ -5467,6 +5487,9 @@ local Library do
 			ZIndex = 2
 		}):AddToTheme({BackgroundColor3 = "Element"})
 
+		Items["ViewerHolder"].Instance:SetAttribute("BlockWindowDrag", true)
+		Items["ViewerHolder"].Instance.Active = true
+
 		Instances:Create("UICorner", {
 			Parent = Items["ViewerHolder"].Instance,
 			Name = "\0",
@@ -5480,27 +5503,12 @@ local Library do
 			Position = UDim2New(0, 4, 0, 4),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
+			Active = true,
 			ZIndex = 2,
 			Ambient = FromRGB(140, 140, 140),
 			LightColor = FromRGB(255, 255, 255),
 			LightDirection = Vector3New(-1, -1, -1)
 		})
-
-		Items["PathLabel"] = Instances:Create("TextLabel", {
-			Parent = Items["Section"].Instance,
-			Name = "\0",
-			Size = UDim2New(1, -16, 0, 14),
-			Position = UDim2New(0, 8, 0, 35 + Section.Height + 4),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Text = "",
-			TextColor3 = Library.Theme["Inactive Text"],
-			TextSize = 11,
-			FontFace = Library.Font,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 2
-		}):AddToTheme({TextColor3 = "Inactive Text"})
 
 		Instances:Create("UIPadding", {
 			Parent = Items["Section"].Instance,
@@ -5523,7 +5531,6 @@ local Library do
 				viewportFrame.Instance:ClearAllChildren()
 				self.IsViewing = false
 				Items["Text"].Instance.Text = self.Name
-				Items["PathLabel"].Instance.Text = ""
 			end
 		end
 
@@ -5557,7 +5564,6 @@ local Library do
 				camera.FieldOfView = 60
 
 				Items["Text"].Instance.Text = item.Name .. " - Preview"
-				Items["PathLabel"].Instance.Text = getPath(originalModel)
 				self.IsViewing = true
 			end
 		end
@@ -5585,7 +5591,6 @@ local Library do
 		function Section:SetHeight(value)
 			self.Height = value
 			Items["ViewerHolder"].Instance.Size = UDim2New(1, -16, 0, value)
-			Items["PathLabel"].Instance.Position = UDim2New(0, 8, 0, 35 + value + 4)
 		end
 
 		viewportFrame:Connect("InputBegan", function(input)
