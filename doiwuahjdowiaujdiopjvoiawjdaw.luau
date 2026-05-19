@@ -1,4 +1,4 @@
-warn("BRUH")
+print("YON")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -8416,7 +8416,7 @@ local Library do
 			Min = 10,
 			Max = 20,
 			Default = self.FontSettings.TextSize,
-			Decimals = 0,
+			Decimals = 0.1,
 			Callback = function(Value)
 				self:SetTextSizes(Value, nil, nil)
 			end
@@ -8429,7 +8429,7 @@ local Library do
 			Min = 8,
 			Max = 16,
 			Default = self.FontSettings.SmallTextSize,
-			Decimals = 0,
+			Decimals = 0.1,
 			Callback = function(Value)
 				self:SetTextSizes(nil, Value, nil)
 			end
@@ -8442,7 +8442,7 @@ local Library do
 			Min = 14,
 			Max = 28,
 			Default = self.FontSettings.TitleTextSize,
-			Decimals = 0,
+			Decimals = 0.1,
 			Callback = function(Value)
 				self:SetTextSizes(nil, nil, Value)
 			end
