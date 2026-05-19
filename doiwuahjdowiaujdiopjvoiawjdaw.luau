@@ -1,4 +1,4 @@
-print("Yo2")
+print("Boy3")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1308,7 +1308,7 @@ local Library do
 	Instances:Create("UIListLayout", {
 		Parent = Library.NotifHolder.Instance,
 		Name = "\0",
-		Padding = UDimNew(0, 20),
+		Padding = UDimNew(0, 8),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Right
 	})
@@ -4249,16 +4249,20 @@ local Library do
 		wait()
 		Library.NotifLayoutOrder = (Library.NotifLayoutOrder or 0) + 1
 
-		local TitleText = Data.Title or Data.Name or ""
-		local DescText = Data.Description or ""
-		local Duration = Data.Duration or 5
+		local TitleText = Data.Title or Data.Name or Data.name or ""
+		local DescText = Data.Description or Data.description or Data.Text or Data.text or ""
+		local Duration = Data.Duration or Data.duration or Data.Time or Data.time or 5
+		local AccentColor = Data.Color or Data.color or Library.Theme["Accent"]
 
-		local PaddingH = 6
-		local PaddingV = 5
-		local Gap = 5
-		local BarGap = 4
+		local PaddingH = 10
+		local PaddingV = 8
+		local Gap = 4
+		local BarGap = 6
 		local BarH = 3
-		local MaxWidth = 330
+		local AccentW = 3
+		local AccentGap = 8
+		local MaxWidth = 300
+		local MinWidth = 160
 
 		local function GetTextSize(Text, FontSize, Width)
 			local Font = Library.Font
@@ -4274,31 +4278,36 @@ local Library do
 			return TextService:GetTextSize(Text, FontSize, Font, Vector2.new(Width, 10000))
 		end
 
-		local TitleSize = GetTextSize(TitleText, 14, MaxWidth)
-		local DescAvailableWidth = MaxWidth - PaddingH * 2
-		local DescSize = DescText ~= "" and GetTextSize(DescText, 12, DescAvailableWidth) or Vector2.new(DescAvailableWidth, 28)
+		local TextWidth = MaxWidth - PaddingH * 2 - AccentW - AccentGap
+		local TitleSize = TitleText ~= "" and GetTextSize(TitleText, 14, TextWidth) or Vector2.new(0, 0)
+		local DescSize = DescText ~= "" and GetTextSize(DescText, 12, TextWidth) or Vector2.new(0, 0)
 
-		local TitleH = math.max(math.ceil(math.max(TitleSize.Y, 1)), 15)
-		local DescH = math.max(math.ceil(math.max(DescSize.Y, 1)), 14)
+		local TitleH = TitleText ~= "" and math.max(math.ceil(TitleSize.Y), 16) or 0
+		local DescH = DescText ~= "" and math.max(math.ceil(DescSize.Y), 14) or 0
+		local HasDesc = DescText ~= "" and DescH > 0
 
-		if DescH < 28 then DescH = 28 end
+		local ContentWidth = math.max(
+			math.ceil(TitleSize.X),
+			math.ceil(DescSize.X),
+			MinWidth - PaddingH * 2 - AccentW - AccentGap
+		)
+		ContentWidth = math.min(ContentWidth + PaddingH * 2 + AccentW + AccentGap, MaxWidth)
 
-		local ContentWidth = math.max(math.ceil(math.max(TitleSize.X, 1)), math.ceil(math.max(DescSize.X, 1)), 100)
-		ContentWidth = math.min(math.max(ContentWidth + PaddingH * 2, 100), MaxWidth)
-
-		local SizeY = PaddingV + TitleH + Gap + DescH + BarGap + BarH + PaddingV
+		local BodyH = TitleH + (HasDesc and (Gap + DescH) or 0)
+		local SizeY = PaddingV * 2 + BodyH + BarGap + BarH
 
 		local Items = {} do
 			Items["Notification"] = Instances:Create("Frame", {
 				Parent = Library.NotifHolder.Instance,
 				Name = "\0",
-				BackgroundColor3 = Library.Theme["Background"],
+				BackgroundColor3 = Library.Theme["Inline"],
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
+				ClipsDescendants = true,
 				LayoutOrder = Library.NotifLayoutOrder,
-				Size = UDim2New(0, ContentWidth, 0, SizeY)
-			}):AddToTheme({BackgroundColor3 = 'Background'})
+				Size = UDim2New(0, 0, 0, SizeY)
+			}):AddToTheme({BackgroundColor3 = "Inline"})
 
 			Instances:Create("UICorner", {
 				Parent = Items["Notification"].Instance,
@@ -4306,128 +4315,163 @@ local Library do
 				CornerRadius = UDimNew(0, 5)
 			})
 
-			Instances:Create("UIPadding", {
+			Instances:Create("UIStroke", {
 				Parent = Items["Notification"].Instance,
 				Name = "\0",
-				PaddingLeft = UDimNew(0, PaddingH),
-				PaddingRight = UDimNew(0, PaddingH),
-				PaddingTop = UDimNew(0, PaddingV),
-				PaddingBottom = UDimNew(0, PaddingV)
+				Color = Library.Theme["Border"],
+				Thickness = 1,
+				Transparency = 0.45
+			}):AddToTheme({Color = "Border"})
+
+			Items["AccentBar"] = Instances:Create("Frame", {
+				Parent = Items["Notification"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, AccentW, 1, -(PaddingV * 2)),
+				Position = UDim2New(0, PaddingH, 0, PaddingV),
+				BackgroundColor3 = AccentColor,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 2
 			})
 
-			Items["Title"] = Instances:Create("TextLabel", {
-				Parent = Items["Notification"].Instance,
+			Instances:Create("UICorner", {
+				Parent = Items["AccentBar"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, 0, 0, TitleH),
-				BackgroundTransparency = 1,
-				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Text = TitleText,
-				TextColor3 = Library.Theme["Text"],
-				TextSize = 14,
-				FontFace = Library.Font,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextYAlignment = Enum.TextYAlignment.Top,
-				TextWrapped = true,
-				TextTransparency = 1
-			}):AddToTheme({TextColor3 = 'Text'})
-
-			Items["Description"] = Instances:Create("TextLabel", {
-				Parent = Items["Notification"].Instance,
-				Name = "\0",
-				Size = UDim2New(1, -PaddingH * 2, 0, DescH),
-				Position = UDim2New(0, PaddingH, 0, TitleH + Gap),
-				BackgroundTransparency = 1,
-				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Text = DescText,
-				TextColor3 = Library.Theme["Text"],
-				TextSize = 12,
-				FontFace = Library.Font,
-				TextTransparency = 1,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextYAlignment = Enum.TextYAlignment.Top,
-				TextWrapped = true,
-				TextTruncate = Enum.TextTruncate.None,
-				RichText = false,
-				TextScaled = false,
-				AutomaticSize = Enum.AutomaticSize.Y
-			}):AddToTheme({TextColor3 = 'Text'})
-
-			Instances:Create("UITextSizeConstraint", {
-				Parent = Items["Description"].Instance,
-				Name = "\0",
-				MinTextSize = 12,
-				MaxTextSize = 12
+				CornerRadius = UDimNew(0, 2)
 			})
+
+			Items["Content"] = Instances:Create("Frame", {
+				Parent = Items["Notification"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, -(PaddingH * 2 + AccentW + AccentGap), 0, BodyH),
+				Position = UDim2New(0, PaddingH + AccentW + AccentGap, 0, PaddingV),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 2
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = Items["Content"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, Gap),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Top
+			})
+
+			if TitleText ~= "" then
+				Items["Title"] = Instances:Create("TextLabel", {
+					Parent = Items["Content"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, TitleH),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Text = TitleText,
+					TextColor3 = Library.Theme["Text"],
+					TextSize = 14,
+					FontFace = Library.Font,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					TextWrapped = true,
+					TextTransparency = 1,
+					LayoutOrder = 1,
+					ZIndex = 2
+				}):AddToTheme({TextColor3 = "Text"})
+			end
+
+			if HasDesc then
+				Items["Description"] = Instances:Create("TextLabel", {
+					Parent = Items["Content"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, DescH),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Text = DescText,
+					TextColor3 = Library.Theme["Inactive Text"],
+					TextSize = 12,
+					FontFace = Library.Font,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Top,
+					TextWrapped = true,
+					TextTransparency = 1,
+					LayoutOrder = 2,
+					ZIndex = 2
+				}):AddToTheme({TextColor3 = "Inactive Text"})
+			end
 
 			Items["Duration"] = Instances:Create("Frame", {
 				Parent = Items["Notification"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, 0, 0, BarH),
-				Position = UDim2New(0, 0, 0, TitleH + Gap + DescH + BarGap),
-				BackgroundColor3 = Library.Theme["Inline"],
+				Size = UDim2New(1, -(PaddingH * 2), 0, BarH),
+				Position = UDim2New(0, PaddingH, 1, -PaddingV),
+				AnchorPoint = Vector2New(0, 1),
+				BackgroundColor3 = Library.Theme["Element"],
 				BackgroundTransparency = 1,
-				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0
-			}):AddToTheme({BackgroundColor3 = 'Inline'})
+				BorderSizePixel = 0,
+				ZIndex = 2
+			}):AddToTheme({BackgroundColor3 = "Element"})
 
 			Instances:Create("UICorner", {
 				Parent = Items["Duration"].Instance,
 				Name = "\0",
-				CornerRadius = UDimNew(0, 5)
+				CornerRadius = UDimNew(0, 3)
 			})
 
-			Items["Accent"] = Instances:Create("Frame", {
+			Items["Progress"] = Instances:Create("Frame", {
 				Parent = Items["Duration"].Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 1, 0),
-				BackgroundColor3 = Data.Color,
-				BorderColor3 = FromRGB(0, 0, 0),
+				BackgroundColor3 = AccentColor,
+				BackgroundTransparency = 1,
 				BorderSizePixel = 0
 			})
 
 			Instances:Create("UICorner", {
-				Parent = Items["Accent"].Instance,
+				Parent = Items["Progress"].Instance,
 				Name = "\0",
-				CornerRadius = UDimNew(0, 5)
+				CornerRadius = UDimNew(0, 3)
 			})
 		end
 
-		local FadeInfo = TweenInfo.new(1, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, 0, false, 0)
+		local FadeInfo = TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 		local BarInfo = TweenInfo.new(Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
-		local Frames = { Items["Notification"], Items["Duration"] }
-		local TextLabels = { Items["Title"] }
-		local DescLabel = Items["Description"]
+		local FadeFrames = { Items["Notification"], Items["Duration"], Items["AccentBar"] }
+		local FadeLabels = {}
+
+		if Items["Title"] then
+			TableInsert(FadeLabels, Items["Title"])
+		end
+
+		if Items["Description"] then
+			TableInsert(FadeLabels, Items["Description"])
+		end
 
 		Library:Thread(function()
-			for _, Item in Frames do
+			for _, Item in FadeFrames do
 				Item:Tween(FadeInfo, {BackgroundTransparency = 0})
 			end
 
-			for _, Item in TextLabels do
-				Item:Tween(FadeInfo, {TextTransparency = 0})
+			for _, Item in FadeLabels do
+				local Goal = Item == Items["Description"] and {TextTransparency = 0} or {TextTransparency = 0}
+				Item:Tween(FadeInfo, Goal)
 			end
 
-			DescLabel:Tween(FadeInfo, {TextTransparency = 0.4})
-
 			Items["Notification"]:Tween(FadeInfo, {Size = UDim2New(0, ContentWidth, 0, SizeY)})
-			Items["Accent"]:Tween(BarInfo, {Size = UDim2New(0, 0, 1, 0)})
+			Items["Progress"]:Tween(BarInfo, {Size = UDim2New(0, 0, 1, 0)})
 
-			delay(Duration + 0.1, function()
-				for _, Item in Frames do
+			delay(Duration + 0.15, function()
+				for _, Item in FadeFrames do
 					Item:Tween(FadeInfo, {BackgroundTransparency = 1})
 				end
 
-				for _, Item in TextLabels do
+				for _, Item in FadeLabels do
 					Item:Tween(FadeInfo, {TextTransparency = 1})
 				end
 
-				DescLabel:Tween(FadeInfo, {TextTransparency = 1})
-
 				Items["Notification"]:Tween(FadeInfo, {Size = UDim2New(0, 0, 0, SizeY)})
-				wait(0.5)
+				wait(0.4)
 				Items["Notification"]:Clean()
 			end)
 		end)
