@@ -1,5 +1,4 @@
-print("YO")
-
+print("Yo2")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -201,6 +200,8 @@ local Library do
 		ThemeItems = {},
 
 		OpenFrames = {},
+
+		BlockWindowDrag = false,
 
 		SliderElements = {},
 		TextboxElements = {},
@@ -748,6 +749,26 @@ local Library do
 			self = nil
 		end
 
+		local function GetInputGuiTarget(Input)
+			local Ok, Target = pcall(function()
+				return Input.Target
+			end)
+
+			if Ok and typeof(Target) == "Instance" then
+				return Target
+			end
+
+			local Ok2, GuiObjects = pcall(function()
+				return UserInputService:GetGuiObjectsAtPosition(Input.Position.X, Input.Position.Y)
+			end)
+
+			if Ok2 and GuiObjects and #GuiObjects > 0 then
+				return GuiObjects[1]
+			end
+
+			return nil
+		end
+
 		local function ShouldBlockWindowDrag(Target)
 			if not Target then
 				return false
@@ -791,7 +812,7 @@ local Library do
 			local Changed
 
 			self:Connect("InputBegan", function(Input)
-				if ShouldBlockWindowDrag(Input.Target) then
+				if Library.BlockWindowDrag or ShouldBlockWindowDrag(GetInputGuiTarget(Input)) then
 					return
 				end
 
@@ -820,6 +841,11 @@ local Library do
 
 			Library:Connect(UserInputService.InputChanged, function(Input)
 				if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+					if Library.BlockWindowDrag then
+						Dragging = false
+						return
+					end
+
 					if Dragging then
 						Set(Input)
 					end
@@ -5599,6 +5625,7 @@ local Library do
 			end
 
 			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				Library.BlockWindowDrag = true
 				dragging = true
 				lastpos = input.Position
 			elseif input.KeyCode == Enum.KeyCode.LeftShift then
@@ -5620,6 +5647,7 @@ local Library do
 			end
 
 			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				Library.BlockWindowDrag = false
 				dragging = false
 			elseif input.KeyCode == Enum.KeyCode.LeftShift then
 				Section.ZoomMultiplier = 2
