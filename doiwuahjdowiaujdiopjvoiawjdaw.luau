@@ -1,4 +1,4 @@
-print("YON")
+warn("YOOO")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -8409,44 +8409,7 @@ local Library do
 			end
 		})
 
-		Section:Slider({
-			Name = "Text Size",
-			Flag = "UI Text Size",
-			Description = "Main menu text size",
-			Min = 10,
-			Max = 20,
-			Default = self.FontSettings.TextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(Value, nil, nil)
-			end
-		})
-
-		Section:Slider({
-			Name = "Small Text Size",
-			Flag = "UI Small Text Size",
-			Description = "Descriptions and small labels",
-			Min = 8,
-			Max = 16,
-			Default = self.FontSettings.SmallTextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(nil, Value, nil)
-			end
-		})
-
-		Section:Slider({
-			Name = "Title Text Size",
-			Flag = "UI Title Text Size",
-			Description = "Large titles and headers",
-			Min = 14,
-			Max = 28,
-			Default = self.FontSettings.TitleTextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(nil, nil, Value)
-			end
-		})
+		
 
 		defer(function()
 			self:ApplyFontSettings()
