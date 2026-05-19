@@ -1,4 +1,4 @@
-print("Boy3")
+warn("MDU")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -4323,14 +4323,53 @@ local Library do
 				Transparency = 0.45
 			}):AddToTheme({Color = "Border"})
 
-			Items["AccentBar"] = Instances:Create("Frame", {
+			Instances:Create("UIPadding", {
 				Parent = Items["Notification"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, AccentW, 1, -(PaddingV * 2)),
-				Position = UDim2New(0, PaddingH, 0, PaddingV),
+				PaddingLeft = UDimNew(0, PaddingH),
+				PaddingRight = UDimNew(0, PaddingH),
+				PaddingTop = UDimNew(0, PaddingV),
+				PaddingBottom = UDimNew(0, PaddingV)
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = Items["Notification"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, BarGap),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Top
+			})
+
+			Items["Body"] = Instances:Create("Frame", {
+				Parent = Items["Notification"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, BodyH),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				LayoutOrder = 1,
+				ZIndex = 2
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = Items["Body"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, AccentGap),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Top
+			})
+
+			Items["AccentBar"] = Instances:Create("Frame", {
+				Parent = Items["Body"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, AccentW, 1, 0),
 				BackgroundColor3 = AccentColor,
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				LayoutOrder = 1,
 				ZIndex = 2
 			})
 
@@ -4341,12 +4380,12 @@ local Library do
 			})
 
 			Items["Content"] = Instances:Create("Frame", {
-				Parent = Items["Notification"].Instance,
+				Parent = Items["Body"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, -(PaddingH * 2 + AccentW + AccentGap), 0, BodyH),
-				Position = UDim2New(0, PaddingH + AccentW + AccentGap, 0, PaddingV),
+				Size = UDim2New(1, -(AccentW + AccentGap), 0, BodyH),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				LayoutOrder = 2,
 				ZIndex = 2
 			})
 
@@ -4403,19 +4442,18 @@ local Library do
 			Items["Duration"] = Instances:Create("Frame", {
 				Parent = Items["Notification"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, -(PaddingH * 2), 0, BarH),
-				Position = UDim2New(0, PaddingH, 1, -PaddingV),
-				AnchorPoint = Vector2New(0, 1),
+				Size = UDim2New(1, 0, 0, BarH),
 				BackgroundColor3 = Library.Theme["Element"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				LayoutOrder = 2,
 				ZIndex = 2
 			}):AddToTheme({BackgroundColor3 = "Element"})
 
 			Instances:Create("UICorner", {
 				Parent = Items["Duration"].Instance,
 				Name = "\0",
-				CornerRadius = UDimNew(0, 3)
+				CornerRadius = UDimNew(0, 2)
 			})
 
 			Items["Progress"] = Instances:Create("Frame", {
@@ -4430,7 +4468,7 @@ local Library do
 			Instances:Create("UICorner", {
 				Parent = Items["Progress"].Instance,
 				Name = "\0",
-				CornerRadius = UDimNew(0, 3)
+				CornerRadius = UDimNew(0, 2)
 			})
 		end
 
