@@ -1,4 +1,4 @@
-warn("MDU")
+print("YO")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -202,6 +202,46 @@ local Library do
 		OpenFrames = {},
 
 		BlockWindowDrag = false,
+
+		Fonts = {
+			["Inter"] = {
+				Id = "InterSemibold",
+				Url = "https://raw.githubusercontent.com/sametexe001/luas/main/fonts/InterSemibold.ttf",
+				Weight = 400,
+				Style = "Regular",
+			},
+			["Tahoma"] = {
+				Id = "Tahoma",
+				Url = "https://github.com/LuckyHub1/LuckyHub/raw/main/zekton_rg.ttf",
+				Weight = 400,
+				Style = "Regular",
+			},
+			["Minecraftia"] = {
+				Id = "Minecraftia",
+				Url = "https://github.com/LuckyHub1/LuckyHub/raw/refs/heads/main/Minecraftia.ttf",
+				Weight = 400,
+				Style = "Regular",
+			},
+			["Silkscreen"] = {
+				Id = "Silkscreen",
+				Url = "https://github.com/LuckyHub1/LuckyHub/raw/refs/heads/main/Silkscreen.ttf",
+				Weight = 400,
+				Style = "Regular",
+			},
+			["ProggyClean"] = {
+				Id = "ProggyClean",
+				Url = "https://github.com/LuckyHub1/LuckyHub/raw/main/ProggyClean.ttf",
+				Weight = 400,
+				Style = "Regular",
+			},
+		},
+
+		FontSettings = {
+			Name = "Inter",
+			TextSize = 14,
+			SmallTextSize = 12,
+			TitleTextSize = 20,
+		},
 
 		SliderElements = {},
 		TextboxElements = {},
@@ -1107,11 +1147,13 @@ local Library do
 
 	local CustomFont = {} do
 		function CustomFont:New(Name, Weight, Style, Data)
-			if not isfile(Data.Id) then
-				writefile(Data.Id, game:HttpGet(Data.Url))
+			local TtfPath = GetFolders().Assets .. "/" .. Data.Id .. ".ttf"
+
+			if not isfile(TtfPath) then
+				writefile(TtfPath, game:HttpGet(Data.Url))
 			end
 
-			local AssetSuccess, AssetId = pcall(getcustomasset, Data.Id)
+			local AssetSuccess, AssetId = pcall(getcustomasset, TtfPath)
 			if not AssetSuccess then
 				return Font.fromEnum(Enum.Font.Gotham)
 			end
@@ -1140,13 +1182,108 @@ local Library do
 
 			return Font.new(FontAssetId)
 		end
+	end
 
-		local FontSuccess = pcall(function()
-			Library.Font = CustomFont:New("InterSemibold", 400, "Regular", {
-				Id = "InterSemibold",
-				Url = "https://raw.githubusercontent.com/sametexe001/luas/main/fonts/InterSemibold.ttf"
-			})
+	Library.GetFontNames = function(self)
+		local Names = {}
+
+		for Name in self.Fonts do
+			TableInsert(Names, Name)
+		end
+
+		table.sort(Names)
+
+		return Names
+	end
+
+	Library.ApplyFontSettings = function(self)
+		local Roots = {}
+
+		if self.Holder and self.Holder.Instance then
+			TableInsert(Roots, self.Holder.Instance)
+		end
+
+		if self.OtherHolder and self.OtherHolder.Instance then
+			TableInsert(Roots, self.OtherHolder.Instance)
+		end
+
+		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
+			TableInsert(Roots, self.FloatingButtonHolder.Instance)
+		end
+
+		if self.UnusedHolder and self.UnusedHolder.Instance then
+			TableInsert(Roots, self.UnusedHolder.Instance)
+		end
+
+		if self.NotifHolder and self.NotifHolder.Instance then
+			TableInsert(Roots, self.NotifHolder.Instance)
+		end
+
+		local MainSize = self.FontSettings.TextSize
+		local SmallSize = self.FontSettings.SmallTextSize
+		local TitleSize = self.FontSettings.TitleTextSize
+
+		for _, Root in Roots do
+			for _, Instance in Root:GetDescendants() do
+				if Instance:IsA("TextLabel") or Instance:IsA("TextButton") or Instance:IsA("TextBox") then
+					pcall(function()
+						Instance.FontFace = self.Font
+
+						if Instance.TextSize <= 12 then
+							Instance.TextSize = SmallSize
+						elseif Instance.TextSize >= 18 then
+							Instance.TextSize = TitleSize
+						else
+							Instance.TextSize = MainSize
+						end
+					end)
+				end
+			end
+		end
+	end
+
+	Library.SetFont = function(self, FontName)
+		local FontData = self.Fonts[FontName]
+
+		if not FontData then
+			return false
+		end
+
+		local Success, NewFont = pcall(function()
+			return CustomFont:New(FontData.Id, FontData.Weight or 400, FontData.Style or "Regular", FontData)
 		end)
+
+		if Success and NewFont then
+			self.Font = NewFont
+			self.FontSettings.Name = FontName
+			self:ApplyFontSettings()
+			return true
+		end
+
+		self.Font = Font.fromEnum(Enum.Font.Gotham)
+		self:ApplyFontSettings()
+
+		return false
+	end
+
+	Library.SetTextSizes = function(self, Main, Small, Title)
+		if Main then
+			self.FontSettings.TextSize = Main
+		end
+
+		if Small then
+			self.FontSettings.SmallTextSize = Small
+		end
+
+		if Title then
+			self.FontSettings.TitleTextSize = Title
+		end
+
+		self:ApplyFontSettings()
+	end
+
+	do
+		local FontSuccess = Library:SetFont(Library.FontSettings.Name)
 
 		if not FontSuccess then
 			Library.Font = Font.fromEnum(Enum.Font.Gotham)
@@ -4279,11 +4416,11 @@ local Library do
 		end
 
 		local TextWidth = MaxWidth - PaddingH * 2 - AccentW - AccentGap
-		local TitleSize = TitleText ~= "" and GetTextSize(TitleText, 14, TextWidth) or Vector2.new(0, 0)
-		local DescSize = DescText ~= "" and GetTextSize(DescText, 12, TextWidth) or Vector2.new(0, 0)
+		local TitleSize = TitleText ~= "" and GetTextSize(TitleText, Library.FontSettings.TextSize, TextWidth) or Vector2.new(0, 0)
+		local DescSize = DescText ~= "" and GetTextSize(DescText, Library.FontSettings.SmallTextSize, TextWidth) or Vector2.new(0, 0)
 
-		local TitleH = TitleText ~= "" and math.max(math.ceil(TitleSize.Y), 16) or 0
-		local DescH = DescText ~= "" and math.max(math.ceil(DescSize.Y), 14) or 0
+		local TitleH = TitleText ~= "" and math.max(math.ceil(TitleSize.Y), Library.FontSettings.TextSize + 2) or 0
+		local DescH = DescText ~= "" and math.max(math.ceil(DescSize.Y), Library.FontSettings.SmallTextSize + 2) or 0
 		local HasDesc = DescText ~= "" and DescH > 0
 
 		local ContentWidth = math.max(
@@ -4408,7 +4545,7 @@ local Library do
 					BorderSizePixel = 0,
 					Text = TitleText,
 					TextColor3 = Library.Theme["Text"],
-					TextSize = 14,
+					TextSize = Library.FontSettings.TextSize,
 					FontFace = Library.Font,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextYAlignment = Enum.TextYAlignment.Center,
@@ -4428,7 +4565,7 @@ local Library do
 					BorderSizePixel = 0,
 					Text = DescText,
 					TextColor3 = Library.Theme["Inactive Text"],
-					TextSize = 12,
+					TextSize = Library.FontSettings.SmallTextSize,
 					FontFace = Library.Font,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextYAlignment = Enum.TextYAlignment.Top,
@@ -4446,6 +4583,7 @@ local Library do
 				BackgroundColor3 = Library.Theme["Element"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				ClipsDescendants = true,
 				LayoutOrder = 2,
 				ZIndex = 2
 			}):AddToTheme({BackgroundColor3 = "Element"})
@@ -4460,9 +4598,12 @@ local Library do
 				Parent = Items["Duration"].Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 1, 0),
+				Position = UDim2New(0, 0, 0, 0),
+				AnchorPoint = Vector2New(0, 0),
 				BackgroundColor3 = AccentColor,
 				BackgroundTransparency = 1,
-				BorderSizePixel = 0
+				BorderSizePixel = 0,
+				ZIndex = 3
 			})
 
 			Instances:Create("UICorner", {
@@ -4497,12 +4638,17 @@ local Library do
 			end
 
 			Items["Notification"]:Tween(FadeInfo, {Size = UDim2New(0, ContentWidth, 0, SizeY)})
+
+			Items["Progress"].Instance.Size = UDim2New(1, 0, 1, 0)
+			Items["Progress"]:Tween(FadeInfo, {BackgroundTransparency = 0})
 			Items["Progress"]:Tween(BarInfo, {Size = UDim2New(0, 0, 1, 0)})
 
 			delay(Duration + 0.15, function()
 				for _, Item in FadeFrames do
 					Item:Tween(FadeInfo, {BackgroundTransparency = 1})
 				end
+
+				Items["Progress"]:Tween(FadeInfo, {BackgroundTransparency = 1})
 
 				for _, Item in FadeLabels do
 					Item:Tween(FadeInfo, {TextTransparency = 1})
@@ -8192,6 +8338,79 @@ local Library do
 		return Textbox
 	end
 
+	Library.CreateFontSettingsSection = function(self, Page, Data)
+		Data = Data or {}
+
+		local Section = Page:Section({
+			Name = Data.Name or Data.name or "Font Setting",
+			Side = Data.Side or Data.side or 2,
+		})
+
+		Section:Dropdown({
+			Name = "Font",
+			Flag = "UI Font",
+			Description = "List of Fonts To Use On The SolixHub Ui", 
+			Items = self:GetFontNames(),
+			Default = self.FontSettings.Name,
+			Multi = false,
+			Callback = function(Value)
+				task.spawn(function()
+					local Success = self:SetFont(Value)
+
+					if not Success then
+						self:Notification({
+							Name = "Font Error",
+							Description = "Failed to load font: " .. tostring(Value),
+							Color = Color3.fromRGB(255, 80, 80),
+							Duration = 4,
+						})
+					end
+				end)
+			end
+		})
+
+		Section:Slider({
+			Name = "Text Size",
+			Flag = "UI Text Size",
+			Description = "Main menu text size",
+			Min = 10,
+			Max = 20,
+			Default = self.FontSettings.TextSize,
+			Decimals = 0,
+			Callback = function(Value)
+				self:SetTextSizes(Value, nil, nil)
+			end
+		})
+
+		Section:Slider({
+			Name = "Small Text Size",
+			Flag = "UI Small Text Size",
+			Description = "Descriptions and small labels",
+			Min = 8,
+			Max = 16,
+			Default = self.FontSettings.SmallTextSize,
+			Decimals = 0,
+			Callback = function(Value)
+				self:SetTextSizes(nil, Value, nil)
+			end
+		})
+
+		Section:Slider({
+			Name = "Title Text Size",
+			Flag = "UI Title Text Size",
+			Description = "Large titles and headers",
+			Min = 14,
+			Max = 28,
+			Default = self.FontSettings.TitleTextSize,
+			Decimals = 0,
+			Callback = function(Value)
+				self:SetTextSizes(nil, nil, Value)
+			end
+		})
+
+		return Section
+	end
+
 	Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
 		local Settings = Window:Page({Name = "Settings", Columns = 2})
 
@@ -8387,6 +8606,8 @@ local Library do
 
 			Library:GetDataFromLuarmor(KeyInfo_Section)
 		end
+
+		Library:CreateFontSettingsSection(Settings, { Side = 2 })
 
 		do
 			local MenuSetting_Section = Settings:Section({Name = "Menu Setting", Side = 2})
@@ -8752,6 +8973,8 @@ local Library do
 				Library:RefreshConfigsList(Config_Dropdown)
 			end
 		end
+
+		return Settings
 	end
 end
 
