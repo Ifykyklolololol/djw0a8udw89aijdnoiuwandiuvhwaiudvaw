@@ -1,4 +1,4 @@
-warn("MUD")
+print("mudddy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -235,6 +235,13 @@ local Library do
 			["ProggyClean"] = {
 				Id = "ProggyClean.ttf",
 				Url = "https://github.com/LuckyHub1/LuckyHub/raw/main/ProggyClean.ttf",
+				Weight = 200,
+				Style = "normal",
+				TextMultiplier = 1,
+			},
+			["Made Bold"] = {
+				Id = "MadeBold.otf",
+				Url = "https://raw.githubusercontent.com/ccrrrr1/V3/main/Fonts/Made_Bold%20(1).otf",
 				Weight = 200,
 				Style = "normal",
 				TextMultiplier = 1,
