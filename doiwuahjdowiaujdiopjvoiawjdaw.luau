@@ -1,4 +1,4 @@
-warn("YOOO")
+print("HI")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1714,6 +1714,10 @@ local Library do
 
 		if self.FloatingButtonHolder then
 			self.FloatingButtonHolder.Instance:Destroy()
+		end
+
+		if self.WatermarkGui then
+			self.WatermarkGui:Clean()
 		end
 
 		Library = nil 
@@ -4179,84 +4183,310 @@ local Library do
 		return Keybind, Items 
 	end
 
-	Library.Watermark = function(self, Name)
-		local Watermark = {}
+	Library.Watermark = function(self, NameOrOptions)
+		local Data = type(NameOrOptions) == "table" and NameOrOptions or { Name = NameOrOptions }
+		local BrandName = Data.Name or Data.name or "Solix Hub"
+		local Dynamic = Data.Dynamic == true
+		local DynamicOptions = Data.Options or Data.options or { "fps", "ping", "time" }
+
+		local StatsService = cloneref(game:GetService("Stats"))
+		local WatermarkPath = GetFolders().Datas .. "/watermark.json"
+
+		local function ColorToRgbStr(Color)
+			return string.format(
+				"rgb(%d,%d,%d)",
+				MathFloor(Color.R * 255 + 0.5),
+				MathFloor(Color.G * 255 + 0.5),
+				MathFloor(Color.B * 255 + 0.5)
+			)
+		end
+
+		local function FormatBrandRichText(Text)
+			if not Text or Text == "" then
+				return ""
+			end
+
+			if string.find(Text, "<font", 1, true) then
+				return Text
+			end
+
+			local Lower = string.lower(Text)
+			local HubIndex = string.find(Lower, "hub", 1, true)
+
+			if HubIndex then
+				local AccentColor = ColorToRgbStr(Library.Theme["Accent"])
+				local Before = Text:sub(1, HubIndex - 1)
+				local HubPart = Text:sub(HubIndex, HubIndex + 2)
+				local After = Text:sub(HubIndex + 3)
+
+				return Before .. `<font color="{AccentColor}">` .. HubPart .. "</font>" .. After
+			end
+
+			return Text
+		end
+
+		local function GetTime12h()
+			local Time = os.date("*t")
+			local Hour = Time.hour % 12
+
+			if Hour == 0 then
+				Hour = 12
+			end
+
+			return string.format("%d:%02d %s", Hour, Time.min, Time.hour >= 12 and "PM" or "AM")
+		end
+
+		local function GetPing()
+			local Success, Ping = pcall(function()
+				return StatsService.Network.ServerStatsItem["Data Ping"]:GetValue()
+			end)
+
+			if Success and Ping then
+				return MathFloor(Ping)
+			end
+
+			Success, Ping = pcall(function()
+				return StatsService.PerformanceStats.Ping:GetValue()
+			end)
+
+			if Success and Ping then
+				return MathFloor(Ping)
+			end
+
+			return 0
+		end
+
+		local Watermark = {
+			CustomText = nil,
+			Dynamic = Dynamic,
+			DynamicOptions = DynamicOptions,
+			BrandName = BrandName,
+		}
 
 		local Items = {} do
-			Items["Watermark"] = Instances:Create("Frame", {
-				Parent = Library.Holder.Instance,
+			Items["WatermarkGui"] = Instances:Create("ScreenGui", {
+				Parent = SafeGetUI(),
 				Name = "\0",
-				Size = UDim2New(0, 100, 0, 35),
-				Position = UDim2New(0.5, 0, 0, 15),
-				AnchorPoint = Vector2New(0.5, 0),
-				BackgroundColor3 = FromRGB(16, 18, 21),
-				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				AutomaticSize = Enum.AutomaticSize.XY
-			}):AddToTheme({BackgroundColor3 = 'Inline'})
-
-			Items["Watermark"]:MakeDraggable()
-
-			Instances:Create("UIGradient", {
-				Parent = Items["Watermark"].Instance,
-				Name = "\0",
-				Rotation = 84,
-				Color = RGBSequence{RGBSequenceKeypoint(0, FromRGB(255, 255, 255)), RGBSequenceKeypoint(1, FromRGB(211, 211, 211))}
+				DisplayOrder = 9999,
+				ResetOnSpawn = false,
+				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			})
 
-			Instances:Create("UICorner", {
-				Parent = Items["Watermark"].Instance,
+			Items["Frame"] = Instances:Create("Frame", {
+				Parent = Items["WatermarkGui"].Instance,
 				Name = "\0",
-				CornerRadius = UDimNew(0, 5)
+				Position = UDim2New(0, 5, 0, 5),
+				Size = UDim2New(0, 0, 0, 25),
+				BackgroundColor3 = FromRGB(27, 26, 26),
+				BorderSizePixel = 0,
+				BorderColor3 = FromRGB(0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.X,
 			})
 
-			Items["Text"] = Instances:Create("TextLabel", {
-				Parent = Items["Watermark"].Instance,
-				Name = "\0",
-				Position = UDim2New(0, 0, 0.5, 0),
-				AnchorPoint = Vector2New(0, 0.5),
-				BackgroundTransparency = 1,
-				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Text = "",
-				TextColor3 = Library.Theme["Text"],
-				TextSize = 14,
-				FontFace = Library.Font,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				AutomaticSize = Enum.AutomaticSize.XY
-			}):AddToTheme({TextColor3 = 'Text'})
+			local StrokeLayers = {
+				{ Color = FromRGB(33, 32, 32), Thickness = 4 },
+				{ Color = FromRGB(42, 42, 42), Thickness = 2 },
+				{ Color = FromRGB(36, 36, 36), Thickness = 3 },
+				{ Color = FromRGB(42, 42, 42), Thickness = 1 },
+			}
+
+			for _, StrokeData in ipairs(StrokeLayers) do
+				Instances:Create("UIStroke", {
+					Parent = Items["Frame"].Instance,
+					Name = "\0",
+					Color = StrokeData.Color,
+					Thickness = StrokeData.Thickness,
+					LineJoinMode = Enum.LineJoinMode.Miter,
+				})
+			end
 
 			Instances:Create("UIPadding", {
-				Parent = Items["Watermark"].Instance,
+				Parent = Items["Frame"].Instance,
 				Name = "\0",
-				PaddingLeft = UDimNew(0, 10),
-				PaddingRight = UDimNew(0, 10),
-				PaddingTop = UDimNew(0, 8),
-				PaddingBottom = UDimNew(0, 8)
-			})                
+				PaddingLeft = UDimNew(0, 4),
+				PaddingRight = UDimNew(0, 4),
+			})
+
+			Items["Label"] = Instances:Create("TextLabel", {
+				Parent = Items["Frame"].Instance,
+				Name = "\0",
+				Position = UDim2New(0, 0, 0.5, 0),
+				Size = UDim2New(0, 0, 1, 0),
+				AnchorPoint = Vector2New(0, 0.5),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				BorderColor3 = FromRGB(0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.X,
+				Text = "",
+				TextColor3 = FromRGB(255, 255, 255),
+				TextSize = 12,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				RichText = true,
+			})
+
+			Items["AccentBar"] = Instances:Create("Frame", {
+				Parent = Items["Frame"].Instance,
+				Name = "\0",
+				Position = UDim2New(0.5, 0, 0, 0),
+				Size = UDim2New(1, 8, 0, 2),
+				AnchorPoint = Vector2New(0.5, 0),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BorderSizePixel = 0,
+				BorderColor3 = FromRGB(0, 0, 0),
+			})
+
+			Instances:Create("UIGradient", {
+				Parent = Items["AccentBar"].Instance,
+				Name = "\0",
+				Rotation = 90,
+				Transparency = NumSequence{
+					NumSequenceKeypoint(0, 0),
+					NumSequenceKeypoint(0.394015, 0),
+					NumSequenceKeypoint(1, 1),
+				},
+			})
+
+			Items["Frame"]:MakeDraggable()
+		end
+
+		local TargetFPS, TargetPing = 0, 0
+		local DisplayFPS, DisplayPing = 0, 0
+		local LastSample = os.clock()
+		local LastSave = os.clock()
+
+		local RenderFuncs = {
+			fps = function()
+				return `{MathFloor(DisplayFPS)} fps`
+			end,
+			ping = function()
+				return `{MathFloor(DisplayPing)} ms`
+			end,
+			time = function()
+				return GetTime12h()
+			end,
+		}
+
+		local function SavePosition()
+			if not writefile then
+				return
+			end
+
+			pcall(function()
+				local Frame = Items["Frame"].Instance
+				writefile(WatermarkPath, HttpService:JSONEncode({
+					X = Frame.Position.X.Offset,
+					Y = Frame.Position.Y.Offset,
+				}))
+			end)
+		end
+
+		local function LoadPosition()
+			if not readfile or not isfile or not isfile(WatermarkPath) then
+				return
+			end
+
+			pcall(function()
+				local Saved = HttpService:JSONDecode(readfile(WatermarkPath))
+				Items["Frame"].Instance.Position = UDim2New(0, Saved.X or 5, 0, Saved.Y or 5)
+			end)
+		end
+
+		local function BuildDynamicSuffix()
+			local Parts = {}
+
+			for _, OptionName in ipairs(Watermark.DynamicOptions) do
+				local Render = RenderFuncs[OptionName]
+
+				if Render then
+					TableInsert(Parts, Render())
+				end
+			end
+
+			if #Parts == 0 then
+				return ""
+			end
+
+			return " | " .. table.concat(Parts, " | ")
+		end
+
+		local function RefreshLabel()
+			local BaseText = Watermark.CustomText or FormatBrandRichText(Watermark.BrandName)
+
+			if Watermark.CustomText and not string.find(Watermark.CustomText, "<font", 1, true) then
+				BaseText = FormatBrandRichText(Watermark.CustomText)
+			end
+
+			if Watermark.Dynamic then
+				Items["Label"].Instance.Text = BaseText .. BuildDynamicSuffix()
+			else
+				Items["Label"].Instance.Text = BaseText
+			end
+
+			Items["AccentBar"].Instance.BackgroundColor3 = Library.Theme["Accent"]
 		end
 
 		function Watermark:SetText(Text)
-			Items["Text"].Instance.Text = tostring(Text)
+			Watermark.CustomText = Text and tostring(Text) or nil
+			RefreshLabel()
 		end
 
 		function Watermark:SetVisibility(Bool)
-			Items["Watermark"].Instance.Visible = Bool 
+			Items["Frame"].Instance.Visible = Bool
+		end
+
+		function Watermark:SetDynamic(Enabled, Options)
+			Watermark.Dynamic = Enabled == true
+
+			if Options then
+				Watermark.DynamicOptions = Options
+			end
+
+			RefreshLabel()
 		end
 
 		function Watermark:SetCenter()
-			local CenterPosition = Items["Watermark"].Instance.AbsolutePosition
+			local CenterPosition = Items["Frame"].Instance.AbsolutePosition
 
 			wait()
 
-			Items["Watermark"].Instance.AnchorPoint = Vector2New(0, 0)
-			Items["Watermark"].Instance.Position = UDim2New(0, CenterPosition.X, 0, CenterPosition.Y)
+			Items["Frame"].Instance.AnchorPoint = Vector2New(0, 0)
+			Items["Frame"].Instance.Position = UDim2New(0, CenterPosition.X, 0, CenterPosition.Y)
+			SavePosition()
 		end
 
-		Watermark:SetText(Name)
+		LoadPosition()
+		RefreshLabel()
 		Watermark:SetCenter()
 
-		return Watermark 
+		Library:Connect(RunService.RenderStepped, function(DeltaTime)
+			if not Items["Frame"].Instance.Visible then
+				return
+			end
+
+			if os.clock() - LastSample > 0.25 then
+				LastSample = os.clock()
+				TargetFPS = MathFloor(1 / math.max(DeltaTime, 1e-6))
+				TargetPing = GetPing()
+			end
+
+			local LerpAlpha = math.min(1, DeltaTime * 8)
+			DisplayFPS = DisplayFPS + (TargetFPS - DisplayFPS) * LerpAlpha
+			DisplayPing = DisplayPing + (TargetPing - DisplayPing) * LerpAlpha
+
+			if Watermark.Dynamic then
+				RefreshLabel()
+			end
+
+			if os.clock() - LastSave > 0.85 then
+				LastSave = os.clock()
+				SavePosition()
+			end
+		end)
+
+		Library.WatermarkGui = Items["WatermarkGui"]
+
+		return Watermark
 	end
 
 	Library.KeybindList = function(self, Name)
