@@ -1,4 +1,4 @@
-print("mudddy")
+warn("Hi boy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -859,6 +859,32 @@ local Library do
 			return false
 		end
 
+		local function GetDragScale(Gui)
+			if Library.Holder and Library.Holder.Instance and Gui:IsDescendantOf(Library.Holder.Instance) then
+				return Library.UIScaleNum or 1
+			end
+
+			return 1
+		end
+
+		local function NormalizeDragPosition(Gui)
+			local Parent = Gui.Parent
+
+			if not Parent or not Parent:IsA("GuiObject") then
+				return
+			end
+
+			local Scale = GetDragScale(Gui)
+			local AbsPos = Gui.AbsolutePosition
+			local ParentAbs = Parent.AbsolutePosition
+
+			Gui.AnchorPoint = Vector2New(0, 0)
+			Gui.Position = UDim2FromOffset(
+				(AbsPos.X - ParentAbs.X) / Scale,
+				(AbsPos.Y - ParentAbs.Y) / Scale
+			)
+		end
+
 		Instances.MakeDraggable = function(self)
 			if not self.Instance then 
 				return
@@ -868,16 +894,25 @@ local Library do
 
 			local Dragging = false 
 			local DragStart
-			local StartPosition 
+			local StartPosition
+			local MoveConnection
+			local EndConnection
 
-			local Set = function(Input)
-				local Scale = Library.UIScaleNum or 1
-				local DragDelta = (Input.Position - DragStart) / Scale
+			local function StopDrag()
+				Dragging = false
+				DragStart = nil
+				StartPosition = nil
 
-				self:Tween(TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2New(StartPosition.X.Scale, StartPosition.X.Offset + DragDelta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + DragDelta.Y)})
+				if MoveConnection then
+					MoveConnection:Disconnect()
+					MoveConnection = nil
+				end
+
+				if EndConnection then
+					EndConnection:Disconnect()
+					EndConnection = nil
+				end
 			end
-
-			local Changed
 
 			self:Connect("InputBegan", function(Input)
 				if Library.BlockWindowDrag or ShouldBlockWindowDrag(GetInputGuiTarget(Input)) then
@@ -885,38 +920,49 @@ local Library do
 				end
 
 				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-					Dragging = true
+					StopDrag()
 
-					DragStart = Input.Position
+					NormalizeDragPosition(Gui)
+
+					Dragging = true
+					DragStart = GetMouseLocation()
 					StartPosition = Gui.Position
 
-					if Changed then
-						return
-					end
+					MoveConnection = Library:Connect(UserInputService.InputChanged, function(MoveInput)
+						if not Dragging or not DragStart or not StartPosition then
+							return
+						end
 
-					Changed = Input.Changed:Connect(function()
-						if Input.UserInputState == Enum.UserInputState.End then
-							Dragging = false
+						if Library.BlockWindowDrag then
+							StopDrag()
+							return
+						end
 
-							if Changed then
-								Changed:Disconnect()
-								Changed = nil
-							end
+						if MoveInput.UserInputType ~= Enum.UserInputType.MouseMovement and MoveInput.UserInputType ~= Enum.UserInputType.Touch then
+							return
+						end
+
+						local Scale = GetDragScale(Gui)
+						local Mouse = GetMouseLocation()
+						local DragDelta = (Mouse - DragStart) / Scale
+
+						Gui.Position = UDim2New(
+							StartPosition.X.Scale,
+							StartPosition.X.Offset + DragDelta.X,
+							StartPosition.Y.Scale,
+							StartPosition.Y.Offset + DragDelta.Y
+						)
+					end)
+
+					EndConnection = Library:Connect(UserInputService.InputEnded, function(EndInput)
+						if not Dragging then
+							return
+						end
+
+						if EndInput.UserInputType == Enum.UserInputType.MouseButton1 or EndInput.UserInputType == Enum.UserInputType.Touch then
+							StopDrag()
 						end
 					end)
-				end
-			end)
-
-			Library:Connect(UserInputService.InputChanged, function(Input)
-				if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-					if Library.BlockWindowDrag then
-						Dragging = false
-						return
-					end
-
-					if Dragging then
-						Set(Input)
-					end
 				end
 			end)
 
@@ -984,6 +1030,8 @@ local Library do
 			}
 
 			local BeginResizing = function(Side)
+				NormalizeDragPosition(Gui)
+
 				Resizing = true
 				CurrentSide = Side
 
@@ -5177,17 +5225,23 @@ local Library do
 			local FloatingButtonDragging = false
 			local FloatingButtonDragStart
 			local FloatingButtonStartPosition
-			local FloatingButtonChanged
+			local FloatingButtonMoveConnection
+			local FloatingButtonEndConnection
 
-			local FloatingButtonSet = function(Input)
-				if Library.FloatingButtonLocked then
-					return
+			local function StopFloatingButtonDrag()
+				FloatingButtonDragging = false
+				FloatingButtonDragStart = nil
+				FloatingButtonStartPosition = nil
+
+				if FloatingButtonMoveConnection then
+					FloatingButtonMoveConnection:Disconnect()
+					FloatingButtonMoveConnection = nil
 				end
 
-				local Scale = Library.UIScaleNum or 1
-				local DragDelta = (Input.Position - FloatingButtonDragStart) / Scale
-
-				Items["FloatingButton"]:Tween(TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2New(FloatingButtonStartPosition.X.Scale, FloatingButtonStartPosition.X.Offset + DragDelta.X, FloatingButtonStartPosition.Y.Scale, FloatingButtonStartPosition.Y.Offset + DragDelta.Y)})
+				if FloatingButtonEndConnection then
+					FloatingButtonEndConnection:Disconnect()
+					FloatingButtonEndConnection = nil
+				end
 			end
 
 			Items["FloatingButton"]:Connect("InputBegan", function(Input)
@@ -5196,32 +5250,44 @@ local Library do
 						return
 					end
 
+					StopFloatingButtonDrag()
+
+					local FloatingGui = Items["FloatingButton"].Instance
+					NormalizeDragPosition(FloatingGui)
+
 					FloatingButtonDragging = true
-					FloatingButtonDragStart = Input.Position
-					FloatingButtonStartPosition = Items["FloatingButton"].Instance.Position
+					FloatingButtonDragStart = GetMouseLocation()
+					FloatingButtonStartPosition = FloatingGui.Position
 
-					if FloatingButtonChanged then
-						return
-					end
+					FloatingButtonMoveConnection = Library:Connect(UserInputService.InputChanged, function(MoveInput)
+						if not FloatingButtonDragging or Library.FloatingButtonLocked or not FloatingButtonDragStart or not FloatingButtonStartPosition then
+							return
+						end
 
-					FloatingButtonChanged = Input.Changed:Connect(function()
-						if Input.UserInputState == Enum.UserInputState.End then
-							FloatingButtonDragging = false
+						if MoveInput.UserInputType ~= Enum.UserInputType.MouseMovement and MoveInput.UserInputType ~= Enum.UserInputType.Touch then
+							return
+						end
 
-							if FloatingButtonChanged then
-								FloatingButtonChanged:Disconnect()
-								FloatingButtonChanged = nil
-							end
+						local Mouse = GetMouseLocation()
+						local DragDelta = Mouse - FloatingButtonDragStart
+
+						FloatingGui.Position = UDim2New(
+							FloatingButtonStartPosition.X.Scale,
+							FloatingButtonStartPosition.X.Offset + DragDelta.X,
+							FloatingButtonStartPosition.Y.Scale,
+							FloatingButtonStartPosition.Y.Offset + DragDelta.Y
+						)
+					end)
+
+					FloatingButtonEndConnection = Library:Connect(UserInputService.InputEnded, function(EndInput)
+						if not FloatingButtonDragging then
+							return
+						end
+
+						if EndInput.UserInputType == Enum.UserInputType.MouseButton1 or EndInput.UserInputType == Enum.UserInputType.Touch then
+							StopFloatingButtonDrag()
 						end
 					end)
-				end
-			end)
-
-			Library:Connect(UserInputService.InputChanged, function(Input)
-				if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-					if FloatingButtonDragging and not Library.FloatingButtonLocked then
-						FloatingButtonSet(Input)
-					end
 				end
 			end)
 
@@ -7414,7 +7480,6 @@ local Library do
 			Description = Data.Description or Data.description or nil,
 			Flag = Data.Flag or Data.flag or Library:NextFlag(),
 			Items = Data.Items or Data.items or { "One", "Two", "Three" },
-			MaxSize = Data.MaxSize or Data.maxsize or 280,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Default = Data.Default or Data.default or nil,
 			Callback = Data.Callback or Data.callback or function() end,
@@ -7428,6 +7493,13 @@ local Library do
 		}
 
 		local Items = {}
+
+		local HEADER_HEIGHT = 40
+		local FOOTER_HEIGHT = 8
+		local OPTION_HEIGHT = 25
+		local OPTION_PADDING = 5
+		local HOLDER_PADDING = 13
+		local DROPDOWN_HEIGHT_CAP = 240
 
 		Items["DropdownContainer"] = Instances:Create("Frame", {
 			Parent = Dropdown.Section.Items["Content"].Instance,
@@ -7567,7 +7639,7 @@ local Library do
 		Items["OptionHolder"] = Instances:Create("TextButton", {
 			Parent = Library.UnusedHolder.Instance,
 			Name = "\0",
-			Size = UDim2New(0, 155, 0, 125),
+			Size = UDim2New(0, 155, 0, HEADER_HEIGHT + OPTION_HEIGHT + HOLDER_PADDING + FOOTER_HEIGHT),
 			Position = UDim2New(0, 0, 0, 5),
 			AnchorPoint = Vector2New(0, 0),
 			BackgroundColor3 = Library.Theme["Background"],
@@ -7590,7 +7662,7 @@ local Library do
 		Items["Holder"] = Instances:Create("ScrollingFrame", {
 			Parent = Items["OptionHolder"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, -16, 1, -48),
+			Size = UDim2New(1, -16, 0, OPTION_HEIGHT + HOLDER_PADDING),
 			Position = UDim2New(0, 8, 0, 40),
 			BackgroundTransparency = 1,
 			BorderColor3 = FromRGB(0, 0, 0),
@@ -7706,29 +7778,99 @@ local Library do
 		local Debounce = false
 		local RenderStepped
 
+		local function CountVisibleOptions()
+			local Count = 0
+
+			for _, Child in Items["Holder"].Instance:GetChildren() do
+				if Child:IsA("TextButton") and Child.Visible then
+					Count += 1
+				end
+			end
+
+			return Count
+		end
+
+		local function GetListContentHeight()
+			local ListLayout = Items["Holder"].Instance:FindFirstChildOfClass("UIListLayout")
+			local HolderPadding = Items["Holder"].Instance:FindFirstChildOfClass("UIPadding")
+			local ContentHeight = 0
+
+			if ListLayout and ListLayout.AbsoluteContentSize.Y > 0 then
+				ContentHeight = ListLayout.AbsoluteContentSize.Y
+			else
+				local Count = CountVisibleOptions()
+
+				if Count <= 0 then
+					ContentHeight = OPTION_HEIGHT
+				else
+					ContentHeight = Count * OPTION_HEIGHT + math.max(0, Count - 1) * OPTION_PADDING
+				end
+			end
+
+			if HolderPadding then
+				ContentHeight += HolderPadding.PaddingTop.Offset + HolderPadding.PaddingBottom.Offset
+			else
+				ContentHeight += HOLDER_PADDING
+			end
+
+			return math.max(OPTION_HEIGHT + HOLDER_PADDING, ContentHeight)
+		end
+
+		local function UpdateListLayout()
+			local ListHeight = GetListContentHeight()
+			local MaxListHeight = math.max(OPTION_HEIGHT + HOLDER_PADDING, DROPDOWN_HEIGHT_CAP - HEADER_HEIGHT - FOOTER_HEIGHT)
+			local ClampedListHeight = math.min(ListHeight, MaxListHeight)
+			local NeedsScroll = ListHeight > ClampedListHeight + 0.5
+
+			Items["Holder"].Instance.Size = UDim2New(1, -16, 0, ClampedListHeight)
+			Items["Holder"].Instance.ScrollingEnabled = NeedsScroll
+			Items["Holder"].Instance.ScrollBarImageTransparency = NeedsScroll and 0 or 1
+
+			return HEADER_HEIGHT + ClampedListHeight + FOOTER_HEIGHT
+		end
+
+		local function ScheduleLayoutUpdate()
+			task.defer(function()
+				if not Library or not Items["Holder"] or not Items["Holder"].Instance then
+					return
+				end
+
+				if Dropdown.IsOpen then
+					UpdatePosition()
+				else
+					UpdateListLayout()
+				end
+			end)
+		end
+
 		local function UpdatePosition()
 			if not Library or not Items["OptionHolder"].Instance.Parent then return end
 
-			local Scale = (Library.Holder.Instance:FindFirstChildOfClass("UIScale") or {Scale = 1}).Scale
+			local Scale = Library.UIScaleNum or (Library.Holder.Instance:FindFirstChildOfClass("UIScale") or {Scale = 1}).Scale
 			local Button = Items["RealDropdown"].Instance
 			local MainFrame = Dropdown.Window.Items["MainFrame"].Instance
 			local MainFrameRight = MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X - 8
 			local MainFrameBottom = MainFrame.AbsolutePosition.Y + MainFrame.AbsoluteSize.Y - 8
+			local MainFrameTop = MainFrame.AbsolutePosition.Y + 8
 
-			local DropdownSize = Dropdown.MaxSize
+			local ContentHeight = UpdateListLayout()
 			local Left = math.max(Button.AbsolutePosition.X, MainFrame.AbsolutePosition.X + 8)
 			local Out = math.min(Button.AbsolutePosition.X + Button.AbsoluteSize.X, MainFrameRight) - Left
-			local Below = MainFrameBottom - (Button.AbsolutePosition.Y + Button.AbsoluteSize.Y + 5)
+			local Gap = 5
+			local OpenY = Button.AbsolutePosition.Y + Button.AbsoluteSize.Y + Gap
+			local Below = MainFrameBottom - OpenY
+			local Above = Button.AbsolutePosition.Y - Gap - MainFrameTop
+			local DropdownSize = math.min(ContentHeight, DROPDOWN_HEIGHT_CAP, math.max(Below, Above))
 
 			if Below >= DropdownSize then
-				Items["OptionHolder"].Instance.Position = UDim2New(0, Left / Scale, 0, (Button.AbsolutePosition.Y + Button.AbsoluteSize.Y + 5) / Scale)
-				Items["OptionHolder"].Instance.Size = UDim2New(0, Out / Scale, 0, (math.min(Button.AbsolutePosition.Y + Button.AbsoluteSize.Y + 5 + DropdownSize, MainFrameBottom) - (Button.AbsolutePosition.Y + Button.AbsoluteSize.Y + 5)) / Scale)
+				Items["OptionHolder"].Instance.Position = UDim2New(0, Left / Scale, 0, OpenY / Scale)
+				Items["OptionHolder"].Instance.Size = UDim2New(0, Out / Scale, 0, math.min(DropdownSize, Below) / Scale)
 			else
-				local List = Button.AbsolutePosition.Y - 5
-				local Top = math.max(List - DropdownSize, MainFrame.AbsolutePosition.Y + 8)
+				local CloseY = Button.AbsolutePosition.Y - Gap
+				local Top = math.max(CloseY - DropdownSize, MainFrameTop)
 
 				Items["OptionHolder"].Instance.Position = UDim2New(0, Left / Scale, 0, Top / Scale)
-				Items["OptionHolder"].Instance.Size = UDim2New(0, Out / Scale, 0, (List - Top) / Scale)
+				Items["OptionHolder"].Instance.Size = UDim2New(0, Out / Scale, 0, (CloseY - Top) / Scale)
 			end
 		end
 
@@ -7765,6 +7907,7 @@ local Library do
 				Items["OptionHolder"].Instance.Parent = Library.Holder.Instance
 
 				UpdatePosition()
+				ScheduleLayoutUpdate()
 
 				RenderStepped = RunService.RenderStepped:Connect(function()
 					if not Library then return end
@@ -8004,6 +8147,8 @@ local Library do
 			end)
 
 			Dropdown.Options[OptionData.Name] = OptionData
+			ScheduleLayoutUpdate()
+
 			return OptionData
 		end
 
@@ -8011,15 +8156,18 @@ local Library do
 			if Dropdown.Options[Option] then
 				Dropdown.Options[Option].Button:Clean()
 				Dropdown.Options[Option] = nil
+				ScheduleLayoutUpdate()
 			end
 		end
 
 		function Dropdown:Refresh(List)
-			for Index, Value in Dropdown.Options do
-				Dropdown:Remove(Value.Name)
+			for _, OptionData in Dropdown.Options do
+				OptionData.Button:Clean()
 			end
 
-			for Index, Value in List do
+			Dropdown.Options = {}
+
+			for _, Value in List do
 				Dropdown:Add(Value)
 			end
 		end
@@ -8081,6 +8229,8 @@ local Library do
 					Value.Button.Instance.Visible = false
 				end
 			end
+
+			ScheduleLayoutUpdate()
 		end)
 
 		Items["RealDropdown"]:Connect("Changed", function(Property)
@@ -8093,6 +8243,8 @@ local Library do
 		for Index, Value in Dropdown.Items do
 			Dropdown:Add(Value)
 		end
+
+		UpdateListLayout()
 
 		if Dropdown.Default then
 			Dropdown:Set(Dropdown.Default)
