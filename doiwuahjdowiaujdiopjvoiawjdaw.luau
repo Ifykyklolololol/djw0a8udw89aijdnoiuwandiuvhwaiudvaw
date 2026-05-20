@@ -1,4 +1,4 @@
-warn("Hi boy")
+warn("CMON MAN")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -898,20 +898,24 @@ local Library do
 			local MoveConnection
 			local EndConnection
 
+			local function DisconnectDragConnection(Connection)
+				if Connection then
+					pcall(function()
+						Connection:Disconnect()
+					end)
+				end
+			end
+
 			local function StopDrag()
 				Dragging = false
 				DragStart = nil
 				StartPosition = nil
 
-				if MoveConnection then
-					MoveConnection:Disconnect()
-					MoveConnection = nil
-				end
+				DisconnectDragConnection(MoveConnection)
+				MoveConnection = nil
 
-				if EndConnection then
-					EndConnection:Disconnect()
-					EndConnection = nil
-				end
+				DisconnectDragConnection(EndConnection)
+				EndConnection = nil
 			end
 
 			self:Connect("InputBegan", function(Input)
@@ -928,7 +932,7 @@ local Library do
 					DragStart = GetMouseLocation()
 					StartPosition = Gui.Position
 
-					MoveConnection = Library:Connect(UserInputService.InputChanged, function(MoveInput)
+					MoveConnection = UserInputService.InputChanged:Connect(function(MoveInput)
 						if not Dragging or not DragStart or not StartPosition then
 							return
 						end
@@ -954,7 +958,7 @@ local Library do
 						)
 					end)
 
-					EndConnection = Library:Connect(UserInputService.InputEnded, function(EndInput)
+					EndConnection = UserInputService.InputEnded:Connect(function(EndInput)
 						if not Dragging then
 							return
 						end
@@ -5234,12 +5238,16 @@ local Library do
 				FloatingButtonStartPosition = nil
 
 				if FloatingButtonMoveConnection then
-					FloatingButtonMoveConnection:Disconnect()
+					pcall(function()
+						FloatingButtonMoveConnection:Disconnect()
+					end)
 					FloatingButtonMoveConnection = nil
 				end
 
 				if FloatingButtonEndConnection then
-					FloatingButtonEndConnection:Disconnect()
+					pcall(function()
+						FloatingButtonEndConnection:Disconnect()
+					end)
 					FloatingButtonEndConnection = nil
 				end
 			end
@@ -5259,7 +5267,7 @@ local Library do
 					FloatingButtonDragStart = GetMouseLocation()
 					FloatingButtonStartPosition = FloatingGui.Position
 
-					FloatingButtonMoveConnection = Library:Connect(UserInputService.InputChanged, function(MoveInput)
+					FloatingButtonMoveConnection = UserInputService.InputChanged:Connect(function(MoveInput)
 						if not FloatingButtonDragging or Library.FloatingButtonLocked or not FloatingButtonDragStart or not FloatingButtonStartPosition then
 							return
 						end
@@ -5279,7 +5287,7 @@ local Library do
 						)
 					end)
 
-					FloatingButtonEndConnection = Library:Connect(UserInputService.InputEnded, function(EndInput)
+					FloatingButtonEndConnection = UserInputService.InputEnded:Connect(function(EndInput)
 						if not FloatingButtonDragging then
 							return
 						end
