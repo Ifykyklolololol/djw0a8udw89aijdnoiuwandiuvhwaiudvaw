@@ -1,4 +1,4 @@
-warn("buddd")
+print("dididdididj")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -85,6 +85,47 @@ local Library do
 	local RunService = cloneref(game:GetService("RunService"))
 	local Workspace = cloneref(game:GetService("Workspace"))
 	local GuiService = cloneref(game:GetService("GuiService"))
+	local ContextActionService = cloneref(game:GetService("ContextActionService"))
+
+	local BlockedWindowInputs = {
+		Enum.KeyCode.W,
+		Enum.KeyCode.A,
+		Enum.KeyCode.S,
+		Enum.KeyCode.D,
+		Enum.KeyCode.Space,
+		Enum.KeyCode.LeftShift,
+		Enum.KeyCode.RightShift,
+		Enum.KeyCode.LeftControl,
+		Enum.KeyCode.RightControl,
+		Enum.KeyCode.LeftAlt,
+		Enum.KeyCode.RightAlt,
+		Enum.KeyCode.Up,
+		Enum.KeyCode.Down,
+		Enum.KeyCode.Left,
+		Enum.KeyCode.Right,
+		Enum.KeyCode.Return,
+		Enum.KeyCode.KeypadEnter,
+		Enum.KeyCode.Slash,
+		Enum.KeyCode.Backquote,
+		Enum.KeyCode.Tab,
+		Enum.KeyCode.E,
+		Enum.KeyCode.Q,
+		Enum.KeyCode.R,
+		Enum.KeyCode.F,
+		Enum.KeyCode.C,
+		Enum.KeyCode.Z,
+		Enum.KeyCode.X,
+		Enum.KeyCode.One,
+		Enum.KeyCode.Two,
+		Enum.KeyCode.Three,
+		Enum.KeyCode.Four,
+		Enum.KeyCode.Five,
+		Enum.KeyCode.Six,
+		Enum.KeyCode.Seven,
+		Enum.KeyCode.Eight,
+		Enum.KeyCode.Nine,
+		Enum.KeyCode.Zero,
+	}
 
 	local GetUI = gethui or function()
 		local Success, Result = pcall(function()
@@ -206,6 +247,8 @@ local Library do
 		BlockWindowDrag = false,
 
 		WindowOpenState = false,
+		InputBlockAction = "SOLIX_UI_INPUT_BLOCK",
+		InputBlocker = nil,
 		MouseStateBeforeOpen = nil,
 		BackgroundEffects = nil,
 		BackgroundHolder = nil,
@@ -1415,6 +1458,19 @@ local Library do
 
 	wait()
 
+	Library.InputBlocker = Instances:Create("TextButton", {
+		Parent = Library.Holder.Instance,
+		Name = "\0",
+		Visible = false,
+		Modal = true,
+		AutoButtonColor = false,
+		Active = true,
+		Size = UDim2New(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text = "",
+		ZIndex = 0,
+	})
+
 	Library.NotifHolder = Instances:Create("Frame", {
 		Parent = Library.Holder.Instance,
 		Name = "\0",
@@ -1680,6 +1736,8 @@ local Library do
 			end)
 			self.BackgroundHolder = nil
 		end
+
+		self:ApplyWindowInputState(false)
 
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -2034,6 +2092,59 @@ local Library do
 		end
 	end
 
+	Library.ApplyWindowInputState = function(self, Bool)
+		if self.InputBlocker and self.InputBlocker.Instance then
+			self.InputBlocker.Instance.Visible = Bool and true or false
+		end
+
+		if Bool then
+			ContextActionService:BindActionAtPriority(self.InputBlockAction, function(_, State, Input)
+				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if Input and (tostring(Input.KeyCode) == self.MenuKeybind or tostring(Input.UserInputType) == self.MenuKeybind) then
+					return Enum.ContextActionResult.Pass
+				end
+
+				return Enum.ContextActionResult.Sink
+			end, false, 5000,
+				Enum.UserInputType.Gamepad1,
+				Enum.UserInputType.Gamepad2,
+				Enum.UserInputType.Gamepad3,
+				Enum.UserInputType.Gamepad4,
+				Enum.UserInputType.Gamepad5,
+				Enum.UserInputType.Gamepad6,
+				Enum.UserInputType.Gamepad7,
+				Enum.UserInputType.Gamepad8,
+				Enum.UserInputType.MouseWheel,
+				Enum.UserInputType.MouseButton2,
+				Enum.UserInputType.MouseButton3
+			)
+
+			ContextActionService:BindActionAtPriority(self.InputBlockAction .. "_KEYS", function(_, State)
+				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				return Enum.ContextActionResult.Sink
+			end, false, 5000, table.unpack(BlockedWindowInputs))
+
+			return
+		end
+
+		ContextActionService:UnbindAction(self.InputBlockAction)
+		ContextActionService:UnbindAction(self.InputBlockAction .. "_KEYS")
+	end
+
 	Library.SetupBackgroundEffects = function(self)
 		if self.BackgroundEffects then
 			return
@@ -2270,6 +2381,8 @@ local Library do
 	end
 
 	Library:SetupBackgroundEffects()
+	Library:SetBackgroundEffectsVisible(false, true)
+	Library:ApplyWindowInputState(false)
 
 	Library.Lerp = function(self, Start, Finish, Time)
 		return Start + (Finish - Start) * Time
@@ -6120,6 +6233,7 @@ local Library do
 			Library.WindowOpenState = Bool
 
 			Library:ApplyMouseForMenu(Bool)
+			Library:ApplyWindowInputState(Bool)
 			Library:SetBackgroundEffectsVisible(Bool)
 
 			Debounce = true 
@@ -6355,7 +6469,7 @@ local Library do
 		}
 
 		local PAGE_TOP_OFFSET = 43
-		local SUBPAGE_BAR_HEIGHT = 36
+		local SUBPAGE_BAR_HEIGHT = 38
 
 		local Items = {} do
 			Items["Inactive"] = Instances:Create("TextButton", {
@@ -6445,7 +6559,7 @@ local Library do
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubPages"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 10),
+				Padding = UDimNew(0, 4),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -6693,14 +6807,15 @@ local Library do
 		local SUBTAB_BG_ACTIVE_Z = 20
 		local SUBTAB_LINER_Z = 24
 		local SUBTAB_TEXT_Z = 25
-		local SUBTAB_PAD_H = 50
+		local SUBTAB_PAD_H = 58
+		local SUBTAB_HEIGHT = 34
 		local SUBTAB_LINER_INSET = 10
 
 		local Items = {} do
 			Items["Tab"] = Instances:Create("Frame", {
 				Parent = ParentPage.Items["SubPages"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 31),
+				Size = UDim2New(0, 0, 0, SUBTAB_HEIGHT),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.X,
@@ -6712,7 +6827,7 @@ local Library do
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
 				Size = UDim2New(0, 0, 0, 15),
-				Position = UDim2New(0, 0, 0, 20),
+				Position = UDim2New(0, 0, 0.5, 0),
 				AnchorPoint = Vector2New(0, 0.5),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -6762,7 +6877,7 @@ local Library do
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 0, 15),
-				Position = UDim2New(0, 0, 0, 20),
+				Position = UDim2New(0, 0, 0.5, 0),
 				AnchorPoint = Vector2New(0, 0.5),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -10386,7 +10501,7 @@ local Library do
 					Name = "Background Darken",
 					Flag = "Background Darken",
 					Description = "Dark overlay and blur while menu is open",
-					Default = Library.BackgroundDarkenEnabled,
+					Default = true,
 					Callback = function(Value)
 						Library:SetBackgroundDarkenEnabled(Value)
 					end
@@ -10396,7 +10511,7 @@ local Library do
 					Name = "Background Snow",
 					Flag = "Background Snow",
 					Description = "Snow effect while menu is open",
-					Default = Library.BackgroundSnowEnabled,
+					Default = true,
 					Callback = function(Value)
 						Library:SetBackgroundSnowEnabled(Value)
 					end
