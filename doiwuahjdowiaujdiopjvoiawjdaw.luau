@@ -1,4 +1,4 @@
-print("boy aint no way boy")
+warn("buddd")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6693,8 +6693,8 @@ local Library do
 		local SUBTAB_BG_ACTIVE_Z = 20
 		local SUBTAB_LINER_Z = 24
 		local SUBTAB_TEXT_Z = 25
-		local SUBTAB_PAD_H = 20
-		local SUBTAB_LINER_INSET = 8
+		local SUBTAB_PAD_H = 50
+		local SUBTAB_LINER_INSET = 10
 
 		local Items = {} do
 			Items["Tab"] = Instances:Create("Frame", {
@@ -6706,6 +6706,22 @@ local Library do
 				AutomaticSize = Enum.AutomaticSize.X,
 				ClipsDescendants = false,
 				ZIndex = SUBTAB_BG_Z,
+			})
+
+			Items["TabSizer"] = Instances:Create("TextLabel", {
+				Parent = Items["Tab"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, 0, 0, 15),
+				Position = UDim2New(0, 0, 0, 20),
+				AnchorPoint = Vector2New(0, 0.5),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = SubPage.Name,
+				TextSize = 13,
+				FontFace = Library.Font,
+				TextTransparency = 1,
+				AutomaticSize = Enum.AutomaticSize.X,
+				ZIndex = 0,
 			})
 
 			Items["TabBg"] = Instances:Create("Frame", {
@@ -6745,9 +6761,9 @@ local Library do
 			Items["TabText"] = Instances:Create("TextLabel", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 15),
-				Position = UDim2New(0.5, 0, 0, 20),
-				AnchorPoint = Vector2New(0.5, 0.5),
+				Size = UDim2New(1, 0, 0, 15),
+				Position = UDim2New(0, 0, 0, 20),
+				AnchorPoint = Vector2New(0, 0.5),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Text = SubPage.Name,
@@ -6755,7 +6771,7 @@ local Library do
 				TextSize = 13,
 				FontFace = Library.Font,
 				TextTransparency = 0.4,
-				AutomaticSize = Enum.AutomaticSize.X,
+				TextXAlignment = Enum.TextXAlignment.Center,
 				ZIndex = SUBTAB_TEXT_Z,
 			}):AddToTheme({TextColor3 = "Text"})
 
