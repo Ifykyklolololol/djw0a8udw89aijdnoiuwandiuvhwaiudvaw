@@ -1,4 +1,4 @@
-print("mud")
+warn("bruhh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6254,7 +6254,7 @@ local Library do
 			SearchInPage(Library.SearchItems[CurrentPage])
 
 			if CurrentPage.HasSubPages then
-				for _, SubPage in CurrentPage.Pages do
+				for _, SubPage in CurrentPage.SubPages do
 					SearchInPage(Library.SearchItems[SubPage])
 				end
 			end
@@ -6328,7 +6328,8 @@ local Library do
 
 			Items = {},
 			ColumnsData = {},
-			Pages = {},
+			SubPages = {},
+			ActiveSubPage = nil,
 			HasSubPages = false,
 			Active = false,
 		}
@@ -6549,36 +6550,36 @@ local Library do
 		end
 
 		function Page:SetActiveSubPage(ActiveSubPage)
-			if not Items["SubPageHolder"] then
+			local Holder = self.Items["SubPageHolder"]
+			if not Holder or not ActiveSubPage then
 				return
 			end
 
-			for _, SubPage in Page.Pages do
+			self.ActiveSubPage = ActiveSubPage
+
+			for _, SubPage in self.SubPages do
 				local SubItems = SubPage.Items
 				local SubFrame = SubItems["SubPage"].Instance
+				local IsActive = SubPage == ActiveSubPage
 
-				if SubPage == ActiveSubPage then
-					SubPage.Active = true
-					SubFrame.Parent = Items["SubPageHolder"].Instance
-					SubFrame.Position = UDim2New(0, 0, 0, 0)
-					SubFrame.Size = UDim2New(1, 0, 1, 0)
-					SubFrame.Visible = true
-					SubFrame.ZIndex = 2
+				SubPage.Active = IsActive
+				SubFrame.Parent = Holder.Instance
+				SubFrame.Position = UDim2New(0, 0, 0, 0)
+				SubFrame.Size = UDim2New(1, 0, 1, 0)
+				SubFrame.Visible = IsActive
+				SubFrame.ZIndex = IsActive and 2 or 1
 
+				if IsActive then
 					if SubPage.UpdateColumnLayout then
 						SubPage.UpdateColumnLayout()
 						defer(SubPage.UpdateColumnLayout)
+						task.delay(0.05, SubPage.UpdateColumnLayout)
 					end
 
 					SubItems["Tab"]:Tween(nil, {BackgroundTransparency = 0})
 					SubItems["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
 					SubItems["TabText"]:Tween(nil, {TextTransparency = 0})
 				else
-					SubPage.Active = false
-					SubFrame.Visible = false
-					SubFrame.Parent = Library.UnusedHolder.Instance
-					SubFrame.ZIndex = 1
-
 					SubItems["Tab"]:Tween(nil, {BackgroundTransparency = 1})
 					SubItems["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 0)})
 					SubItems["TabText"]:Tween(nil, {TextTransparency = 0.4})
@@ -6627,28 +6628,8 @@ local Library do
 				wait()
 				Library.CurrentPage = Page
 
-				if Page.HasSubPages then
-					local HasActiveSubPage = false
-
-					for _, SubPage in Page.Pages do
-						if SubPage.Active then
-							HasActiveSubPage = true
-							break
-						end
-					end
-
-					if Page.Pages[1] then
-						local ActiveSubPage = nil
-
-						for _, SubPage in Page.Pages do
-							if SubPage.Active then
-								ActiveSubPage = SubPage
-								break
-							end
-						end
-
-						Page:SetActiveSubPage(ActiveSubPage or Page.Pages[1])
-					end
+				if Page.HasSubPages and Page.SubPages[1] then
+					Page:SetActiveSubPage(Page.ActiveSubPage or Page.SubPages[1])
 				elseif Page.UpdateColumnLayout then
 					defer(Page.UpdateColumnLayout)
 				end
@@ -6661,11 +6642,15 @@ local Library do
 				Items["Page"].Instance.Parent = Library.UnusedHolder.Instance
 
 				if Page.HasSubPages then
-					for _, SubPage in Page.Pages do
-						if SubPage.Active then
-							SubPage:Turn(false)
+					for _, SubPage in Page.SubPages do
+						SubPage.Active = false
+
+						if SubPage.Items and SubPage.Items["SubPage"] then
+							SubPage.Items["SubPage"].Instance.Visible = false
 						end
 					end
+
+					Page.ActiveSubPage = nil
 				end
 			end
 		end
@@ -6794,8 +6779,9 @@ local Library do
 				PaddingRight = UDimNew(0, 10),
 			})
 
+			local SubPageHolder = ParentPage.Items["SubPageHolder"]
 			Items["SubPage"] = Instances:Create("Frame", {
-				Parent = Library.UnusedHolder.Instance,
+				Parent = SubPageHolder and SubPageHolder.Instance or Library.UnusedHolder.Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 1, 0),
 				Position = UDim2New(0, 0, 0, 0),
@@ -6804,7 +6790,7 @@ local Library do
 				BorderSizePixel = 0,
 				ClipsDescendants = true,
 				Visible = false,
-				ZIndex = 2,
+				ZIndex = 1,
 			})
 
 			for Index = 1, SubPage.Columns do
@@ -6859,10 +6845,11 @@ local Library do
 
 		function SubPage:Turn(Bool)
 			if Bool then
-				if ParentPage.Active and ParentPage.Items["SubPageHolder"] then
+				if ParentPage.Items["SubPageHolder"] then
 					ParentPage:SetActiveSubPage(SubPage)
 				else
 					SubPage.Active = true
+					ParentPage.ActiveSubPage = SubPage
 					Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
 					Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
 					Items["TabText"]:Tween(nil, {TextTransparency = 0})
@@ -6870,7 +6857,10 @@ local Library do
 			else
 				SubPage.Active = false
 				Items["SubPage"].Instance.Visible = false
-				Items["SubPage"].Instance.Parent = Library.UnusedHolder.Instance
+
+				if ParentPage.ActiveSubPage == SubPage then
+					ParentPage.ActiveSubPage = nil
+				end
 
 				Items["Tab"]:Tween(nil, {BackgroundTransparency = 1})
 				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 0)})
@@ -6879,21 +6869,13 @@ local Library do
 		end
 
 		Items["Tab"]:Connect("MouseButton1Down", function()
-			if SubPage.Active then
-				return
-			end
-
 			ParentPage:SetActiveSubPage(SubPage)
 		end)
 
-		TableInsert(ParentPage.Pages, SubPage)
+		TableInsert(ParentPage.SubPages, SubPage)
 
-		if #ParentPage.Pages == 1 then
-			if ParentPage.Active and ParentPage.Items["SubPageHolder"] then
-				ParentPage:SetActiveSubPage(SubPage)
-			else
-				SubPage.Active = true
-			end
+		if #ParentPage.SubPages == 1 then
+			ParentPage:SetActiveSubPage(SubPage)
 		end
 
 		return setmetatable(SubPage, Library.Pages)
