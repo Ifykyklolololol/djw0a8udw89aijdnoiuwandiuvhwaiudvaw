@@ -1,4 +1,4 @@
-print("CMON MAN")
+warn("YEah boiy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6620,28 +6620,32 @@ local Library do
 	local function BindTwoColumnLayout(Container, ColumnsData)
 		local function Update()
 			local Width = Container.AbsoluteSize.X
-			if Width < 2 then
+			local Height = Container.AbsoluteSize.Y
+			if Width < 2 or Height < 2 then
 				return
 			end
 
-			local EachWidth = math.floor((Width - COLUMN_GAP) / 2)
+			local HalfWidth = math.floor((Width - COLUMN_GAP) / 2)
+			local Column1 = ColumnsData[1]
+			local Column2 = ColumnsData[2]
 
-			for Index = 1, 2 do
-				local Column = ColumnsData[Index]
-				if Column then
-					Column.Instance.Size = UDim2New(0, EachWidth, 1, 0)
-				end
+			if Column1 then
+				Column1.Instance.AnchorPoint = Vector2New(0, 0)
+				Column1.Instance.Position = UDim2New(0, 0, 0, 0)
+				Column1.Instance.Size = UDim2New(0, HalfWidth, 1, 0)
+			end
+
+			if Column2 then
+				Column2.Instance.AnchorPoint = Vector2New(0, 0)
+				Column2.Instance.Position = UDim2New(0, HalfWidth + COLUMN_GAP, 0, 0)
+				Column2.Instance.Size = UDim2New(0, HalfWidth, 1, 0)
 			end
 		end
 
 		Container:GetPropertyChangedSignal("AbsoluteSize"):Connect(Update)
-
-		local Layout = Container:FindFirstChildOfClass("UIListLayout")
-		if Layout then
-			Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(Update)
-		end
-
 		defer(Update)
+
+		return Update
 	end
 
 	Library.Page = function(self, Data)
@@ -6733,6 +6737,7 @@ local Library do
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
+				ClipsDescendants = true,
 				ZIndex = 2,
 				Visible = false
 			})
@@ -6774,15 +6779,8 @@ local Library do
 					BackgroundTransparency = 1,
 					BorderColor3 = FromRGB(0, 0, 0),
 					BorderSizePixel = 0,
+					ClipsDescendants = true,
 					ZIndex = 2
-				})
-
-				Instances:Create("UIListLayout", {
-					Parent = Items["Columns"].Instance,
-					Name = "\0",
-					Padding = UDimNew(0, COLUMN_GAP),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-					FillDirection = Enum.FillDirection.Horizontal,
 				})
 
 				for Index = 1, Page.Columns do 
@@ -6794,6 +6792,7 @@ local Library do
 						BackgroundTransparency = 1,
 						BorderColor3 = FromRGB(0, 0, 0),
 						BorderSizePixel = 0,
+						ClipsDescendants = true,
 						Active = true,
 						ZIndex = 2,
 						AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -6815,7 +6814,7 @@ local Library do
 					Instances:Create("UIPadding", {
 						Parent = NewColumn.Instance,
 						Name = "\0",
-						PaddingRight = UDimNew(0, 12),
+						PaddingRight = UDimNew(0, 4),
 						PaddingBottom = UDimNew(0, 24)
 					})
 
@@ -6829,7 +6828,7 @@ local Library do
 					Page.ColumnsData[Index] = NewColumn
 				end
 
-				BindTwoColumnLayout(Items["Columns"].Instance, Page.ColumnsData)
+				Page.UpdateColumnLayout = BindTwoColumnLayout(Items["Columns"].Instance, Page.ColumnsData)
 			else
 				Items["Page"].Instance.Size = UDim2New(1, 0, 1, -43)
 				Items["Page"].Instance.Position = UDim2New(0, 0, 0, 43)
@@ -6921,6 +6920,8 @@ local Library do
 					if not HasActiveSubPage and Page.Pages[1] then
 						Page.Pages[1]:Turn(true)
 					end
+				elseif Page.UpdateColumnLayout then
+					defer(Page.UpdateColumnLayout)
 				end
 			else
 				Items["Liner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(0, 6, 0, 0)})
@@ -6983,10 +6984,47 @@ local Library do
 		end
 
 		local Items = {} do
-			Items["Tab"] = Instances:Create("TextButton", {
+			Items["TabHolder"] = Instances:Create("Frame", {
 				Parent = ParentPage.Items["SubPages"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 28),
+				Size = UDim2New(0, 0, 0, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				ZIndex = 2,
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = Items["TabHolder"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, 0),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			})
+
+			Items["TabLiner"] = Instances:Create("Frame", {
+				Parent = Items["TabHolder"].Instance,
+				Name = "\0",
+				LayoutOrder = 0,
+				Size = UDim2New(1, 0, 0, 0),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 3,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Instances:Create("UICorner", {
+				Parent = Items["TabLiner"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(0, 2),
+			})
+
+			Items["Tab"] = Instances:Create("TextButton", {
+				Parent = Items["TabHolder"].Instance,
+				Name = "\0",
+				LayoutOrder = 1,
+				Size = UDim2New(1, 0, 0, 28),
 				BackgroundColor3 = Library.Theme["Inline"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -7003,30 +7041,12 @@ local Library do
 				CornerRadius = UDimNew(0, 5),
 			})
 
-			Items["TabLiner"] = Instances:Create("Frame", {
-				Parent = Items["Tab"].Instance,
-				Name = "\0",
-				Size = UDim2New(0, 6, 0, 0),
-				Position = UDim2New(0, -3, 0.5, 0),
-				AnchorPoint = Vector2New(0, 0.5),
-				BackgroundColor3 = Library.Theme["Accent"],
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				ZIndex = 2,
-			}):AddToTheme({BackgroundColor3 = "Accent"})
-
-			Instances:Create("UICorner", {
-				Parent = Items["TabLiner"].Instance,
-				Name = "\0",
-				CornerRadius = UDimNew(1, 0),
-			})
-
 			Items["TabText"] = Instances:Create("TextLabel", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
 				Size = UDim2New(0, 0, 0, 15),
-				Position = UDim2New(0, 4, 0.5, 0),
-				AnchorPoint = Vector2New(0, 0.5),
+				Position = UDim2New(0.5, 0, 0.5, 0),
+				AnchorPoint = Vector2New(0.5, 0.5),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Text = SubPage.Name,
@@ -7041,7 +7061,7 @@ local Library do
 			Instances:Create("UIPadding", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				PaddingLeft = UDimNew(0, 6),
+				PaddingLeft = UDimNew(0, 10),
 				PaddingRight = UDimNew(0, 10),
 			})
 
@@ -7049,18 +7069,13 @@ local Library do
 				Parent = Library.UnusedHolder.Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 1, 0),
+				Position = UDim2New(0, 0, 0, 0),
+				AnchorPoint = Vector2New(0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				ClipsDescendants = true,
 				Visible = false,
 				ZIndex = 2,
-			})
-
-			Instances:Create("UIListLayout", {
-				Parent = Items["SubPage"].Instance,
-				Name = "\0",
-				Padding = UDimNew(0, COLUMN_GAP),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				FillDirection = Enum.FillDirection.Horizontal,
 			})
 
 			for Index = 1, SubPage.Columns do
@@ -7070,6 +7085,7 @@ local Library do
 					Size = UDim2New(0, 100, 1, 0),
 					BackgroundTransparency = 1,
 					BorderSizePixel = 0,
+					ClipsDescendants = true,
 					Active = true,
 					ZIndex = 2,
 					AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -7091,7 +7107,7 @@ local Library do
 				Instances:Create("UIPadding", {
 					Parent = NewColumn.Instance,
 					Name = "\0",
-					PaddingRight = UDimNew(0, 12),
+					PaddingRight = UDimNew(0, 4),
 					PaddingBottom = UDimNew(0, 24),
 				})
 
@@ -7105,7 +7121,7 @@ local Library do
 				SubPage.ColumnsData[Index] = NewColumn
 			end
 
-			BindTwoColumnLayout(Items["SubPage"].Instance, SubPage.ColumnsData)
+			SubPage.UpdateColumnLayout = BindTwoColumnLayout(Items["SubPage"].Instance, SubPage.ColumnsData)
 
 			SubPage.Items = Items
 		end
@@ -7124,19 +7140,25 @@ local Library do
 
 				if ParentPage.Active and ParentPage.Items["Columns"] then
 					Items["SubPage"].Instance.Parent = ParentPage.Items["Columns"].Instance
+					Items["SubPage"].Instance.Position = UDim2New(0, 0, 0, 0)
+					Items["SubPage"].Instance.Size = UDim2New(1, 0, 1, 0)
 					Items["SubPage"].Instance.Visible = true
+
+					if SubPage.UpdateColumnLayout then
+						defer(SubPage.UpdateColumnLayout)
+					end
 				end
 
 				Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
-				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(0, 6, 1, -12)})
-				Items["TabText"]:Tween(nil, {TextTransparency = 0, Position = UDim2New(0, 12, 0.5, 0)})
+				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
+				Items["TabText"]:Tween(nil, {TextTransparency = 0})
 			else
 				Items["SubPage"].Instance.Visible = false
 				Items["SubPage"].Instance.Parent = Library.UnusedHolder.Instance
 
 				Items["Tab"]:Tween(nil, {BackgroundTransparency = 1})
-				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(0, 6, 0, 0)})
-				Items["TabText"]:Tween(nil, {TextTransparency = 0.4, Position = UDim2New(0, 4, 0.5, 0)})
+				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 0)})
+				Items["TabText"]:Tween(nil, {TextTransparency = 0.4})
 			end
 		end
 
@@ -7183,7 +7205,7 @@ local Library do
 		Items["Section"] = Instances:Create("Frame", {
 			Parent = Section.Page.ColumnsData[Section.Side].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 28),
+			Size = UDim2New(1, -8, 0, 28),
 			BackgroundColor3 = Library.Theme["Inline"],
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
@@ -7205,7 +7227,7 @@ local Library do
 		Items["Header"] = Instances:Create("TextButton", {
 			Parent = Items["Section"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 28),
+			Size = UDim2New(1, -8, 0, 28),
 			Position = UDim2New(0, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
@@ -7466,7 +7488,7 @@ local Library do
 		Items["Section"] = Instances:Create("Frame", {
 			Parent = Section.Page.ColumnsData[Section.Side].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 28),
+			Size = UDim2New(1, -8, 0, 28),
 			BackgroundColor3 = Library.Theme["Inline"],
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
