@@ -1,4 +1,4 @@
-warn("Boyyy")
+print("buddd")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6381,6 +6381,111 @@ local Library do
 
 		function Radar:GetBounds()
 			return Items["RadarBounds"].Instance.AbsoluteSize
+		end
+
+		local function GetCameraCFrame()
+			local Camera = Workspace.CurrentCamera
+			return Camera and Camera.CFrame or CFrame.new()
+		end
+
+		function Radar:GetCameraCFrame()
+			return GetCameraCFrame()
+		end
+
+		function Radar:GetCameraPosition()
+			return GetCameraCFrame().Position
+		end
+
+		function Radar:GetCameraYaw()
+			local Look = GetCameraCFrame().LookVector
+			local Flat = Vector3.new(Look.X, 0, Look.Z)
+
+			if Flat.Magnitude < 1e-4 then
+				return 0
+			end
+
+			return math.atan2(-Flat.X, -Flat.Z)
+		end
+
+		function Radar:WorldToRadar(WorldPosition, Origin)
+			if typeof(WorldPosition) ~= "Vector3" then
+				return nil
+			end
+
+			local CameraCFrame = GetCameraCFrame()
+			Origin = Origin or CameraCFrame.Position
+			local Local = CameraCFrame:VectorToObjectSpace(WorldPosition - Origin)
+			local Right = Local.X
+			local Forward = -Local.Z
+
+			local Bounds = Items["RadarBounds"].Instance.AbsoluteSize
+			local HalfX = Bounds.X * 0.5
+			local HalfY = Bounds.Y * 0.5
+			local Range = math.max(Radar.Range or 250, 1)
+			local Scale = math.min(HalfX, HalfY) / Range
+
+			local Distance = math.sqrt(Right * Right + Forward * Forward)
+			if Distance > Range and Distance > 0 then
+				local Clamp = Range / Distance
+				Right *= Clamp
+				Forward *= Clamp
+			end
+
+			return Vector2.new(HalfX + Right * Scale, HalfY - Forward * Scale)
+		end
+
+		function Radar:WorldHeadingToRadar(WorldDirection)
+			if typeof(WorldDirection) ~= "Vector3" then
+				return 0
+			end
+
+			local Flat = Vector3.new(WorldDirection.X, 0, WorldDirection.Z)
+			if Flat.Magnitude < 1e-4 then
+				return 0
+			end
+
+			local EntityYaw = math.atan2(-Flat.X, -Flat.Z)
+			local Relative = EntityYaw - Radar:GetCameraYaw()
+
+			if Relative > math.pi then
+				Relative -= math.pi * 2
+			elseif Relative < -math.pi then
+				Relative += math.pi * 2
+			end
+
+			return Relative
+		end
+
+		function Radar:SyncCamera()
+			Radar:SetHeading(0)
+			return Radar:GetCameraYaw()
+		end
+
+		function Radar:UpsertWorld(Key, WorldPosition, Data)
+			Data = Data or {}
+
+			local RadarPosition = Radar:WorldToRadar(WorldPosition, Data.Origin)
+			if not RadarPosition then
+				return nil
+			end
+
+			Data.Position = RadarPosition
+
+			if Data.Rotation == nil and Data.rotation == nil and Data.Heading == nil and Data.heading == nil then
+				local Look = Data.LookVector or Data.lookVector
+
+				if typeof(Look) == "Vector3" then
+					Data.Rotation = math.deg(Radar:WorldHeadingToRadar(Look))
+				else
+					local Part = Data.Part or Data.part
+
+					if typeof(Part) == "Instance" and Part:IsA("BasePart") then
+						Data.Rotation = math.deg(Radar:WorldHeadingToRadar(Part.CFrame.LookVector))
+					end
+				end
+			end
+
+			return Radar:Upsert(Key, Data)
 		end
 
 		RefreshFooter()
