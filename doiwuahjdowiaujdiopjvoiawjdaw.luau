@@ -1,4 +1,4 @@
-print("dididdididj")
+warn("middd")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -248,10 +248,19 @@ local Library do
 
 		WindowOpenState = false,
 		InputBlockAction = "SOLIX_UI_INPUT_BLOCK",
+		InputBlockGui = nil,
 		InputBlocker = nil,
+		DisplayOrders = {
+			Holder = 2,
+			OtherHolder = 2,
+			FloatingButton = 3,
+			InputBlock = 9998,
+			HolderOpen = 9999,
+			FloatingButtonOpen = 10000,
+		},
 		MouseStateBeforeOpen = nil,
 		BackgroundEffects = nil,
-		BackgroundHolder = nil,
+		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
 		BackgroundSnowEnabled = true,
 		MainWindowFrame = nil,
@@ -1322,9 +1331,10 @@ local Library do
 	Library.Holder = Instances:Create("ScreenGui", {
 		Parent = SafeGetUI(),
 		Name = "\0",
-		DisplayOrder = 2,
+		DisplayOrder = Library.DisplayOrders.Holder,
+		IgnoreGuiInset = true,
 		ResetOnSpawn = false,
-		ZIndexBehavior = Enum.ZIndexBehavior.Global
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
 	})
 
 	if not Library.Holder.Instance then
@@ -1342,12 +1352,23 @@ local Library do
 			Library.Holder.Instance.Parent = SafeGetUI()
 			Library.Holder.Instance.Name = "\0"
 			Library.Holder.Instance.ZIndexBehavior = Enum.ZIndexBehavior.Global
-			Library.Holder.Instance.DisplayOrder = 2
+			Library.Holder.Instance.DisplayOrder = Library.DisplayOrders.Holder
+			Library.Holder.Instance.IgnoreGuiInset = true
 			Library.Holder.Instance.ResetOnSpawn = false
 		end
 	end
 
 	wait()
+
+	Library.InputBlockGui = Instances:Create("ScreenGui", {
+		Parent = SafeGetUI(),
+		Name = "\0",
+		Enabled = false,
+		DisplayOrder = Library.DisplayOrders.InputBlock,
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	})
 
 	local ViewportSize = function()
 		local Camera = Workspace.CurrentCamera
@@ -1459,7 +1480,7 @@ local Library do
 	wait()
 
 	Library.InputBlocker = Instances:Create("TextButton", {
-		Parent = Library.Holder.Instance,
+		Parent = Library.InputBlockGui.Instance,
 		Name = "\0",
 		Visible = false,
 		Modal = true,
@@ -1468,7 +1489,7 @@ local Library do
 		Size = UDim2New(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		Text = "",
-		ZIndex = 0,
+		ZIndex = 2,
 	})
 
 	Library.NotifHolder = Instances:Create("Frame", {
@@ -1730,13 +1751,14 @@ local Library do
 			self.BackgroundEffects = nil
 		end
 
-		if self.BackgroundHolder and self.BackgroundHolder.Instance then
+		if self.InputBlockGui and self.InputBlockGui.Instance then
 			pcall(function()
-				self.BackgroundHolder.Instance:Destroy()
+				self.InputBlockGui.Instance:Destroy()
 			end)
-			self.BackgroundHolder = nil
+			self.InputBlockGui = nil
 		end
 
+		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
 
 		pcall(function()
@@ -2092,10 +2114,155 @@ local Library do
 		end
 	end
 
+	Library.GetSolixScreenGuis = function(self)
+		local Guis = {}
+
+		local function Track(Root)
+			if not Root then
+				return
+			end
+
+			if Root:IsA("ScreenGui") then
+				Guis[Root] = true
+				return
+			end
+
+			local ScreenGui = Root:FindFirstAncestorOfClass("ScreenGui")
+			if ScreenGui then
+				Guis[ScreenGui] = true
+			end
+		end
+
+		Track(self.Holder and self.Holder.Instance)
+		Track(self.InputBlockGui and self.InputBlockGui.Instance)
+		Track(self.FloatingButtonHolder and self.FloatingButtonHolder.Instance)
+		Track(self.OtherHolder and self.OtherHolder.Instance)
+		Track(self.UnusedHolder and self.UnusedHolder.Instance)
+		Track(self.WatermarkGui and self.WatermarkGui.Instance)
+
+		return Guis
+	end
+
+	Library.GetSolixGuiRoots = function(self)
+		local Roots = {}
+
+		if self.Holder and self.Holder.Instance then
+			TableInsert(Roots, self.Holder.Instance)
+		end
+
+		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
+			TableInsert(Roots, self.FloatingButtonHolder.Instance)
+		end
+
+		if self.WatermarkGui and self.WatermarkGui.Instance then
+			TableInsert(Roots, self.WatermarkGui.Instance)
+		end
+
+		return Roots
+	end
+
+	Library.SetExternalGuisBlocked = function(self, Bool)
+		if not self.ExternalGuiStates then
+			self.ExternalGuiStates = {}
+		end
+
+		local SolixGuis = self:GetSolixScreenGuis()
+
+		local function ProcessRoot(Root)
+			if not Root then
+				return
+			end
+
+			for _, Child in Root:GetChildren() do
+				if not Child:IsA("ScreenGui") then
+					continue
+				end
+
+				if SolixGuis[Child] then
+					continue
+				end
+
+				if Bool then
+					if Child.Enabled then
+						self.ExternalGuiStates[Child] = true
+						Child.Enabled = false
+					end
+				elseif self.ExternalGuiStates[Child] then
+					Child.Enabled = true
+					self.ExternalGuiStates[Child] = nil
+				end
+			end
+		end
+
+		if Bool then
+			ProcessRoot(SafeGetUI())
+
+			local PlayerGui = LocalPlayer:FindFirstChildWhichIsA("PlayerGui")
+			if PlayerGui then
+				ProcessRoot(PlayerGui)
+			end
+
+			return
+		end
+
+		for Gui, WasEnabled in self.ExternalGuiStates do
+			if Gui and Gui.Parent and WasEnabled then
+				Gui.Enabled = true
+			end
+		end
+
+		self.ExternalGuiStates = {}
+	end
+
+	Library.IsSolixGuiObject = function(self, Object)
+		if not Object then
+			return false
+		end
+
+		for _, Root in self:GetSolixGuiRoots() do
+			if Object == Root or Object:IsDescendantOf(Root) then
+				return true
+			end
+		end
+
+		return false
+	end
+
+	Library.IsPointerOverSolixGui = function(self)
+		local MouseLocation = UserInputService:GetMouseLocation()
+		local Objects = GuiService:GetGuiObjectsAtPosition(MouseLocation.X, MouseLocation.Y)
+
+		for _, Object in Objects do
+			if self:IsSolixGuiObject(Object) then
+				return true
+			end
+		end
+
+		return false
+	end
+
 	Library.ApplyWindowInputState = function(self, Bool)
+		if self.InputBlockGui and self.InputBlockGui.Instance then
+			self.InputBlockGui.Instance.Enabled = Bool and true or false
+		end
+
 		if self.InputBlocker and self.InputBlocker.Instance then
 			self.InputBlocker.Instance.Visible = Bool and true or false
 		end
+
+		if self.Holder and self.Holder.Instance then
+			self.Holder.Instance.DisplayOrder = Bool and self.DisplayOrders.HolderOpen or self.DisplayOrders.Holder
+		end
+
+		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
+			self.FloatingButtonHolder.Instance.DisplayOrder = Bool and self.DisplayOrders.FloatingButtonOpen or self.DisplayOrders.FloatingButton
+		end
+
+		if self.OtherHolder and self.OtherHolder.Instance then
+			self.OtherHolder.Instance.Enabled = not Bool
+		end
+
+		self:SetExternalGuisBlocked(Bool)
 
 		if Bool then
 			ContextActionService:BindActionAtPriority(self.InputBlockAction, function(_, State, Input)
@@ -2138,11 +2305,28 @@ local Library do
 				return Enum.ContextActionResult.Sink
 			end, false, 5000, table.unpack(BlockedWindowInputs))
 
+			ContextActionService:BindActionAtPriority(self.InputBlockAction .. "_MOUSE", function(_, State, Input)
+				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if self:IsPointerOverSolixGui() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				return Enum.ContextActionResult.Sink
+			end, false, 5000, Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch)
+
 			return
 		end
 
 		ContextActionService:UnbindAction(self.InputBlockAction)
 		ContextActionService:UnbindAction(self.InputBlockAction .. "_KEYS")
+		ContextActionService:UnbindAction(self.InputBlockAction .. "_MOUSE")
 	end
 
 	Library.SetupBackgroundEffects = function(self)
@@ -2168,32 +2352,14 @@ local Library do
 			return
 		end
 
-		if not self.BackgroundHolder or not self.BackgroundHolder.Instance then
-			local Success, Gui = pcall(function()
-				local ScreenGui = InstanceNew("ScreenGui")
-				ScreenGui.Name = "\0"
-				ScreenGui.Parent = SafeGetUI()
-				ScreenGui.IgnoreGuiInset = true
-				ScreenGui.ResetOnSpawn = false
-				ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-				ScreenGui.DisplayOrder = 1
-				ScreenGui.Enabled = false
-				return ScreenGui
-			end)
-
-			if Success and Gui then
-				self.BackgroundHolder = {
-					Instance = Gui,
-				}
-			else
-				return
-			end
+		if not self.InputBlockGui or not self.InputBlockGui.Instance then
+			return
 		end
 
 		local Viewport = Camera.ViewportSize
 
 		local Background = Instances:Create("Frame", {
-			Parent = self.BackgroundHolder.Instance,
+			Parent = self.InputBlockGui.Instance,
 			Name = "\0",
 			BackgroundColor3 = FromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
@@ -2225,7 +2391,7 @@ local Library do
 			Background = Background.Instance,
 			SnowHolder = SnowHolder.Instance,
 			BlurEffect = BlurEffect,
-			ScreenGui = self.BackgroundHolder.Instance,
+			ScreenGui = self.InputBlockGui.Instance,
 			SnowAsset = "rbxassetid://6871196088",
 			IsSnowing = false,
 		}
@@ -2317,7 +2483,7 @@ local Library do
 		local TargetTransparency = (IsVisible and HasDarken) and 0.55 or 1
 		local TargetBlur = (IsVisible and HasDarken) and 18 or 0
 
-		if Effects.ScreenGui then
+		if Effects.ScreenGui and not self.WindowOpenState then
 			Effects.ScreenGui.Enabled = IsVisible and HasAnyEffect
 		end
 
@@ -6559,7 +6725,7 @@ local Library do
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubPages"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 4),
+				Padding = UDimNew(0, 1),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -6807,7 +6973,7 @@ local Library do
 		local SUBTAB_BG_ACTIVE_Z = 20
 		local SUBTAB_LINER_Z = 24
 		local SUBTAB_TEXT_Z = 25
-		local SUBTAB_PAD_H = 58
+		local SUBTAB_PAD_H = 70
 		local SUBTAB_HEIGHT = 34
 		local SUBTAB_LINER_INSET = 10
 
