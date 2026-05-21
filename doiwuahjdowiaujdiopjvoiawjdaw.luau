@@ -1,4 +1,4 @@
-warn("big diddy")
+print("big boyy feofkfe")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6742,7 +6742,7 @@ local Library do
 				FontFace = Library.Font,
 				TextTransparency = 0.4,
 				AutomaticSize = Enum.AutomaticSize.X,
-				ZIndex = 2,
+				ZIndex = 5,
 			}):AddToTheme({TextColor3 = "Text"})
 
 			Instances:Create("UIPadding", {
@@ -6841,6 +6841,11 @@ local Library do
 					end
 				end
 
+				Items["Tab"].Instance.ZIndex = 20
+				Items["TabLiner"].Instance.ZIndex = 6
+				Items["TabText"].Instance.ZIndex = 7
+				Items["Tab"].Instance.Parent = ParentPage.Items["SubPages"].Instance
+
 				Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
 				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, -8, 0, 3)})
 				Items["TabText"]:Tween(nil, {TextTransparency = 0})
@@ -6857,6 +6862,10 @@ local Library do
 				if ParentPage.ActiveSubPage == SubPage then
 					ParentPage.ActiveSubPage = nil
 				end
+
+				Items["Tab"].Instance.ZIndex = 10
+				Items["TabLiner"].Instance.ZIndex = 4
+				Items["TabText"].Instance.ZIndex = 5
 
 				Items["Tab"]:Tween(nil, {BackgroundTransparency = 1})
 				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, -8, 0, 0)})
