@@ -1,4 +1,4 @@
-print("MUD")
+warn("DIDDY")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -2170,6 +2170,19 @@ local Library do
 
 		local Camera = Workspace.CurrentCamera
 		if not Camera then
+			defer(function()
+				local Attempts = 0
+
+				while not Workspace.CurrentCamera and Library and Attempts < 100 do
+					wait(0.1)
+					Attempts += 1
+				end
+
+				if Library and not Library.BackgroundEffects then
+					Library:SetupBackgroundEffects()
+				end
+			end)
+
 			return
 		end
 
@@ -2246,7 +2259,7 @@ local Library do
 		end
 
 		ResizeBackground()
-		self:Connect(CurrentCamera:GetPropertyChangedSignal("ViewportSize"), ResizeBackground, "BackgroundEffectsResize")
+		self:Connect(Camera:GetPropertyChangedSignal("ViewportSize"), ResizeBackground, "BackgroundEffectsResize")
 
 		self:Thread(function()
 			while Library and Library.BackgroundEffects do
@@ -3290,7 +3303,7 @@ local Library do
 				end)
 
 				for Index, Value in Library.OpenFrames do
-					if Value ~= AnimDropdown and Value ~= Colorpicker then
+					if Value ~= AnimDropdown and Value ~= Colorpicker and type(Value.SetOpen) == "function" then
 						Value:SetOpen(false)
 					end
 				end
@@ -3527,8 +3540,8 @@ local Library do
 
 				Items["ColorpickerWindow"]:Tween(nil, {Size = UDim2New(0, 218, 0, 275)})
 
-				for Index, Value in Library.OpenFrames do 
-					if Value ~= Colorpicker then
+				for Index, Value in Library.OpenFrames do
+					if Value ~= Colorpicker and type(Value.SetOpen) == "function" then
 						Value:SetOpen(false)
 					end
 				end
@@ -4206,8 +4219,8 @@ local Library do
 					)
 				end)
 
-				for Index, Value in Library.OpenFrames do 
-					if Value ~= Keybind then
+				for Index, Value in Library.OpenFrames do
+					if Value ~= Keybind and type(Value.SetOpen) == "function" then
 						Value:SetOpen(false)
 					end
 				end
@@ -6185,7 +6198,9 @@ local Library do
 
 		function Window:Minimize(Bool)
 			for Index, Value in Library.OpenFrames do
-				Value:SetOpen(false)
+				if type(Value.SetOpen) == "function" then
+					Value:SetOpen(false)
+				end
 			end
 
 			Window.IsMinimized = Bool
@@ -6243,8 +6258,10 @@ local Library do
 				Items["MainFrame"].Instance.Visible = true 
 			end
 
-			for Index, Value in Library.OpenFrames do 
-				Value:SetOpen(false)
+			for Index, Value in Library.OpenFrames do
+				if type(Value.SetOpen) == "function" then
+					Value:SetOpen(false)
+				end
 			end
 
 			local Descendants = Items["MainFrame"].Instance:GetDescendants()
@@ -8779,18 +8796,21 @@ local Library do
 			Debounce = true
 
 			local Theme = Library.Theme
-			local TweenInfoArgs = {Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction}
+			local OpenTweenInfo = TweenInfo.new(Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction)
 
 			if Dropdown.IsOpen then
 				wait()
-				Items["Icon"]:Tween(TweenInfo.new(unpack(TweenInfoArgs)), {
-					Rotation = 90,
-					ImageColor3 = Theme["Accent"]
-				})
-			else
-				Items["Icon"]:Tween(TweenInfo.new(unpack(TweenInfoArgs)), {
+
+				if Items["Icon"] and Items["Icon"].Instance then
+					Items["Icon"]:Tween(OpenTweenInfo, {
+						Rotation = 90,
+						ImageColor3 = Theme["Accent"],
+					})
+				end
+			elseif Items["Icon"] and Items["Icon"].Instance then
+				Items["Icon"]:Tween(OpenTweenInfo, {
 					Rotation = 0,
-					ImageColor3 = Theme["Text"]
+					ImageColor3 = Theme["Text"],
 				})
 			end
 
@@ -8807,11 +8827,12 @@ local Library do
 				end)
 
 				for Index, Value in Library.OpenFrames do
-					if Value ~= Dropdown then
+					if Value ~= Dropdown and type(Value.SetOpen) == "function" then
 						Value:SetOpen(false)
 					end
 				end
 
+				Library:HideOnOverlap(true, Items["OptionHolder"].Instance)
 				Library.OpenFrames[Dropdown] = Dropdown
 			else
 				if Library.OpenFrames[Dropdown] then
@@ -8822,6 +8843,8 @@ local Library do
 					RenderStepped:Disconnect()
 					RenderStepped = nil
 				end
+
+				Library:HideOnOverlap(false, Items["OptionHolder"].Instance)
 			end
 
 			local Descendants = Items["OptionHolder"].Instance:GetDescendants()
