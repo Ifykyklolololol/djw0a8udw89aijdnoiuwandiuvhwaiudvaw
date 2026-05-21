@@ -1,4 +1,4 @@
-warn("BRUH")
+warn("Boyyy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6249,22 +6249,25 @@ local Library do
 		local function CreateEntry(Key)
 			local Entry = {}
 
-			Entry.Dot = Instances:Create("Frame", {
+			Entry.Marker = Instances:Create("TextLabel", {
 				Parent = Items["RadarBounds"].Instance,
 				Name = "\0",
 				AnchorPoint = Vector2New(0.5, 0.5),
 				Position = UDim2New(0.5, 0, 0.5, 0),
-				Size = UDim2New(0, 4, 0, 4),
-				BackgroundColor3 = Library.Theme["Accent"],
+				Size = UDim2New(0, 12, 0, 12),
+				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				Text = "▲",
+				TextColor3 = Library.Theme["Accent"],
+				TextSize = 12,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Rotation = 0,
 				ZIndex = 5,
-			}):AddToTheme({BackgroundColor3 = "Accent"})
+			}):AddToTheme({TextColor3 = "Accent"})
 
-			Instances:Create("UICorner", {
-				Parent = Entry.Dot.Instance,
-				Name = "\0",
-				CornerRadius = UDimNew(1, 0),
-			})
+			Entry.Dot = Entry.Marker
 
 			Radar.Entries[Key] = Entry
 			return Entry
@@ -6315,32 +6318,42 @@ local Library do
 
 		function Radar:Upsert(Key, Data)
 			local Entry = Radar.Entries[Key] or CreateEntry(Key)
-			local Dot = Entry.Dot.Instance
+			local Marker = Entry.Marker.Instance
 			local Position = Data and Data.Position
 			local Size = Data and Data.Size
 			local Visible = Data and Data.Visible
 			local Transparency = Data and Data.Transparency
 			local Color = Data and Data.Color
+			local Heading = Data and (Data.Heading or Data.heading)
+			local Rotation = Data and (Data.Rotation or Data.rotation)
 
 			if typeof(Position) == "Vector2" then
-				Dot.Position = UDim2New(0, Position.X, 0, Position.Y)
+				Marker.Position = UDim2New(0, Position.X, 0, Position.Y)
 			end
 
 			if typeof(Size) == "number" then
-				Dot.Size = UDim2New(0, Size, 0, Size)
+				local MarkerSize = MathClamp(Size + 4, 10, 18)
+				Marker.Size = UDim2New(0, MarkerSize, 0, MarkerSize)
+				Marker.TextSize = MathClamp(Size * 2, 8, 16)
 			end
 
 			if typeof(Color) == "Color3" then
-				Dot.BackgroundColor3 = Color
+				Marker.TextColor3 = Color
+			end
+
+			if typeof(Rotation) == "number" then
+				Marker.Rotation = Rotation
+			elseif typeof(Heading) == "number" then
+				Marker.Rotation = math.deg(Heading)
 			end
 
 			if typeof(Transparency) == "number" then
-				Dot.BackgroundTransparency = Transparency
+				Marker.TextTransparency = Transparency
 			else
-				Dot.BackgroundTransparency = 0
+				Marker.TextTransparency = 0
 			end
 
-			Dot.Visible = Visible ~= false
+			Marker.Visible = Visible ~= false
 			RefreshFooter()
 			return Entry
 		end
