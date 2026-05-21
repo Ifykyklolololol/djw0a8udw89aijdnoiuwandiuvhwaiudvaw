@@ -1,4 +1,4 @@
-warn("niggaaaa")
+print("boy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -265,7 +265,10 @@ local Library do
 		BackgroundSnowEnabled = true,
 		SpinningLogoEnabled = true,
 		SolixLogoAsset = "rbxassetid://137698471325689",
+		SpinningLogoModelAsset = "rbxassetid://113170053514092",
 		SpinningLogos = {},
+		WorldSpinningLogo = nil,
+		WorldSpinningLogoRotation = 0,
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -1774,7 +1777,9 @@ local Library do
 		self:ApplyWindowInputState(false)
 
 		for _, LogoData in self.SpinningLogos or {} do
-			if LogoData.SpinConnection then
+			if LogoData.Destroy then
+				LogoData:Destroy()
+			elseif LogoData.SpinConnection then
 				pcall(function()
 					LogoData.SpinConnection:Disconnect()
 				end)
@@ -1782,6 +1787,20 @@ local Library do
 		end
 
 		self.SpinningLogos = {}
+
+		if self.WorldSpinningLogoConnection then
+			pcall(function()
+				self.WorldSpinningLogoConnection:Disconnect()
+			end)
+			self.WorldSpinningLogoConnection = nil
+		end
+
+		if self.WorldSpinningLogo then
+			pcall(function()
+				self.WorldSpinningLogo:Destroy()
+			end)
+			self.WorldSpinningLogo = nil
+		end
 
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -2289,7 +2308,7 @@ local Library do
 
 		local Size = Options.Size or 50
 		local LogoId = Options.LogoId or self.SolixLogoAsset
-		local SpinSpeed = Options.SpinSpeed or 90
+		local SpinSpeed = Options.SpinSpeed or 110
 		local Enabled = Options.Enabled ~= false and self.SpinningLogoEnabled
 
 		local Holder = Instances:Create("Frame", {
@@ -2298,98 +2317,72 @@ local Library do
 			Size = Options.FillParent and UDim2New(1, 0, 1, 0) or UDim2FromOffset(Size, Size),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ClipsDescendants = false,
+			ClipsDescendants = true,
 			Active = Options.Draggable and true or false,
 			ZIndex = Options.ZIndex or 2,
 		})
 
-		local ArcHolder = Instances:Create("Frame", {
+		local Viewport = Instances:Create("ViewportFrame", {
 			Parent = Holder.Instance,
 			Name = "\0",
 			Size = UDim2New(1, 0, 1, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Active = false,
-			AnchorPoint = Vector2New(0.5, 0.5),
-			Position = UDim2New(0.5, 0, 0.5, 0),
-			ZIndex = 1,
+			ZIndex = Options.ZIndex or 2,
 		})
 
-		local ArcPieces = {}
-		local Segments = 72
+		local ViewportCamera = InstanceNew("Camera")
+		ViewportCamera.Name = "\0"
+		ViewportCamera.Parent = Viewport.Instance
+		Viewport.Instance.CurrentCamera = ViewportCamera
 
-		local function RebuildArc()
-			for _, Piece in ArcPieces do
-				if Piece and Piece.Parent then
-					Piece:Destroy()
-				end
-			end
+		local WorldModel = InstanceNew("WorldModel")
+		WorldModel.Name = "\0"
+		WorldModel.Parent = Viewport.Instance
 
-			table.clear(ArcPieces)
+		local LogoPart = InstanceNew("Part")
+		LogoPart.Name = "\0"
+		LogoPart.Size = Vector3New(4, 4, 0.05)
+		LogoPart.Anchored = true
+		LogoPart.CanCollide = false
+		LogoPart.CanTouch = false
+		LogoPart.CanQuery = false
+		LogoPart.CastShadow = false
+		LogoPart.Material = Enum.Material.SmoothPlastic
+		LogoPart.Color = FromRGB(18, 18, 22)
+		LogoPart.Transparency = 1
+		LogoPart.Parent = WorldModel
 
-			local AbsoluteSize = ArcHolder.Instance.AbsoluteSize
-			if AbsoluteSize.X <= 0 or AbsoluteSize.Y <= 0 then
-				return
-			end
+		local SurfaceGui = InstanceNew("SurfaceGui")
+		SurfaceGui.Name = "\0"
+		SurfaceGui.Face = Enum.NormalId.Front
+		SurfaceGui.LightInfluence = 0
+		SurfaceGui.Brightness = 1.2
+		SurfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		SurfaceGui.PixelsPerStud = 80
+		SurfaceGui.Parent = LogoPart
 
-			local MinSize = math.min(AbsoluteSize.X, AbsoluteSize.Y)
-			local InnerRadius = MinSize * 0.46
-			local Thickness = math.max(2, MinSize * 0.045)
-			local Theta = (math.pi * 2) / Segments
-			local Accent = Library.Theme["Accent"]
-
-			for Index = 0, Segments - 1 do
-				local Angle = Theta * (Index + 0.5)
-				local SideLen = 2 * math.tan(Theta / 2) * InnerRadius
-				local X = math.cos(Angle) * InnerRadius
-				local Y = math.sin(Angle) * InnerRadius
-
-				local Piece = InstanceNew("Frame")
-				Piece.Name = "\0"
-				Piece.AnchorPoint = Vector2New(0.5, 0.5)
-				Piece.Size = UDim2FromOffset(SideLen + 1, Thickness)
-				Piece.Position = UDim2FromOffset(
-					AbsoluteSize.X / 2 + X,
-					AbsoluteSize.Y / 2 + Y
-				)
-				Piece.Rotation = math.deg(Angle) + 90
-				Piece.BorderSizePixel = 0
-				Piece.Active = false
-				Piece.BackgroundColor3 = Color3.fromHSV(Index / math.max(Segments - 1, 1), 1, 1):Lerp(Accent, 0.35)
-				Piece.ZIndex = 1
-				Piece.Parent = ArcHolder.Instance
-
-				TableInsert(ArcPieces, Piece)
-			end
-		end
-
-		ArcHolder.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(RebuildArc)
-		defer(RebuildArc)
-
-		local LogoScale = Options.LogoScale or 0.58
-		local LogoImage = Instances:Create("ImageLabel", {
-			Parent = Holder.Instance,
-			Name = "\0",
-			Size = UDim2New(LogoScale, 0, LogoScale, 0),
-			Position = UDim2New(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2New(0.5, 0.5),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Active = false,
-			Image = LogoId,
-			ImageColor3 = Library.Theme["Accent"],
-			ScaleType = Enum.ScaleType.Fit,
-			ZIndex = 3,
-		}):AddToTheme({ImageColor3 = "Accent"})
+		local LogoImage = InstanceNew("ImageLabel")
+		LogoImage.Name = "\0"
+		LogoImage.Size = UDim2New(1, 0, 1, 0)
+		LogoImage.BackgroundTransparency = 1
+		LogoImage.Image = LogoId
+		LogoImage.ImageColor3 = Library.Theme["Accent"]
+		LogoImage.ScaleType = Enum.ScaleType.Fit
+		LogoImage.Parent = SurfaceGui
 
 		local LogoData = {
 			Enabled = Enabled,
 			SpinSpeed = SpinSpeed,
 			Rotation = 0,
+			WorldModel = WorldModel,
+			LogoPart = LogoPart,
+			LogoImage = LogoImage,
+			ViewportCamera = ViewportCamera,
 			Items = {
 				Holder = Holder,
-				ArcHolder = ArcHolder,
-				Logo = LogoImage,
+				Viewport = Viewport,
 			},
 		}
 
@@ -2399,6 +2392,21 @@ local Library do
 
 		function LogoData:SetSpinning(Bool)
 			self.Enabled = Bool and true or false
+		end
+
+		function LogoData:Destroy()
+			if self.SpinConnection then
+				pcall(function()
+					self.SpinConnection:Disconnect()
+				end)
+				self.SpinConnection = nil
+			end
+
+			if self.WorldModel then
+				pcall(function()
+					self.WorldModel:Destroy()
+				end)
+			end
 		end
 
 		LogoData.SpinConnection = RunService.RenderStepped:Connect(function(DeltaTime)
@@ -2411,8 +2419,8 @@ local Library do
 			end
 
 			LogoData.Rotation = (LogoData.Rotation + LogoData.SpinSpeed * DeltaTime) % 360
-			ArcHolder.Instance.Rotation = LogoData.Rotation
-			LogoImage.Instance.Rotation = -LogoData.Rotation * 0.35
+			LogoPart.CFrame = CFrame.Angles(0, math.rad(LogoData.Rotation), 0)
+			ViewportCamera.CFrame = CFrame.new(0, 0.25, 7) * CFrame.Angles(math.rad(-12), 0, 0)
 		end)
 
 		if Options.Draggable then
@@ -2422,6 +2430,81 @@ local Library do
 		TableInsert(self.SpinningLogos, LogoData)
 
 		return LogoData
+	end
+
+	Library.SetupWorldSpinningLogo = function(self)
+		if self.WorldSpinningLogo then
+			return
+		end
+
+		local Success, Template = pcall(function()
+			return game:GetObjects(self.SpinningLogoModelAsset)[1]:Clone()
+		end)
+
+		if not Success or not Template then
+			return
+		end
+
+		Template.Anchored = true
+		Template.CanCollide = false
+		Template.CanTouch = false
+		Template.CanQuery = false
+		Template.Size = Vector3.zero
+		Template.Parent = nil
+
+		local SurfaceGui = Template:FindFirstChildWhichIsA("SurfaceGui", true)
+		if SurfaceGui then
+			SurfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			SurfaceGui.PixelsPerStud = 50
+
+			local ImageLabel = SurfaceGui:FindFirstChildWhichIsA("ImageLabel")
+			if ImageLabel then
+				ImageLabel.Image = self.SolixLogoAsset
+				ImageLabel.ImageTransparency = 0.12
+				ImageLabel.ImageColor3 = Color3.new(1, 1, 1)
+				ImageLabel.ScaleType = Enum.ScaleType.Fit
+			end
+		end
+
+		self.WorldSpinningLogo = Template
+		self.WorldSpinningLogoRotation = 0
+		self.WorldSpinningLogoVisible = false
+
+		self.WorldSpinningLogoConnection = RunService.RenderStepped:Connect(function(DeltaTime)
+			if not self.SpinningLogoEnabled or not self.WorldSpinningLogo then
+				Template.Parent = nil
+				Template.Size = Vector3.zero
+				return
+			end
+
+			local CurrentCamera = Workspace.CurrentCamera
+			if not CurrentCamera then
+				return
+			end
+
+			Template.Parent = CurrentCamera
+
+			self.WorldSpinningLogoRotation += math.rad(25 * DeltaTime)
+
+			local TargetSize = Vector3New(2.6, 2.6, 0.05)
+			Template.Size = Template.Size:Lerp(TargetSize, math.min(1, DeltaTime * 6))
+
+			local Offset = CurrentCamera.CFrame * CFrame.new(-2.4, -1.1, -3.2)
+			Template.CFrame = Offset * CFrame.Angles(0, self.WorldSpinningLogoRotation, 0)
+		end)
+	end
+
+	Library.SetWorldSpinningLogoVisible = function(self, Bool)
+		self.WorldSpinningLogoVisible = Bool and true or false
+
+		if not self.WorldSpinningLogo then
+			return
+		end
+
+		if not Bool then
+			self.WorldSpinningLogo.Parent = nil
+			self.WorldSpinningLogo.Size = Vector3.zero
+		end
 	end
 
 	Library.SaveSpinningLogoWidgetPosition = function(self)
@@ -2470,7 +2553,7 @@ local Library do
 		self.SpinningLogoWidgetRoot = Instances:Create("Frame", {
 			Parent = self.SpinningLogoWidgetGui.Instance,
 			Name = "\0",
-			Size = UDim2FromOffset(120, 120),
+			Size = UDim2FromOffset(200, 160),
 			Position = UDim2New(0, 125, 0, 125),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
@@ -2522,6 +2605,7 @@ local Library do
 		end
 
 		self:SetSpinningLogoWidgetVisible(self.SpinningLogoEnabled)
+		self:SetWorldSpinningLogoVisible(self.SpinningLogoEnabled)
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
@@ -2833,7 +2917,9 @@ local Library do
 	Library:SetBackgroundEffectsVisible(false, true)
 	Library:ApplyWindowInputState(false)
 	Library:SetupDraggableSpinningLogoWidget()
+	Library:SetupWorldSpinningLogo()
 	Library:SetSpinningLogoWidgetVisible(Library.SpinningLogoEnabled)
+	Library:SetWorldSpinningLogoVisible(Library.SpinningLogoEnabled)
 
 	Library.Lerp = function(self, Start, Finish, Time)
 		return Start + (Finish - Start) * Time
