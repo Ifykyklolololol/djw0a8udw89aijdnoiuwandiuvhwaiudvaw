@@ -1,4 +1,4 @@
-print("MUDDY")
+print("CMON MAN")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6615,6 +6615,35 @@ local Library do
 		return setmetatable(Window, Library)
 	end
 
+	local COLUMN_GAP = 8
+
+	local function BindTwoColumnLayout(Container, ColumnsData)
+		local function Update()
+			local Width = Container.AbsoluteSize.X
+			if Width < 2 then
+				return
+			end
+
+			local EachWidth = math.floor((Width - COLUMN_GAP) / 2)
+
+			for Index = 1, 2 do
+				local Column = ColumnsData[Index]
+				if Column then
+					Column.Instance.Size = UDim2New(0, EachWidth, 1, 0)
+				end
+			end
+		end
+
+		Container:GetPropertyChangedSignal("AbsoluteSize"):Connect(Update)
+
+		local Layout = Container:FindFirstChildOfClass("UIListLayout")
+		if Layout then
+			Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(Update)
+		end
+
+		defer(Update)
+	end
+
 	Library.Page = function(self, Data)
 		Data = Data or {}
 
@@ -6622,7 +6651,7 @@ local Library do
 			Window = self,
 
 			Name = Data.Name or Data.name or "Page",
-			Columns = Data.Columns or Data.columns or 2,
+			Columns = 2,
 			IsKeyPage = Data.IsKeyPage or Data.iskeypage or false,
 
 			Items = {},
@@ -6633,7 +6662,7 @@ local Library do
 		}
 
 		local PAGE_TOP_OFFSET = 43
-		local SUBPAGE_BAR_HEIGHT = 32
+		local SUBPAGE_BAR_HEIGHT = 36
 
 		local Items = {} do
 			Items["Inactive"] = Instances:Create("TextButton", {
@@ -6751,18 +6780,16 @@ local Library do
 				Instances:Create("UIListLayout", {
 					Parent = Items["Columns"].Instance,
 					Name = "\0",
-					Padding = UDimNew(0, 8),
+					Padding = UDimNew(0, COLUMN_GAP),
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					FillDirection = Enum.FillDirection.Horizontal,
-					HorizontalFlex = Enum.UIFlexAlignment.Fill,
-					VerticalFlex = Enum.UIFlexAlignment.Fill
 				})
 
 				for Index = 1, Page.Columns do 
 					local NewColumn = Instances:Create("ScrollingFrame", {
 						Parent = Items["Columns"].Instance,
 						Name = "\0",
-						Size = UDim2New(0, 100, 0, 100),
+						Size = UDim2New(0, 100, 1, 0),
 						BackgroundColor3 = FromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
 						BorderColor3 = FromRGB(0, 0, 0),
@@ -6801,6 +6828,8 @@ local Library do
 
 					Page.ColumnsData[Index] = NewColumn
 				end
+
+				BindTwoColumnLayout(Items["Columns"].Instance, Page.ColumnsData)
 			else
 				Items["Page"].Instance.Size = UDim2New(1, 0, 1, -43)
 				Items["Page"].Instance.Position = UDim2New(0, 0, 0, 43)
@@ -6821,6 +6850,22 @@ local Library do
 		Library.SearchItems[Page] = {}
 
 		local Debounce = false
+
+		function Page:PrepareForSubPages()
+			if Page._SubPagesPrepared then
+				return
+			end
+
+			Page._SubPagesPrepared = true
+
+			for Index = 1, 2 do
+				local Column = Page.ColumnsData[Index]
+				if Column then
+					Column.Instance.Visible = false
+					Column.Instance.Parent = Library.UnusedHolder.Instance
+				end
+			end
+		end
 
 		function Page:UpdateContentLayout()
 			local Top = PAGE_TOP_OFFSET
@@ -6924,7 +6969,7 @@ local Library do
 			Page = ParentPage,
 
 			Name = Data.Name or Data.name or "Tab",
-			Columns = Data.Columns or Data.columns or ParentPage.Columns or 2,
+			Columns = 2,
 
 			Items = {},
 			ColumnsData = {},
@@ -6933,6 +6978,7 @@ local Library do
 
 		if not ParentPage.HasSubPages then
 			ParentPage.HasSubPages = true
+			ParentPage:PrepareForSubPages()
 			ParentPage:UpdateContentLayout()
 		end
 
@@ -6940,35 +6986,63 @@ local Library do
 			Items["Tab"] = Instances:Create("TextButton", {
 				Parent = ParentPage.Items["SubPages"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 22),
+				Size = UDim2New(0, 0, 0, 28),
+				BackgroundColor3 = Library.Theme["Inline"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Text = "",
 				AutoButtonColor = false,
 				AutomaticSize = Enum.AutomaticSize.X,
+				ClipsDescendants = true,
 				ZIndex = 2,
+			}):AddToTheme({BackgroundColor3 = "Inline"})
+
+			Instances:Create("UICorner", {
+				Parent = Items["Tab"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(0, 5),
+			})
+
+			Items["TabLiner"] = Instances:Create("Frame", {
+				Parent = Items["Tab"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, 6, 0, 0),
+				Position = UDim2New(0, -3, 0.5, 0),
+				AnchorPoint = Vector2New(0, 0.5),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 2,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Instances:Create("UICorner", {
+				Parent = Items["TabLiner"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(1, 0),
 			})
 
 			Items["TabText"] = Instances:Create("TextLabel", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 14),
+				Size = UDim2New(0, 0, 0, 15),
+				Position = UDim2New(0, 4, 0.5, 0),
+				AnchorPoint = Vector2New(0, 0.5),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Text = SubPage.Name,
-				TextColor3 = Library.Theme["Inactive Text"],
+				TextColor3 = Library.Theme["Text"],
 				TextSize = 13,
 				FontFace = Library.Font,
-				TextTransparency = 0.35,
+				TextTransparency = 0.4,
 				AutomaticSize = Enum.AutomaticSize.X,
 				ZIndex = 2,
-			}):AddToTheme({TextColor3 = "Inactive Text"})
+			}):AddToTheme({TextColor3 = "Text"})
 
 			Instances:Create("UIPadding", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				PaddingLeft = UDimNew(0, 2),
-				PaddingRight = UDimNew(0, 2),
+				PaddingLeft = UDimNew(0, 6),
+				PaddingRight = UDimNew(0, 10),
 			})
 
 			Items["SubPage"] = Instances:Create("Frame", {
@@ -6984,18 +7058,16 @@ local Library do
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubPage"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 8),
+				Padding = UDimNew(0, COLUMN_GAP),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
-				HorizontalFlex = Enum.UIFlexAlignment.Fill,
-				VerticalFlex = Enum.UIFlexAlignment.Fill,
 			})
 
 			for Index = 1, SubPage.Columns do
 				local NewColumn = Instances:Create("ScrollingFrame", {
 					Parent = Items["SubPage"].Instance,
 					Name = "\0",
-					Size = UDim2New(0, 100, 0, 100),
+					Size = UDim2New(0, 100, 1, 0),
 					BackgroundTransparency = 1,
 					BorderSizePixel = 0,
 					Active = true,
@@ -7033,6 +7105,8 @@ local Library do
 				SubPage.ColumnsData[Index] = NewColumn
 			end
 
+			BindTwoColumnLayout(Items["SubPage"].Instance, SubPage.ColumnsData)
+
 			SubPage.Items = Items
 		end
 
@@ -7053,14 +7127,16 @@ local Library do
 					Items["SubPage"].Instance.Visible = true
 				end
 
-				Items["TabText"]:ChangeItemTheme({TextColor3 = "Accent"})
-				Items["TabText"]:Tween(nil, {TextColor3 = Library.Theme["Accent"], TextTransparency = 0})
+				Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
+				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(0, 6, 1, -12)})
+				Items["TabText"]:Tween(nil, {TextTransparency = 0, Position = UDim2New(0, 12, 0.5, 0)})
 			else
 				Items["SubPage"].Instance.Visible = false
 				Items["SubPage"].Instance.Parent = Library.UnusedHolder.Instance
 
-				Items["TabText"]:ChangeItemTheme({TextColor3 = "Inactive Text"})
-				Items["TabText"]:Tween(nil, {TextColor3 = Library.Theme["Inactive Text"], TextTransparency = 0.35})
+				Items["Tab"]:Tween(nil, {BackgroundTransparency = 1})
+				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(0, 6, 0, 0)})
+				Items["TabText"]:Tween(nil, {TextTransparency = 0.4, Position = UDim2New(0, 4, 0.5, 0)})
 			end
 		end
 
@@ -7096,7 +7172,7 @@ local Library do
 			Page = self,
 
 			Name = Data.Name or Data.name or "Section",
-			Side = Data.Side or Data.side or 1,
+			Side = ((Data.Side or Data.side or 1) == 2) and 2 or 1,
 			Collapsed = CollapsedDefault,
 
 			Items = {}
@@ -7293,7 +7369,7 @@ local Library do
 			Page = self,
 
 			Name = Data.Name or Data.name or "Model Viewer",
-			Side = Data.Side or Data.side or 1,
+			Side = ((Data.Side or Data.side or 1) == 2) and 2 or 1,
 			Height = Data.Height or Data.height or 200,
 
 			EnableInputCamera = Data.EnableInputCamera ~= false,
