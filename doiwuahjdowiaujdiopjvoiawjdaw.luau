@@ -1,4 +1,4 @@
-warn("middd")
+print("Bruhhhh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -263,6 +263,9 @@ local Library do
 		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
 		BackgroundSnowEnabled = true,
+		SpinningLogoEnabled = true,
+		SolixLogoAsset = "rbxassetid://137698471325689",
+		SpinningLogos = {},
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -1761,6 +1764,16 @@ local Library do
 		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
 
+		for _, LogoData in self.SpinningLogos or {} do
+			if LogoData.SpinConnection then
+				pcall(function()
+					LogoData.SpinConnection:Disconnect()
+				end)
+			end
+		end
+
+		self.SpinningLogos = {}
+
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 			UserInputService.MouseIconEnabled = true
@@ -2239,6 +2252,148 @@ local Library do
 		end
 
 		return false
+	end
+
+	Library.CreateSpinningLogo = function(self, ParentInstance, Options)
+		Options = Options or {}
+
+		local Size = Options.Size or 50
+		local LogoId = Options.LogoId or self.SolixLogoAsset
+		local SpinSpeed = Options.SpinSpeed or 90
+		local Enabled = Options.Enabled ~= false and self.SpinningLogoEnabled
+
+		local Holder = Instances:Create("Frame", {
+			Parent = ParentInstance,
+			Name = "\0",
+			Size = Options.FillParent and UDim2New(1, 0, 1, 0) or UDim2FromOffset(Size, Size),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ClipsDescendants = false,
+			ZIndex = Options.ZIndex or 2,
+		})
+
+		local ArcHolder = Instances:Create("Frame", {
+			Parent = Holder.Instance,
+			Name = "\0",
+			Size = UDim2New(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AnchorPoint = Vector2New(0.5, 0.5),
+			Position = UDim2New(0.5, 0, 0.5, 0),
+			ZIndex = 1,
+		})
+
+		local ArcPieces = {}
+		local Segments = 72
+
+		local function RebuildArc()
+			for _, Piece in ArcPieces do
+				if Piece and Piece.Parent then
+					Piece:Destroy()
+				end
+			end
+
+			table.clear(ArcPieces)
+
+			local AbsoluteSize = ArcHolder.Instance.AbsoluteSize
+			if AbsoluteSize.X <= 0 or AbsoluteSize.Y <= 0 then
+				return
+			end
+
+			local MinSize = math.min(AbsoluteSize.X, AbsoluteSize.Y)
+			local InnerRadius = MinSize * 0.46
+			local Thickness = math.max(2, MinSize * 0.045)
+			local Theta = (math.pi * 2) / Segments
+			local Accent = Library.Theme["Accent"]
+
+			for Index = 0, Segments - 1 do
+				local Angle = Theta * (Index + 0.5)
+				local SideLen = 2 * math.tan(Theta / 2) * InnerRadius
+				local X = math.cos(Angle) * InnerRadius
+				local Y = math.sin(Angle) * InnerRadius
+
+				local Piece = InstanceNew("Frame")
+				Piece.Name = "\0"
+				Piece.AnchorPoint = Vector2New(0.5, 0.5)
+				Piece.Size = UDim2FromOffset(SideLen + 1, Thickness)
+				Piece.Position = UDim2FromOffset(
+					AbsoluteSize.X / 2 + X,
+					AbsoluteSize.Y / 2 + Y
+				)
+				Piece.Rotation = math.deg(Angle) + 90
+				Piece.BorderSizePixel = 0
+				Piece.BackgroundColor3 = Color3.fromHSV(Index / math.max(Segments - 1, 1), 1, 1):Lerp(Accent, 0.35)
+				Piece.ZIndex = 1
+				Piece.Parent = ArcHolder.Instance
+
+				TableInsert(ArcPieces, Piece)
+			end
+		end
+
+		ArcHolder.Instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(RebuildArc)
+		defer(RebuildArc)
+
+		local LogoScale = Options.LogoScale or 0.58
+		local LogoImage = Instances:Create("ImageLabel", {
+			Parent = Holder.Instance,
+			Name = "\0",
+			Size = UDim2New(LogoScale, 0, LogoScale, 0),
+			Position = UDim2New(0.5, 0, 0.5, 0),
+			AnchorPoint = Vector2New(0.5, 0.5),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Image = LogoId,
+			ImageColor3 = Library.Theme["Accent"],
+			ScaleType = Enum.ScaleType.Fit,
+			ZIndex = 3,
+		}):AddToTheme({ImageColor3 = "Accent"})
+
+		local LogoData = {
+			Enabled = Enabled,
+			SpinSpeed = SpinSpeed,
+			Rotation = 0,
+			Items = {
+				Holder = Holder,
+				ArcHolder = ArcHolder,
+				Logo = LogoImage,
+			},
+		}
+
+		function LogoData:SetVisible(Bool)
+			Holder.Instance.Visible = Bool and true or false
+		end
+
+		function LogoData:SetSpinning(Bool)
+			self.Enabled = Bool and true or false
+		end
+
+		LogoData.SpinConnection = RunService.RenderStepped:Connect(function(DeltaTime)
+			if not self.SpinningLogoEnabled or not LogoData.Enabled then
+				return
+			end
+
+			if not Holder.Instance or not Holder.Instance.Parent then
+				return
+			end
+
+			LogoData.Rotation = (LogoData.Rotation + LogoData.SpinSpeed * DeltaTime) % 360
+			ArcHolder.Instance.Rotation = LogoData.Rotation
+			LogoImage.Instance.Rotation = -LogoData.Rotation * 0.35
+		end)
+
+		TableInsert(self.SpinningLogos, LogoData)
+
+		return LogoData
+	end
+
+	Library.SetSpinningLogoEnabled = function(self, Bool)
+		self.SpinningLogoEnabled = Bool and true or false
+
+		for _, LogoData in self.SpinningLogos do
+			if LogoData and LogoData.SetSpinning then
+				LogoData:SetSpinning(self.SpinningLogoEnabled)
+			end
+		end
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
@@ -4816,9 +4971,34 @@ local Library do
 				PaddingRight = UDimNew(0, 4),
 			})
 
+			Instances:Create("UIListLayout", {
+				Parent = Items["Frame"].Instance,
+				Name = "\0",
+				FillDirection = Enum.FillDirection.Horizontal,
+				Padding = UDimNew(0, 6),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+			})
+
+			local WatermarkLogoHolder = Instances:Create("Frame", {
+				Parent = Items["Frame"].Instance,
+				Name = "\0",
+				Size = UDim2FromOffset(25, 25),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				LayoutOrder = 1,
+			})
+
+			Watermark.SpinningLogo = Library:CreateSpinningLogo(WatermarkLogoHolder.Instance, {
+				Size = 25,
+				FillParent = true,
+				SpinSpeed = 110,
+			})
+
 			Items["Label"] = Instances:Create("TextLabel", {
 				Parent = Items["Frame"].Instance,
 				Name = "\0",
+				LayoutOrder = 2,
 				Position = UDim2New(0, 0, 0.5, 0),
 				Size = UDim2New(0, 0, 1, 0),
 				AnchorPoint = Vector2New(0, 0.5),
@@ -4942,6 +5122,10 @@ local Library do
 
 		function Watermark:SetVisibility(Bool)
 			Items["Frame"].Instance.Visible = Bool
+
+			if Watermark.SpinningLogo and Watermark.SpinningLogo.SetVisible then
+				Watermark.SpinningLogo:SetVisible(Bool)
+			end
 		end
 
 		function Watermark:SetDynamic(Enabled, Options)
@@ -6242,8 +6426,7 @@ local Library do
 				Position = UDim2New(0, 15, 0, 50),
 				AnchorPoint = Vector2New(0, 0),
 				BackgroundColor3 = Library.Theme['Background'],
-				Image = "rbxassetid://137698471325689",
-				ImageColor3 = Library.Theme['Accent'],
+				Image = "",
 				AutoButtonColor = false,
 				ZIndex = 128
 			}):AddToTheme({BackgroundColor3 = 'Background'})
@@ -6251,6 +6434,13 @@ local Library do
 			Instances:Create("UICorner", {
 				Parent = Items["FloatingButton"].Instance,
 				CornerRadius = UDimNew(0, 10)
+			})
+
+			Library.FloatingButtonSpinningLogo = Library:CreateSpinningLogo(Items["FloatingButton"].Instance, {
+				Size = 50,
+				FillParent = true,
+				SpinSpeed = 95,
+				ZIndex = 129,
 			})
 
 			Library.FloatingButton = Items["FloatingButton"]
@@ -10352,7 +10542,7 @@ local Library do
 
 		do
 			local ThemeSetting_Section = ThemesTab:Section({Name = "Theme Setting", Side = 1})
-			local ThemeConfig_Section = ThemesTab:Section({Name = "Theme Config", Side = 1})
+			local ThemeConfig_Section = ThemesTab:Section({Name = "Theme Config", Side = 2})
 			local Theme_Colorpicker = {}
 
 			local ThemeFolder = Library:GetFolderTheme()
@@ -10540,7 +10730,7 @@ local Library do
 		Library:CreateFontSettingsSection(MenuTab, { Side = 2 })
 
 		do
-			local MenuSetting_Section = MenuTab:Section({Name = "Menu Setting", Side = 2})
+			local MenuSetting_Section = MenuTab:Section({Name = "Menu Setting", Side = 1})
 
 			do
 				MenuSetting_Section:Button():Add("Unload", function()
@@ -10638,6 +10828,16 @@ local Library do
 					Default = false,
 					Callback = function(Value)
 						Watermark:SetVisibility(Value)
+					end
+				})
+
+				MenuSetting_Section:Toggle({
+					Name = "Spinning Logo",
+					Flag = "Spinning Logo",
+					Description = "Spinning Solix logo on watermark and floating button",
+					Default = true,
+					Callback = function(Value)
+						Library:SetSpinningLogoEnabled(Value)
 					end
 				})
 
