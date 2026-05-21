@@ -1,4 +1,4 @@
-print("MUD")
+warn("BRUH")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1573,8 +1573,6 @@ local Library do
 		PaddingBottom = UDimNew(0, 12)
 	})
 
-	Library:SetupBackgroundEffects()
-
 	Library.GetDataFromPlayer = function(self, Section)
 		local Player = Players.LocalPlayer
 
@@ -2331,6 +2329,8 @@ local Library do
 		self.BackgroundSnowEnabled = Bool and true or false
 		self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
 	end
+
+	Library:SetupBackgroundEffects()
 
 	Library.Lerp = function(self, Start, Finish, Time)
 		return Start + (Finish - Start) * Time
