@@ -1,4 +1,4 @@
-print("revert noob")
+print("bruhhh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -168,6 +168,32 @@ local Library do
 	local UDim2FromOffset = UDim2.fromOffset
 	local Vector2New = Vector2.new
 	local Vector3New = Vector3.new
+
+	local function GetDragScale(Gui)
+		if Library.Holder and Library.Holder.Instance and Gui:IsDescendantOf(Library.Holder.Instance) then
+			return Library.UIScaleNum or 1
+		end
+
+		return 1
+	end
+
+	local function NormalizeDragPosition(Gui)
+		local Parent = Gui.Parent
+
+		if not Parent or not Parent:IsA("GuiObject") then
+			return
+		end
+
+		local Scale = GetDragScale(Gui)
+		local AbsPos = Gui.AbsolutePosition
+		local ParentAbs = Parent.AbsolutePosition
+
+		Gui.AnchorPoint = Vector2New(0, 0)
+		Gui.Position = UDim2FromOffset(
+			(AbsPos.X - ParentAbs.X) / Scale,
+			(AbsPos.Y - ParentAbs.Y) / Scale
+		)
+	end
 
 	local MathClamp = math.clamp
 	local MathFloor = math.floor
@@ -790,32 +816,6 @@ local Library do
 			end
 
 			return false
-		end
-
-		local function GetDragScale(Gui)
-			if Library.Holder and Library.Holder.Instance and Gui:IsDescendantOf(Library.Holder.Instance) then
-				return Library.UIScaleNum or 1
-			end
-
-			return 1
-		end
-
-		local function NormalizeDragPosition(Gui)
-			local Parent = Gui.Parent
-
-			if not Parent or not Parent:IsA("GuiObject") then
-				return
-			end
-
-			local Scale = GetDragScale(Gui)
-			local AbsPos = Gui.AbsolutePosition
-			local ParentAbs = Parent.AbsolutePosition
-
-			Gui.AnchorPoint = Vector2New(0, 0)
-			Gui.Position = UDim2FromOffset(
-				(AbsPos.X - ParentAbs.X) / Scale,
-				(AbsPos.Y - ParentAbs.Y) / Scale
-			)
 		end
 
 		Instances.MakeDraggable = function(self)
