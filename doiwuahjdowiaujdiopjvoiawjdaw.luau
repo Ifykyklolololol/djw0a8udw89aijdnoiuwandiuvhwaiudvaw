@@ -1,4 +1,4 @@
-print("Bruhhhh")
+warn("niggaaaa")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1740,6 +1740,15 @@ local Library do
 			self.FloatingButtonHolder.Instance:Destroy()
 		end
 
+		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
+			pcall(function()
+				self.SpinningLogoWidgetGui.Instance:Destroy()
+			end)
+			self.SpinningLogoWidgetGui = nil
+			self.SpinningLogoWidgetRoot = nil
+			self.SpinningLogoWidget = nil
+		end
+
 		if self.WatermarkGui then
 			self.WatermarkGui:Clean()
 		end
@@ -1934,6 +1943,15 @@ local Library do
 					Y = {Scale = Pos.Y.Scale, Offset = Pos.Y.Offset}
 				}
 			end
+
+			if Library.SpinningLogoWidgetRoot and Library.SpinningLogoWidgetRoot.Instance then
+				local Pos = Library.SpinningLogoWidgetRoot.Instance.Position
+
+				Config["SpinningLogoPosition"] = {
+					X = Pos.X.Offset,
+					Y = Pos.Y.Offset,
+				}
+			end
 		end)
 
 		return HttpService:JSONEncode(Config)
@@ -1949,6 +1967,13 @@ local Library do
 				if Index == "FloatingButtonPosition" then
 					if Library.FloatingButton and Library.FloatingButton.Instance then
 						Library.FloatingButton.Instance.Position = UDim2New(Value.X.Scale, Value.X.Offset, Value.Y.Scale, Value.Y.Offset)
+					end
+					continue
+				end
+
+				if Index == "SpinningLogoPosition" then
+					if Library.SpinningLogoWidgetRoot and Library.SpinningLogoWidgetRoot.Instance then
+						Library.SpinningLogoWidgetRoot.Instance.Position = UDim2New(0, Value.X or 125, 0, Value.Y or 125)
 					end
 					continue
 				end
@@ -2149,6 +2174,7 @@ local Library do
 		Track(self.Holder and self.Holder.Instance)
 		Track(self.InputBlockGui and self.InputBlockGui.Instance)
 		Track(self.FloatingButtonHolder and self.FloatingButtonHolder.Instance)
+		Track(self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance)
 		Track(self.OtherHolder and self.OtherHolder.Instance)
 		Track(self.UnusedHolder and self.UnusedHolder.Instance)
 		Track(self.WatermarkGui and self.WatermarkGui.Instance)
@@ -2165,6 +2191,10 @@ local Library do
 
 		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
 			TableInsert(Roots, self.FloatingButtonHolder.Instance)
+		end
+
+		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
+			TableInsert(Roots, self.SpinningLogoWidgetGui.Instance)
 		end
 
 		if self.WatermarkGui and self.WatermarkGui.Instance then
@@ -2269,6 +2299,7 @@ local Library do
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ClipsDescendants = false,
+			Active = Options.Draggable and true or false,
 			ZIndex = Options.ZIndex or 2,
 		})
 
@@ -2278,6 +2309,7 @@ local Library do
 			Size = UDim2New(1, 0, 1, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
+			Active = false,
 			AnchorPoint = Vector2New(0.5, 0.5),
 			Position = UDim2New(0.5, 0, 0.5, 0),
 			ZIndex = 1,
@@ -2322,6 +2354,7 @@ local Library do
 				)
 				Piece.Rotation = math.deg(Angle) + 90
 				Piece.BorderSizePixel = 0
+				Piece.Active = false
 				Piece.BackgroundColor3 = Color3.fromHSV(Index / math.max(Segments - 1, 1), 1, 1):Lerp(Accent, 0.35)
 				Piece.ZIndex = 1
 				Piece.Parent = ArcHolder.Instance
@@ -2342,6 +2375,7 @@ local Library do
 			AnchorPoint = Vector2New(0.5, 0.5),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
+			Active = false,
 			Image = LogoId,
 			ImageColor3 = Library.Theme["Accent"],
 			ScaleType = Enum.ScaleType.Fit,
@@ -2381,9 +2415,101 @@ local Library do
 			LogoImage.Instance.Rotation = -LogoData.Rotation * 0.35
 		end)
 
+		if Options.Draggable then
+			Holder:MakeDraggable()
+		end
+
 		TableInsert(self.SpinningLogos, LogoData)
 
 		return LogoData
+	end
+
+	Library.SaveSpinningLogoWidgetPosition = function(self)
+		if not writefile or not self.SpinningLogoWidgetRoot or not self.SpinningLogoWidgetRoot.Instance then
+			return
+		end
+
+		pcall(function()
+			local Position = self.SpinningLogoWidgetRoot.Instance.Position
+			writefile(GetFolders().Datas .. "/spinning-logo.json", HttpService:JSONEncode({
+				X = Position.X.Offset,
+				Y = Position.Y.Offset,
+			}))
+		end)
+	end
+
+	Library.LoadSpinningLogoWidgetPosition = function(self)
+		if not readfile or not isfile or not self.SpinningLogoWidgetRoot or not self.SpinningLogoWidgetRoot.Instance then
+			return
+		end
+
+		local Path = GetFolders().Datas .. "/spinning-logo.json"
+		if not isfile(Path) then
+			return
+		end
+
+		pcall(function()
+			local Saved = HttpService:JSONDecode(readfile(Path))
+			self.SpinningLogoWidgetRoot.Instance.Position = UDim2New(0, Saved.X or 125, 0, Saved.Y or 125)
+		end)
+	end
+
+	Library.SetupDraggableSpinningLogoWidget = function(self)
+		if self.SpinningLogoWidgetRoot and self.SpinningLogoWidgetRoot.Instance then
+			return
+		end
+
+		self.SpinningLogoWidgetGui = Instances:Create("ScreenGui", {
+			Parent = SafeGetUI(),
+			Name = "\0",
+			DisplayOrder = self.DisplayOrders.FloatingButtonOpen + 1,
+			ResetOnSpawn = false,
+			ZIndexBehavior = Enum.ZIndexBehavior.Global,
+		})
+
+		self.SpinningLogoWidgetRoot = Instances:Create("Frame", {
+			Parent = self.SpinningLogoWidgetGui.Instance,
+			Name = "\0",
+			Size = UDim2FromOffset(120, 120),
+			Position = UDim2New(0, 125, 0, 125),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Active = true,
+			ZIndex = 2,
+		})
+
+		self.SpinningLogoWidget = self:CreateSpinningLogo(self.SpinningLogoWidgetRoot.Instance, {
+			FillParent = true,
+			SpinSpeed = 95,
+			ZIndex = 3,
+		})
+
+		self.SpinningLogoWidgetRoot:MakeDraggable()
+		self:LoadSpinningLogoWidgetPosition()
+
+		local LastSave = 0
+		self.SpinningLogoWidgetRoot.Instance:GetPropertyChangedSignal("Position"):Connect(function()
+			if os.clock() - LastSave < 0.35 then
+				return
+			end
+
+			LastSave = os.clock()
+			self:SaveSpinningLogoWidgetPosition()
+		end)
+	end
+
+	Library.SetSpinningLogoWidgetVisible = function(self, Bool)
+		if self.SpinningLogoWidgetRoot and self.SpinningLogoWidgetRoot.Instance then
+			self.SpinningLogoWidgetRoot.Instance.Visible = Bool and true or false
+		end
+
+		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
+			self.SpinningLogoWidgetGui.Instance.Enabled = Bool and true or false
+		end
+
+		if self.SpinningLogoWidget and self.SpinningLogoWidget.SetVisible then
+			self.SpinningLogoWidget:SetVisible(Bool)
+		end
 	end
 
 	Library.SetSpinningLogoEnabled = function(self, Bool)
@@ -2394,6 +2520,8 @@ local Library do
 				LogoData:SetSpinning(self.SpinningLogoEnabled)
 			end
 		end
+
+		self:SetSpinningLogoWidgetVisible(self.SpinningLogoEnabled)
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
@@ -2704,6 +2832,8 @@ local Library do
 	Library:SetupBackgroundEffects()
 	Library:SetBackgroundEffectsVisible(false, true)
 	Library:ApplyWindowInputState(false)
+	Library:SetupDraggableSpinningLogoWidget()
+	Library:SetSpinningLogoWidgetVisible(Library.SpinningLogoEnabled)
 
 	Library.Lerp = function(self, Start, Finish, Time)
 		return Start + (Finish - Start) * Time
@@ -6452,6 +6582,18 @@ local Library do
 			local FloatingButtonStartPosition
 			local FloatingButtonMoveConnection
 			local FloatingButtonEndConnection
+			local FloatingButtonDragMoved = false
+			local FloatingButtonDragClickThreshold = 6
+
+			local function SaveFloatingButtonPosition()
+				if not Library.AutoSave or Library.LoadingConfig or not writefile then
+					return
+				end
+
+				pcall(function()
+					writefile(GetAutoloadPath(), Library:GetConfig())
+				end)
+			end
 
 			local function StopFloatingButtonDrag()
 				FloatingButtonDragging = false
@@ -6485,6 +6627,7 @@ local Library do
 					NormalizeDragPosition(FloatingGui)
 
 					FloatingButtonDragging = true
+					FloatingButtonDragMoved = false
 					FloatingButtonDragStart = GetMouseLocation()
 					FloatingButtonStartPosition = FloatingGui.Position
 
@@ -6500,6 +6643,13 @@ local Library do
 						local Mouse = GetMouseLocation()
 						local DragDelta = Mouse - FloatingButtonDragStart
 
+						if DragDelta.Magnitude > FloatingButtonDragClickThreshold then
+							FloatingButtonDragMoved = true
+						end
+
+						local Scale = GetDragScale(FloatingGui)
+						DragDelta = DragDelta / Scale
+
 						FloatingGui.Position = UDim2New(
 							FloatingButtonStartPosition.X.Scale,
 							FloatingButtonStartPosition.X.Offset + DragDelta.X,
@@ -6514,14 +6664,19 @@ local Library do
 						end
 
 						if EndInput.UserInputType == Enum.UserInputType.MouseButton1 or EndInput.UserInputType == Enum.UserInputType.Touch then
+							local WasDrag = FloatingButtonDragMoved
 							StopFloatingButtonDrag()
+
+							if WasDrag then
+								if Library.AutoSave then
+									SaveFloatingButtonPosition()
+								end
+							else
+								Window:SetOpen(not Window.IsOpen)
+							end
 						end
 					end)
 				end
-			end)
-
-			Items["FloatingButton"]:Connect("MouseButton1Down", function(Input)
-				Window:SetOpen(not Window.IsOpen)
 			end)
 
 			Window.Items = Items
