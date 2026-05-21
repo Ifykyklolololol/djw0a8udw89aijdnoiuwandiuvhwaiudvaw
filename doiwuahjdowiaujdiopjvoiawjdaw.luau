@@ -1,4 +1,4 @@
-warn("cmon bruhh")
+print("boy aint no way boy")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6693,6 +6693,8 @@ local Library do
 		local SUBTAB_BG_ACTIVE_Z = 20
 		local SUBTAB_LINER_Z = 24
 		local SUBTAB_TEXT_Z = 25
+		local SUBTAB_PAD_H = 20
+		local SUBTAB_LINER_INSET = 8
 
 		local Items = {} do
 			Items["Tab"] = Instances:Create("Frame", {
@@ -6725,8 +6727,8 @@ local Library do
 			Items["TabLiner"] = Instances:Create("Frame", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, -8, 0, 0),
-				Position = UDim2New(0, 4, 0, 0),
+				Size = UDim2New(1, -SUBTAB_LINER_INSET * 2, 0, 0),
+				Position = UDim2New(0, SUBTAB_LINER_INSET, 0, 0),
 				AnchorPoint = Vector2New(0, 0),
 				BackgroundColor3 = Library.Theme["Accent"],
 				BackgroundTransparency = 1,
@@ -6771,8 +6773,8 @@ local Library do
 			Instances:Create("UIPadding", {
 				Parent = Items["Tab"].Instance,
 				Name = "\0",
-				PaddingLeft = UDimNew(0, 10),
-				PaddingRight = UDimNew(0, 10),
+				PaddingLeft = UDimNew(0, SUBTAB_PAD_H),
+				PaddingRight = UDimNew(0, SUBTAB_PAD_H),
 			})
 
 			local SubPageHolder = ParentPage.Items["SubPageHolder"]
@@ -6869,7 +6871,10 @@ local Library do
 				Items["Tab"].Instance.Parent = ParentPage.Items["SubPages"].Instance
 
 				Items["TabBg"]:Tween(nil, {BackgroundTransparency = 0})
-				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, -8, 0, 3)})
+				Items["TabLiner"]:Tween(nil, {
+					BackgroundTransparency = 0,
+					Size = UDim2New(1, -SUBTAB_LINER_INSET * 2, 0, 3),
+				})
 				Items["TabText"]:Tween(nil, {TextTransparency = 0})
 			else
 				Items["SubPage"].Instance.Visible = false
@@ -6889,7 +6894,10 @@ local Library do
 				Items["TabBg"].Instance.ZIndex = SUBTAB_BG_Z
 
 				Items["TabBg"]:Tween(nil, {BackgroundTransparency = 1})
-				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, -8, 0, 0)})
+				Items["TabLiner"]:Tween(nil, {
+					BackgroundTransparency = 1,
+					Size = UDim2New(1, -SUBTAB_LINER_INSET * 2, 0, 0),
+				})
 				Items["TabText"]:Tween(nil, {TextTransparency = 0.4})
 			end
 		end
