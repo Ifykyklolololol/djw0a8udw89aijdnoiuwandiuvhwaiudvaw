@@ -1,4 +1,4 @@
-print("bruhhh")
+warn("BRUH")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6025,6 +6025,355 @@ local Library do
 		Indicator:Center()
 
 		return Indicator
+	end
+
+	Library.RadarWidget = function(self, Params)
+		Params = Params or {}
+
+		local Radar = {
+			Entries = {},
+			Range = Params.Range or 250,
+			Visible = Params.Visible ~= false,
+			Heading = 0,
+			Items = {},
+		}
+
+		local Items = {} do
+			Items["RadarWidget"] = Instances:Create("Frame", {
+				Parent = Library.Holder.Instance,
+				Name = "\0",
+				Position = UDim2New(0, 860, 0, 132),
+				Size = UDim2New(0, 220, 0, 262),
+				BackgroundColor3 = Library.Theme["Background"],
+				BackgroundTransparency = 0.15,
+				BorderSizePixel = 0,
+				Visible = Radar.Visible,
+				ZIndex = 4,
+			}):AddToTheme({BackgroundColor3 = "Background"})
+
+			Items["RadarWidget"]:MakeDraggable()
+
+			Instances:Create("UICorner", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(0, 5),
+			})
+
+			Instances:Create("UIStroke", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				Color = Library.Theme["Border"],
+				Thickness = 1,
+			}):AddToTheme({Color = "Border"})
+
+			Items["AccentBar"] = Instances:Create("Frame", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, 2),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BorderSizePixel = 0,
+				ZIndex = 5,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Instances:Create("UIGradient", {
+				Parent = Items["AccentBar"].Instance,
+				Name = "\0",
+				Rotation = 90,
+				Transparency = NumSequence{
+					NumSequenceKeypoint(0, 0),
+					NumSequenceKeypoint(0.394015, 0),
+					NumSequenceKeypoint(1, 1),
+				},
+			})
+
+			Instances:Create("UIPadding", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				PaddingTop = UDimNew(0, 10),
+				PaddingBottom = UDimNew(0, 10),
+				PaddingLeft = UDimNew(0, 10),
+				PaddingRight = UDimNew(0, 10),
+			})
+
+			Items["Text"] = Instances:Create("TextLabel", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, -20, 0, 16),
+				Position = UDim2New(0, 0, 0, 2),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = Params.Name or Params.name or "Radar",
+				TextColor3 = Library.Theme["Accent"],
+				TextSize = 14,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 5,
+			}):AddToTheme({TextColor3 = "Accent"})
+
+			Items["Background"] = Instances:Create("Frame", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				Position = UDim2New(0, 0, 0, 24),
+				Size = UDim2New(1, 0, 1, -44),
+				BackgroundColor3 = Library.Theme["Inline"],
+				BorderSizePixel = 0,
+				ZIndex = 4,
+			}):AddToTheme({BackgroundColor3 = "Inline"})
+
+			Instances:Create("UICorner", {
+				Parent = Items["Background"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(0, 4),
+			})
+
+			Instances:Create("UIStroke", {
+				Parent = Items["Background"].Instance,
+				Name = "\0",
+				Color = Library.Theme["Border"],
+				Thickness = 1,
+			}):AddToTheme({Color = "Border"})
+
+			Items["RadarBounds"] = Instances:Create("Frame", {
+				Parent = Items["Background"].Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0.5, 0.5),
+				Position = UDim2New(0.5, 0, 0.5, 0),
+				Size = UDim2New(1, -16, 1, -16),
+				BackgroundColor3 = Library.Theme["Element"],
+				BorderSizePixel = 0,
+				ClipsDescendants = true,
+				ZIndex = 4,
+			}):AddToTheme({BackgroundColor3 = "Element"})
+
+			Instances:Create("UICorner", {
+				Parent = Items["RadarBounds"].Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(0, 4),
+			})
+
+			Instances:Create("UIStroke", {
+				Parent = Items["RadarBounds"].Instance,
+				Name = "\0",
+				Color = Library.Theme["Border"],
+				Thickness = 1,
+				Transparency = 0.35,
+			}):AddToTheme({Color = "Border"})
+
+			for _, LineData in ipairs({
+				{ Name = "CrossX", Size = UDim2New(1, 0, 0, 1), Position = UDim2New(0, 0, 0.5, 0), Transparency = 0.45 },
+				{ Name = "CrossY", Size = UDim2New(0, 1, 1, 0), Position = UDim2New(0.5, 0, 0, 0), Transparency = 0.45 },
+				{ Name = "GridTop", Size = UDim2New(1, 0, 0, 1), Position = UDim2New(0, 0, 0.25, 0), Transparency = 0.7 },
+				{ Name = "GridBottom", Size = UDim2New(1, 0, 0, 1), Position = UDim2New(0, 0, 0.75, 0), Transparency = 0.7 },
+				{ Name = "GridLeft", Size = UDim2New(0, 1, 1, 0), Position = UDim2New(0.25, 0, 0, 0), Transparency = 0.7 },
+				{ Name = "GridRight", Size = UDim2New(0, 1, 1, 0), Position = UDim2New(0.75, 0, 0, 0), Transparency = 0.7 },
+			}) do
+				Items[LineData.Name] = Instances:Create("Frame", {
+					Parent = Items["RadarBounds"].Instance,
+					Name = "\0",
+					Size = LineData.Size,
+					Position = LineData.Position,
+					BackgroundColor3 = Library.Theme["Border"],
+					BackgroundTransparency = LineData.Transparency,
+					BorderSizePixel = 0,
+					ZIndex = 4,
+				}):AddToTheme({BackgroundColor3 = "Border"})
+			end
+
+			Items["SweepLine"] = Instances:Create("Frame", {
+				Parent = Items["RadarBounds"].Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0.5, 1),
+				Position = UDim2New(0.5, 0, 0.5, 0),
+				Size = UDim2New(0, 1, 0.5, 0),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BackgroundTransparency = 0.55,
+				BorderSizePixel = 0,
+				ZIndex = 5,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Items["CenterPlayer"] = Instances:Create("TextLabel", {
+				Parent = Items["RadarBounds"].Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0.5, 0.5),
+				Position = UDim2New(0.5, 0, 0.5, 0),
+				Size = UDim2New(0, 14, 0, 14),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = "▲",
+				TextColor3 = Library.Theme["Accent"],
+				TextSize = 14,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Rotation = 0,
+				ZIndex = 6,
+			}):AddToTheme({TextColor3 = "Accent"})
+
+			Items["Footer"] = Instances:Create("TextLabel", {
+				Parent = Items["RadarWidget"].Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0, 1),
+				Position = UDim2New(0, 0, 1, -2),
+				Size = UDim2New(1, 0, 0, 14),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = "0 contacts | 250 studs",
+				TextColor3 = Library.Theme["Inactive Text"],
+				TextSize = 12,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 5,
+			}):AddToTheme({TextColor3 = "Inactive Text"})
+		end
+
+		Radar.Items = Items
+
+		local function CountContacts()
+			local Count = 0
+
+			for _ in Radar.Entries do
+				Count += 1
+			end
+
+			return Count
+		end
+
+		local function RefreshFooter()
+			Radar:SetFooter(string.format("%d contacts | %d studs", CountContacts(), MathFloor(Radar.Range or 0)))
+		end
+
+		local function ApplyVisibility()
+			Items["RadarWidget"].Instance.Visible = Radar.Visible
+		end
+
+		local function CreateEntry(Key)
+			local Entry = {}
+
+			Entry.Dot = Instances:Create("Frame", {
+				Parent = Items["RadarBounds"].Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0.5, 0.5),
+				Position = UDim2New(0.5, 0, 0.5, 0),
+				Size = UDim2New(0, 4, 0, 4),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BorderSizePixel = 0,
+				ZIndex = 5,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Instances:Create("UICorner", {
+				Parent = Entry.Dot.Instance,
+				Name = "\0",
+				CornerRadius = UDimNew(1, 0),
+			})
+
+			Radar.Entries[Key] = Entry
+			return Entry
+		end
+
+		function Radar:SetVisibility(Bool)
+			Radar.Visible = Bool == true
+			ApplyVisibility()
+		end
+
+		function Radar:Center()
+			local AbsPos = Items["RadarWidget"].Instance.AbsolutePosition
+			local GuiInset = GuiService:GetGuiInset().Y
+
+			Items["RadarWidget"].Instance.AnchorPoint = Vector2New(0, 0)
+			Items["RadarWidget"].Instance.Position = UDim2New(0, AbsPos.X, 0, AbsPos.Y + GuiInset)
+		end
+
+		function Radar:SetText(Text)
+			Items["Text"].Instance.Text = tostring(Text or "")
+		end
+
+		function Radar:SetFooter(Text)
+			Items["Footer"].Instance.Text = tostring(Text or "")
+		end
+
+		function Radar:SetRange(Value)
+			Radar.Range = Value
+			RefreshFooter()
+		end
+
+		function Radar:SetSweep(Angle)
+			if typeof(Angle) == "number" then
+				Items["SweepLine"].Instance.Rotation = math.deg(Angle)
+			end
+
+			return Angle
+		end
+
+		function Radar:SetHeading(Angle)
+			if typeof(Angle) == "number" then
+				Radar.Heading = Angle
+				Items["CenterPlayer"].Instance.Rotation = math.deg(Angle)
+			end
+
+			return Angle
+		end
+
+		function Radar:Upsert(Key, Data)
+			local Entry = Radar.Entries[Key] or CreateEntry(Key)
+			local Dot = Entry.Dot.Instance
+			local Position = Data and Data.Position
+			local Size = Data and Data.Size
+			local Visible = Data and Data.Visible
+			local Transparency = Data and Data.Transparency
+			local Color = Data and Data.Color
+
+			if typeof(Position) == "Vector2" then
+				Dot.Position = UDim2New(0, Position.X, 0, Position.Y)
+			end
+
+			if typeof(Size) == "number" then
+				Dot.Size = UDim2New(0, Size, 0, Size)
+			end
+
+			if typeof(Color) == "Color3" then
+				Dot.BackgroundColor3 = Color
+			end
+
+			if typeof(Transparency) == "number" then
+				Dot.BackgroundTransparency = Transparency
+			else
+				Dot.BackgroundTransparency = 0
+			end
+
+			Dot.Visible = Visible ~= false
+			RefreshFooter()
+			return Entry
+		end
+
+		function Radar:Remove(Key)
+			local Entry = Radar.Entries[Key]
+
+			if not Entry then
+				return
+			end
+
+			Radar.Entries[Key] = nil
+			Entry.Dot.Instance:Destroy()
+			RefreshFooter()
+		end
+
+		function Radar:Clear()
+			for Key, Entry in next, Radar.Entries do
+				Radar.Entries[Key] = nil
+				Entry.Dot.Instance:Destroy()
+			end
+
+			RefreshFooter()
+		end
+
+		function Radar:GetBounds()
+			return Items["RadarBounds"].Instance.AbsoluteSize
+		end
+
+		RefreshFooter()
+		Radar:Center()
+
+		return Radar
 	end
 
 	Library.Window = function(self, Data)
