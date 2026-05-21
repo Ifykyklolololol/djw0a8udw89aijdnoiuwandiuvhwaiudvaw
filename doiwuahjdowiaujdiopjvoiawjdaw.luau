@@ -1,4 +1,4 @@
-warn("BRUH")
+print("MUD")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -208,6 +208,7 @@ local Library do
 		WindowOpenState = false,
 		MouseStateBeforeOpen = nil,
 		BackgroundEffects = nil,
+		BackgroundHolder = nil,
 		BackgroundDarkenEnabled = true,
 		BackgroundSnowEnabled = true,
 		MainWindowFrame = nil,
@@ -1799,13 +1800,14 @@ local Library do
 				end)
 			end
 
-			if self.BackgroundEffects.Background and self.BackgroundEffects.Background.Parent then
-				pcall(function()
-					self.BackgroundEffects.Background:Destroy()
-				end)
-			end
-
 			self.BackgroundEffects = nil
+		end
+
+		if self.BackgroundHolder and self.BackgroundHolder.Instance then
+			pcall(function()
+				self.BackgroundHolder.Instance:Destroy()
+			end)
+			self.BackgroundHolder = nil
 		end
 
 		pcall(function()
@@ -2171,15 +2173,40 @@ local Library do
 			return
 		end
 
+		if not self.BackgroundHolder or not self.BackgroundHolder.Instance then
+			local Success, Gui = pcall(function()
+				local ScreenGui = InstanceNew("ScreenGui")
+				ScreenGui.Name = "\0"
+				ScreenGui.Parent = SafeGetUI()
+				ScreenGui.IgnoreGuiInset = true
+				ScreenGui.ResetOnSpawn = false
+				ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+				ScreenGui.DisplayOrder = 1
+				ScreenGui.Enabled = false
+				return ScreenGui
+			end)
+
+			if Success and Gui then
+				self.BackgroundHolder = {
+					Instance = Gui,
+				}
+			else
+				return
+			end
+		end
+
+		local Viewport = Camera.ViewportSize
+
 		local Background = Instances:Create("Frame", {
-			Parent = self.Holder.Instance,
+			Parent = self.BackgroundHolder.Instance,
 			Name = "\0",
 			BackgroundColor3 = FromRGB(0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Position = UDim2New(0, 0, 0, 0),
-			Size = UDim2New(1, 0, 1, 0),
+			Size = UDim2FromOffset(Viewport.X, Viewport.Y),
 			Visible = false,
+			Active = false,
 			ZIndex = 0,
 		})
 
@@ -2203,9 +2230,23 @@ local Library do
 			Background = Background.Instance,
 			SnowHolder = SnowHolder.Instance,
 			BlurEffect = BlurEffect,
+			ScreenGui = self.BackgroundHolder.Instance,
 			SnowAsset = "rbxassetid://6871196088",
 			IsSnowing = false,
 		}
+
+		local function ResizeBackground()
+			local CurrentCamera = Workspace.CurrentCamera
+			if not CurrentCamera or not self.BackgroundEffects then
+				return
+			end
+
+			local Size = CurrentCamera.ViewportSize
+			self.BackgroundEffects.Background.Size = UDim2FromOffset(Size.X, Size.Y)
+		end
+
+		ResizeBackground()
+		self:Connect(CurrentCamera:GetPropertyChangedSignal("ViewportSize"), ResizeBackground, "BackgroundEffectsResize")
 
 		self:Thread(function()
 			while Library and Library.BackgroundEffects do
@@ -2281,8 +2322,18 @@ local Library do
 		local TargetTransparency = (IsVisible and HasDarken) and 0.55 or 1
 		local TargetBlur = (IsVisible and HasDarken) and 18 or 0
 
+		if Effects.ScreenGui then
+			Effects.ScreenGui.Enabled = IsVisible and HasAnyEffect
+		end
+
 		if IsVisible and HasAnyEffect then
 			Effects.Background.Visible = true
+
+			local CurrentCamera = Workspace.CurrentCamera
+			if CurrentCamera then
+				local Size = CurrentCamera.ViewportSize
+				Effects.Background.Size = UDim2FromOffset(Size.X, Size.Y)
+			end
 		end
 
 		if Instant then
@@ -2310,6 +2361,10 @@ local Library do
 				end
 
 				CurrentEffects.Background.Visible = false
+
+				if CurrentEffects.ScreenGui then
+					CurrentEffects.ScreenGui.Enabled = false
+				end
 
 				for _, Child in CurrentEffects.SnowHolder:GetChildren() do
 					if Child:IsA("ImageLabel") then
