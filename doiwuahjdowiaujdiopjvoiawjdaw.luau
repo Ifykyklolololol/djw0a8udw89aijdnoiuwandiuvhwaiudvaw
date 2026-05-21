@@ -1,4 +1,4 @@
-print("big boyy feofkfe")
+warn("cmon bruhh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -6689,23 +6689,35 @@ local Library do
 			ParentPage:UpdateContentLayout()
 		end
 
+		local SUBTAB_BG_Z = 11
+		local SUBTAB_BG_ACTIVE_Z = 20
+		local SUBTAB_LINER_Z = 24
+		local SUBTAB_TEXT_Z = 25
+
 		local Items = {} do
-			Items["Tab"] = Instances:Create("TextButton", {
+			Items["Tab"] = Instances:Create("Frame", {
 				Parent = ParentPage.Items["SubPages"].Instance,
 				Name = "\0",
 				Size = UDim2New(0, 0, 0, 31),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.X,
+				ClipsDescendants = false,
+				ZIndex = SUBTAB_BG_Z,
+			})
+
+			Items["TabBg"] = Instances:Create("Frame", {
+				Parent = Items["Tab"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 1, 0),
 				BackgroundColor3 = Library.Theme["Inline"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				Text = "",
-				AutoButtonColor = false,
-				AutomaticSize = Enum.AutomaticSize.X,
-				ClipsDescendants = true,
-				ZIndex = 11,
+				ZIndex = SUBTAB_BG_Z,
 			}):AddToTheme({BackgroundColor3 = "Inline"})
 
 			Instances:Create("UICorner", {
-				Parent = Items["Tab"].Instance,
+				Parent = Items["TabBg"].Instance,
 				Name = "\0",
 				CornerRadius = UDimNew(0, 5),
 			})
@@ -6719,7 +6731,7 @@ local Library do
 				BackgroundColor3 = Library.Theme["Accent"],
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				ZIndex = 3,
+				ZIndex = SUBTAB_LINER_Z,
 			}):AddToTheme({BackgroundColor3 = "Accent"})
 
 			Instances:Create("UICorner", {
@@ -6742,8 +6754,19 @@ local Library do
 				FontFace = Library.Font,
 				TextTransparency = 0.4,
 				AutomaticSize = Enum.AutomaticSize.X,
-				ZIndex = 5,
+				ZIndex = SUBTAB_TEXT_Z,
 			}):AddToTheme({TextColor3 = "Text"})
+
+			Items["TabHit"] = Instances:Create("TextButton", {
+				Parent = Items["Tab"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = "",
+				AutoButtonColor = false,
+				ZIndex = SUBTAB_TEXT_Z + 1,
+			})
 
 			Instances:Create("UIPadding", {
 				Parent = Items["Tab"].Instance,
@@ -6841,12 +6864,11 @@ local Library do
 					end
 				end
 
-				Items["Tab"].Instance.ZIndex = 20
-				Items["TabLiner"].Instance.ZIndex = 6
-				Items["TabText"].Instance.ZIndex = 7
+				Items["Tab"].Instance.ZIndex = SUBTAB_BG_ACTIVE_Z
+				Items["TabBg"].Instance.ZIndex = SUBTAB_BG_ACTIVE_Z
 				Items["Tab"].Instance.Parent = ParentPage.Items["SubPages"].Instance
 
-				Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
+				Items["TabBg"]:Tween(nil, {BackgroundTransparency = 0})
 				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, -8, 0, 3)})
 				Items["TabText"]:Tween(nil, {TextTransparency = 0})
 			else
@@ -6863,17 +6885,16 @@ local Library do
 					ParentPage.ActiveSubPage = nil
 				end
 
-				Items["Tab"].Instance.ZIndex = 10
-				Items["TabLiner"].Instance.ZIndex = 4
-				Items["TabText"].Instance.ZIndex = 5
+				Items["Tab"].Instance.ZIndex = SUBTAB_BG_Z
+				Items["TabBg"].Instance.ZIndex = SUBTAB_BG_Z
 
-				Items["Tab"]:Tween(nil, {BackgroundTransparency = 1})
+				Items["TabBg"]:Tween(nil, {BackgroundTransparency = 1})
 				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, -8, 0, 0)})
 				Items["TabText"]:Tween(nil, {TextTransparency = 0.4})
 			end
 		end
 
-		Items["Tab"]:Connect("MouseButton1Down", function()
+		Items["TabHit"]:Connect("MouseButton1Down", function()
 			if SubPage.Active then
 				return
 			end
