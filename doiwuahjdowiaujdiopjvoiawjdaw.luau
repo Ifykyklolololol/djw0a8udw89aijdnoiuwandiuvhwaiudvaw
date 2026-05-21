@@ -1,4 +1,4 @@
-warn("YEah boiy")
+print("mud")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -403,401 +403,67 @@ local Library do
 			["Gradient"] = FromRGB(210, 200, 230),
 		},
 
-		["Preset"] = {
-			["Background"] = FromRGB(14, 13, 18),
-			["Inline"] = FromRGB(22, 21, 28),
-			["Border"] = FromRGB(42, 40, 52),
-			["Shadow"] = FromRGB(8, 6, 12),
-			["Text"] = FromRGB(242, 240, 248),
-			["Inactive Text"] = FromRGB(148, 144, 162),
-			["Accent"] = FromRGB(196, 152, 255),
-			["Element"] = FromRGB(32, 30, 40),
-			["Gradient"] = FromRGB(210, 200, 230),
-		},
-
-		["Carbon"] = {
-			["Background"] = FromRGB(16, 17, 20),
-			["Inline"] = FromRGB(24, 26, 31),
-			["Border"] = FromRGB(44, 48, 56),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(230, 232, 238),
-			["Inactive Text"] = FromRGB(130, 136, 148),
-			["Accent"] = FromRGB(120, 168, 255),
-			["Element"] = FromRGB(30, 32, 38),
-			["Gradient"] = FromRGB(170, 180, 200),
-		},
-
-		["Mono"] = {
-			["Background"] = FromRGB(12, 12, 12),
-			["Inline"] = FromRGB(20, 20, 20),
-			["Border"] = FromRGB(38, 38, 38),
+		["Fatality"] = {
+			["Background"] = FromRGB(16, 16, 18),
+			["Inline"] = FromRGB(24, 24, 28),
+			["Border"] = FromRGB(46, 46, 52),
 			["Shadow"] = FromRGB(0, 0, 0),
 			["Text"] = FromRGB(245, 245, 245),
-			["Inactive Text"] = FromRGB(130, 130, 130),
-			["Accent"] = FromRGB(255, 255, 255),
-			["Element"] = FromRGB(28, 28, 28),
-			["Gradient"] = FromRGB(180, 180, 180),
+			["Inactive Text"] = FromRGB(135, 135, 145),
+			["Accent"] = FromRGB(255, 75, 125),
+			["Element"] = FromRGB(30, 30, 34),
+			["Gradient"] = FromRGB(255, 170, 210),
 		},
-
-		["Ember"] = {
-			["Background"] = FromRGB(18, 12, 12),
-			["Inline"] = FromRGB(28, 18, 18),
-			["Border"] = FromRGB(52, 34, 34),
-			["Shadow"] = FromRGB(20, 8, 8),
-			["Text"] = FromRGB(250, 238, 235),
-			["Inactive Text"] = FromRGB(170, 140, 135),
-			["Accent"] = FromRGB(255, 120, 72),
-			["Element"] = FromRGB(36, 24, 22),
-			["Gradient"] = FromRGB(255, 190, 160),
-		},
-
-		["Arctic"] = {
-			["Background"] = FromRGB(12, 16, 22),
-			["Inline"] = FromRGB(18, 26, 36),
-			["Border"] = FromRGB(32, 48, 64),
+		
+		["Primordial"] = {
+			["Background"] = FromRGB(10, 12, 16),
+			["Inline"] = FromRGB(18, 22, 30),
+			["Border"] = FromRGB(36, 44, 58),
 			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(235, 245, 255),
-			["Inactive Text"] = FromRGB(140, 165, 190),
-			["Accent"] = FromRGB(90, 190, 255),
-			["Element"] = FromRGB(22, 32, 44),
-			["Gradient"] = FromRGB(180, 220, 255),
+			["Text"] = FromRGB(240, 245, 255),
+			["Inactive Text"] = FromRGB(125, 140, 165),
+			["Accent"] = FromRGB(90, 140, 255),
+			["Element"] = FromRGB(24, 28, 38),
+			["Gradient"] = FromRGB(180, 205, 255),
 		},
-
-		["Sakura"] = {
-			["Background"] = FromRGB(20, 14, 18),
-			["Inline"] = FromRGB(32, 22, 28),
-			["Border"] = FromRGB(58, 40, 50),
-			["Shadow"] = FromRGB(12, 6, 10),
-			["Text"] = FromRGB(255, 245, 248),
-			["Inactive Text"] = FromRGB(185, 155, 168),
-			["Accent"] = FromRGB(255, 130, 175),
-			["Element"] = FromRGB(38, 26, 34),
-			["Gradient"] = FromRGB(255, 200, 220),
-		},
-
-		["Toxic"] = {
-			["Background"] = FromRGB(10, 16, 12),
-			["Inline"] = FromRGB(16, 26, 18),
-			["Border"] = FromRGB(28, 48, 34),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(230, 255, 235),
-			["Inactive Text"] = FromRGB(130, 170, 140),
-			["Accent"] = FromRGB(95, 255, 120),
-			["Element"] = FromRGB(18, 30, 22),
-			["Gradient"] = FromRGB(170, 240, 190),
-		},
-
-		["Void"] = {
-			["Background"] = FromRGB(8, 8, 14),
-			["Inline"] = FromRGB(14, 14, 24),
-			["Border"] = FromRGB(32, 30, 48),
-			["Shadow"] = FromRGB(40, 20, 80),
-			["Text"] = FromRGB(235, 232, 255),
-			["Inactive Text"] = FromRGB(130, 128, 155),
-			["Accent"] = FromRGB(140, 95, 255),
-			["Element"] = FromRGB(20, 18, 32),
-			["Gradient"] = FromRGB(190, 170, 255),
-		},
-
-		["Gold"] = {
-			["Background"] = FromRGB(18, 16, 12),
-			["Inline"] = FromRGB(28, 24, 18),
-			["Border"] = FromRGB(50, 44, 32),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(255, 248, 235),
-			["Inactive Text"] = FromRGB(175, 165, 140),
-			["Accent"] = FromRGB(255, 198, 75),
-			["Element"] = FromRGB(34, 30, 22),
-			["Gradient"] = FromRGB(255, 220, 160),
-		},
-
-		["Copper"] = {
-			["Background"] = FromRGB(20, 14, 12),
-			["Inline"] = FromRGB(32, 22, 18),
-			["Border"] = FromRGB(56, 38, 32),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(255, 240, 232),
-			["Inactive Text"] = FromRGB(180, 150, 140),
-			["Accent"] = FromRGB(230, 140, 95),
-			["Element"] = FromRGB(38, 26, 22),
-			["Gradient"] = FromRGB(240, 190, 170),
-		},
-
-		["Bloom"] = {
-			["Background"] = FromRGB(16, 14, 22),
-			["Inline"] = FromRGB(26, 22, 34),
-			["Border"] = FromRGB(48, 42, 62),
-			["Shadow"] = FromRGB(30, 15, 40),
+		
+		["Pandora"] = {
+			["Background"] = FromRGB(14, 10, 20),
+			["Inline"] = FromRGB(24, 18, 34),
+			["Border"] = FromRGB(44, 34, 64),
+			["Shadow"] = FromRGB(20, 0, 40),
 			["Text"] = FromRGB(248, 242, 255),
-			["Inactive Text"] = FromRGB(165, 155, 185),
-			["Accent"] = FromRGB(255, 115, 200),
-			["Element"] = FromRGB(30, 26, 40),
-			["Gradient"] = FromRGB(230, 180, 240),
+			["Inactive Text"] = FromRGB(150, 140, 180),
+			["Accent"] = FromRGB(170, 85, 255),
+			["Element"] = FromRGB(28, 22, 40),
+			["Gradient"] = FromRGB(215, 180, 255),
 		},
-
-		["Dusk"] = {
-			["Background"] = FromRGB(14, 12, 22),
-			["Inline"] = FromRGB(22, 20, 34),
-			["Border"] = FromRGB(42, 38, 58),
-			["Shadow"] = FromRGB(20, 10, 35),
-			["Text"] = FromRGB(240, 238, 255),
-			["Inactive Text"] = FromRGB(150, 145, 175),
-			["Accent"] = FromRGB(170, 130, 255),
-			["Element"] = FromRGB(28, 24, 38),
-			["Gradient"] = FromRGB(200, 185, 240),
-		},
-
-		["Halloween"] = {
-			["Background"] = FromRGB(22, 12, 10),
-			["Inline"] = FromRGB(34, 18, 14),
-			["Border"] = FromRGB(62, 36, 22),
-			["Shadow"] = FromRGB(40, 12, 0),
-			["Text"] = FromRGB(240, 228, 220),
-			["Inactive Text"] = FromRGB(155, 130, 118),
-			["Accent"] = FromRGB(255, 125, 45),
-			["Element"] = FromRGB(42, 22, 14),
-			["Gradient"] = FromRGB(200, 150, 120),
-		},
-
-		["Aqua"] = {
-			["Background"] = FromRGB(12, 18, 22),
-			["Inline"] = FromRGB(18, 28, 36),
-			["Border"] = FromRGB(30, 48, 60),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(235, 248, 255),
-			["Inactive Text"] = FromRGB(130, 165, 180),
-			["Accent"] = FromRGB(55, 175, 235),
-			["Element"] = FromRGB(20, 32, 42),
-			["Gradient"] = FromRGB(170, 220, 240),
-		},
-
-		["Onetap"] = {
-			["Background"] = FromRGB(20, 20, 22),
-			["Inline"] = FromRGB(30, 30, 34),
-			["Border"] = FromRGB(48, 48, 54),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(245, 245, 245),
-			["Inactive Text"] = FromRGB(140, 140, 148),
-			["Accent"] = FromRGB(255, 185, 55),
-			["Element"] = FromRGB(34, 34, 38),
-			["Gradient"] = FromRGB(190, 190, 200),
-		},
-
-		["Bitchbot"] = {
-			["Background"] = FromRGB(16, 14, 20),
-			["Inline"] = FromRGB(24, 20, 30),
-			["Border"] = FromRGB(42, 36, 52),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(245, 242, 255),
-			["Inactive Text"] = FromRGB(150, 140, 165),
-			["Accent"] = FromRGB(175, 110, 255),
-			["Element"] = FromRGB(28, 24, 36),
-			["Gradient"] = FromRGB(200, 185, 230),
-		},
-
-		["Gamesense"] = {
-			["Background"] = FromRGB(18, 20, 16),
-			["Inline"] = FromRGB(26, 30, 22),
+		
+		["Skeet"] = {
+			["Background"] = FromRGB(17, 19, 14),
+			["Inline"] = FromRGB(24, 28, 20),
 			["Border"] = FromRGB(42, 48, 36),
 			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(240, 245, 235),
-			["Inactive Text"] = FromRGB(140, 150, 130),
-			["Accent"] = FromRGB(190, 255, 70),
+			["Text"] = FromRGB(242, 245, 238),
+			["Inactive Text"] = FromRGB(145, 152, 132),
+			["Accent"] = FromRGB(170, 255, 85),
 			["Element"] = FromRGB(30, 34, 26),
-			["Gradient"] = FromRGB(180, 200, 160),
+			["Gradient"] = FromRGB(200, 225, 170),
 		},
-
-		["Midnight"] = {
-			["Background"] = FromRGB(10, 12, 20),
-			["Inline"] = FromRGB(16, 20, 32),
-			["Border"] = FromRGB(32, 40, 62),
+		
+		["Rifk"] = {
+			["Background"] = FromRGB(10, 10, 12),
+			["Inline"] = FromRGB(18, 18, 22),
+			["Border"] = FromRGB(36, 36, 42),
 			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(238, 242, 255),
-			["Inactive Text"] = FromRGB(130, 142, 175),
-			["Accent"] = FromRGB(95, 155, 255),
-			["Element"] = FromRGB(22, 28, 44),
-			["Gradient"] = FromRGB(175, 195, 235),
+			["Text"] = FromRGB(245, 245, 248),
+			["Inactive Text"] = FromRGB(125, 125, 135),
+			["Accent"] = FromRGB(255, 255, 255),
+			["Element"] = FromRGB(24, 24, 28),
+			["Gradient"] = FromRGB(185, 185, 190),
 		},
-
-		["Rose"] = {
-			["Background"] = FromRGB(20, 12, 16),
-			["Inline"] = FromRGB(30, 18, 24),
-			["Border"] = FromRGB(52, 32, 42),
-			["Shadow"] = FromRGB(18, 6, 12),
-			["Text"] = FromRGB(255, 244, 248),
-			["Inactive Text"] = FromRGB(175, 145, 158),
-			["Accent"] = FromRGB(255, 110, 165),
-			["Element"] = FromRGB(36, 22, 30),
-			["Gradient"] = FromRGB(255, 195, 215),
-		},
-
-		["Nature"] = {
-			["Background"] = FromRGB(12, 18, 14),
-			["Inline"] = FromRGB(18, 28, 22),
-			["Border"] = FromRGB(32, 50, 38),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(238, 250, 240),
-			["Inactive Text"] = FromRGB(135, 165, 145),
-			["Accent"] = FromRGB(85, 210, 115),
-			["Element"] = FromRGB(24, 36, 28),
-			["Gradient"] = FromRGB(175, 225, 190),
-		},
-
-		["Crimson"] = {
-			["Background"] = FromRGB(18, 10, 12),
-			["Inline"] = FromRGB(28, 16, 18),
-			["Border"] = FromRGB(50, 28, 32),
-			["Shadow"] = FromRGB(30, 0, 0),
-			["Text"] = FromRGB(255, 240, 240),
-			["Inactive Text"] = FromRGB(175, 140, 142),
-			["Accent"] = FromRGB(255, 75, 85),
-			["Element"] = FromRGB(34, 20, 22),
-			["Gradient"] = FromRGB(240, 175, 180),
-		},
-
-		["Lavender"] = {
-			["Background"] = FromRGB(16, 14, 24),
-			["Inline"] = FromRGB(24, 22, 36),
-			["Border"] = FromRGB(44, 40, 62),
-			["Shadow"] = FromRGB(20, 12, 35),
-			["Text"] = FromRGB(248, 244, 255),
-			["Inactive Text"] = FromRGB(160, 152, 185),
-			["Accent"] = FromRGB(175, 140, 255),
-			["Element"] = FromRGB(28, 26, 42),
-			["Gradient"] = FromRGB(210, 195, 250),
-		},
-
-		["Ocean"] = {
-			["Background"] = FromRGB(10, 16, 22),
-			["Inline"] = FromRGB(16, 26, 34),
-			["Border"] = FromRGB(28, 44, 58),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(235, 248, 255),
-			["Inactive Text"] = FromRGB(130, 165, 185),
-			["Accent"] = FromRGB(55, 195, 225),
-			["Element"] = FromRGB(20, 32, 42),
-			["Gradient"] = FromRGB(165, 220, 240),
-		},
-
-		["Solar"] = {
-			["Background"] = FromRGB(20, 16, 10),
-			["Inline"] = FromRGB(30, 24, 16),
-			["Border"] = FromRGB(52, 42, 28),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(255, 248, 235),
-			["Inactive Text"] = FromRGB(185, 165, 135),
-			["Accent"] = FromRGB(255, 175, 55),
-			["Element"] = FromRGB(36, 28, 18),
-			["Gradient"] = FromRGB(255, 215, 165),
-		},
-
-		["Stealth"] = {
-			["Background"] = FromRGB(14, 14, 14),
-			["Inline"] = FromRGB(22, 22, 22),
-			["Border"] = FromRGB(40, 40, 40),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(245, 245, 245),
-			["Inactive Text"] = FromRGB(130, 130, 130),
-			["Accent"] = FromRGB(0, 185, 235),
-			["Element"] = FromRGB(30, 30, 30),
-			["Gradient"] = FromRGB(185, 185, 185),
-		},
-
-		["Nebula"] = {
-			["Background"] = FromRGB(12, 8, 20),
-			["Inline"] = FromRGB(20, 14, 34),
-			["Border"] = FromRGB(42, 28, 68),
-			["Shadow"] = FromRGB(50, 20, 90),
-			["Text"] = FromRGB(248, 242, 255),
-			["Inactive Text"] = FromRGB(165, 150, 200),
-			["Accent"] = FromRGB(195, 105, 255),
-			["Element"] = FromRGB(26, 18, 42),
-			["Gradient"] = FromRGB(215, 185, 255),
-		},
-
-		["Neverlose"] = {
-			["Background"] = FromRGB(12, 12, 12),
-			["Inline"] = FromRGB(20, 20, 20),
-			["Border"] = FromRGB(38, 38, 38),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(245, 245, 245),
-			["Inactive Text"] = FromRGB(140, 140, 140),
-			["Accent"] = FromRGB(235, 45, 45),
-			["Element"] = FromRGB(26, 26, 26),
-			["Gradient"] = FromRGB(195, 195, 195),
-		},
-
-		["Aimware"] = {
-			["Background"] = FromRGB(14, 18, 24),
-			["Inline"] = FromRGB(22, 28, 36),
-			["Border"] = FromRGB(40, 50, 64),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(240, 245, 250),
-			["Inactive Text"] = FromRGB(145, 160, 178),
-			["Accent"] = FromRGB(0, 195, 125),
-			["Element"] = FromRGB(28, 36, 48),
-			["Gradient"] = FromRGB(175, 205, 195),
-		},
-
-		["Neon"] = {
-			["Background"] = FromRGB(8, 10, 14),
-			["Inline"] = FromRGB(14, 18, 24),
-			["Border"] = FromRGB(28, 36, 48),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(235, 255, 252),
-			["Inactive Text"] = FromRGB(120, 150, 145),
-			["Accent"] = FromRGB(0, 255, 200),
-			["Element"] = FromRGB(18, 24, 32),
-			["Gradient"] = FromRGB(160, 255, 230),
-		},
-
-		["Slate"] = {
-			["Background"] = FromRGB(18, 20, 24),
-			["Inline"] = FromRGB(28, 30, 36),
-			["Border"] = FromRGB(48, 52, 60),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(235, 238, 245),
-			["Inactive Text"] = FromRGB(145, 150, 162),
-			["Accent"] = FromRGB(145, 165, 255),
-			["Element"] = FromRGB(34, 36, 42),
-			["Gradient"] = FromRGB(190, 195, 210),
-		},
-
-		["Blood Moon"] = {
-			["Background"] = FromRGB(14, 8, 12),
-			["Inline"] = FromRGB(24, 12, 18),
-			["Border"] = FromRGB(48, 22, 32),
-			["Shadow"] = FromRGB(60, 0, 20),
-			["Text"] = FromRGB(255, 238, 242),
-			["Inactive Text"] = FromRGB(170, 130, 140),
-			["Accent"] = FromRGB(255, 55, 95),
-			["Element"] = FromRGB(32, 16, 24),
-			["Gradient"] = FromRGB(255, 160, 190),
-		},
-
-		["Citrus"] = {
-			["Background"] = FromRGB(18, 16, 10),
-			["Inline"] = FromRGB(28, 24, 16),
-			["Border"] = FromRGB(50, 44, 28),
-			["Shadow"] = FromRGB(0, 0, 0),
-			["Text"] = FromRGB(255, 250, 238),
-			["Inactive Text"] = FromRGB(175, 165, 140),
-			["Accent"] = FromRGB(255, 165, 45),
-			["Element"] = FromRGB(34, 30, 20),
-			["Gradient"] = FromRGB(255, 210, 140),
-		},
-
-		["Prism"] = {
-			["Background"] = FromRGB(12, 12, 18),
-			["Inline"] = FromRGB(20, 20, 30),
-			["Border"] = FromRGB(38, 38, 55),
-			["Shadow"] = FromRGB(25, 15, 45),
-			["Text"] = FromRGB(248, 248, 255),
-			["Inactive Text"] = FromRGB(150, 148, 175),
-			["Accent"] = FromRGB(255, 95, 175),
-			["Element"] = FromRGB(26, 26, 38),
-			["Gradient"] = FromRGB(200, 185, 255),
-		},
+		
+		
 	}
 
 	Library.Theme = TableClone(Themes["Solix"])
@@ -6618,6 +6284,8 @@ local Library do
 	local COLUMN_GAP = 8
 
 	local function BindTwoColumnLayout(Container, ColumnsData)
+		local HalfGap = math.ceil(COLUMN_GAP / 2)
+
 		local function Update()
 			local Width = Container.AbsoluteSize.X
 			local Height = Container.AbsoluteSize.Y
@@ -6625,25 +6293,25 @@ local Library do
 				return
 			end
 
-			local HalfWidth = math.floor((Width - COLUMN_GAP) / 2)
 			local Column1 = ColumnsData[1]
 			local Column2 = ColumnsData[2]
 
 			if Column1 then
 				Column1.Instance.AnchorPoint = Vector2New(0, 0)
 				Column1.Instance.Position = UDim2New(0, 0, 0, 0)
-				Column1.Instance.Size = UDim2New(0, HalfWidth, 1, 0)
+				Column1.Instance.Size = UDim2New(0.5, -HalfGap, 1, 0)
 			end
 
 			if Column2 then
 				Column2.Instance.AnchorPoint = Vector2New(0, 0)
-				Column2.Instance.Position = UDim2New(0, HalfWidth + COLUMN_GAP, 0, 0)
-				Column2.Instance.Size = UDim2New(0, HalfWidth, 1, 0)
+				Column2.Instance.Position = UDim2New(0.5, HalfGap, 0, 0)
+				Column2.Instance.Size = UDim2New(0.5, -HalfGap, 1, 0)
 			end
 		end
 
 		Container:GetPropertyChangedSignal("AbsoluteSize"):Connect(Update)
 		defer(Update)
+		task.delay(0.05, Update)
 
 		return Update
 	end
@@ -6864,6 +6532,58 @@ local Library do
 					Column.Instance.Parent = Library.UnusedHolder.Instance
 				end
 			end
+
+			if Items["Columns"] and not Items["SubPageHolder"] then
+				Items["SubPageHolder"] = Instances:Create("Frame", {
+					Parent = Items["Columns"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 1, 0),
+					Position = UDim2New(0, 0, 0, 0),
+					AnchorPoint = Vector2New(0, 0),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					ClipsDescendants = true,
+					ZIndex = 1,
+				})
+			end
+		end
+
+		function Page:SetActiveSubPage(ActiveSubPage)
+			if not Items["SubPageHolder"] then
+				return
+			end
+
+			for _, SubPage in Page.Pages do
+				local SubItems = SubPage.Items
+				local SubFrame = SubItems["SubPage"].Instance
+
+				if SubPage == ActiveSubPage then
+					SubPage.Active = true
+					SubFrame.Parent = Items["SubPageHolder"].Instance
+					SubFrame.Position = UDim2New(0, 0, 0, 0)
+					SubFrame.Size = UDim2New(1, 0, 1, 0)
+					SubFrame.Visible = true
+					SubFrame.ZIndex = 2
+
+					if SubPage.UpdateColumnLayout then
+						SubPage.UpdateColumnLayout()
+						defer(SubPage.UpdateColumnLayout)
+					end
+
+					SubItems["Tab"]:Tween(nil, {BackgroundTransparency = 0})
+					SubItems["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
+					SubItems["TabText"]:Tween(nil, {TextTransparency = 0})
+				else
+					SubPage.Active = false
+					SubFrame.Visible = false
+					SubFrame.Parent = Library.UnusedHolder.Instance
+					SubFrame.ZIndex = 1
+
+					SubItems["Tab"]:Tween(nil, {BackgroundTransparency = 1})
+					SubItems["TabLiner"]:Tween(nil, {BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 0)})
+					SubItems["TabText"]:Tween(nil, {TextTransparency = 0.4})
+				end
+			end
 		end
 
 		function Page:UpdateContentLayout()
@@ -6917,8 +6637,17 @@ local Library do
 						end
 					end
 
-					if not HasActiveSubPage and Page.Pages[1] then
-						Page.Pages[1]:Turn(true)
+					if Page.Pages[1] then
+						local ActiveSubPage = nil
+
+						for _, SubPage in Page.Pages do
+							if SubPage.Active then
+								ActiveSubPage = SubPage
+								break
+							end
+						end
+
+						Page:SetActiveSubPage(ActiveSubPage or Page.Pages[1])
 					end
 				elseif Page.UpdateColumnLayout then
 					defer(Page.UpdateColumnLayout)
@@ -7129,30 +6858,17 @@ local Library do
 		Library.SearchItems[SubPage] = {}
 
 		function SubPage:Turn(Bool)
-			SubPage.Active = Bool
-
-			if SubPage.Active then
-				for _, OtherSubPage in ParentPage.Pages do
-					if OtherSubPage ~= SubPage and OtherSubPage.Active then
-						OtherSubPage:Turn(false)
-					end
+			if Bool then
+				if ParentPage.Active and ParentPage.Items["SubPageHolder"] then
+					ParentPage:SetActiveSubPage(SubPage)
+				else
+					SubPage.Active = true
+					Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
+					Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
+					Items["TabText"]:Tween(nil, {TextTransparency = 0})
 				end
-
-				if ParentPage.Active and ParentPage.Items["Columns"] then
-					Items["SubPage"].Instance.Parent = ParentPage.Items["Columns"].Instance
-					Items["SubPage"].Instance.Position = UDim2New(0, 0, 0, 0)
-					Items["SubPage"].Instance.Size = UDim2New(1, 0, 1, 0)
-					Items["SubPage"].Instance.Visible = true
-
-					if SubPage.UpdateColumnLayout then
-						defer(SubPage.UpdateColumnLayout)
-					end
-				end
-
-				Items["Tab"]:Tween(nil, {BackgroundTransparency = 0})
-				Items["TabLiner"]:Tween(nil, {BackgroundTransparency = 0, Size = UDim2New(1, 0, 0, 3)})
-				Items["TabText"]:Tween(nil, {TextTransparency = 0})
 			else
+				SubPage.Active = false
 				Items["SubPage"].Instance.Visible = false
 				Items["SubPage"].Instance.Parent = Library.UnusedHolder.Instance
 
@@ -7167,16 +6883,18 @@ local Library do
 				return
 			end
 
-			for _, OtherSubPage in ParentPage.Pages do
-				OtherSubPage:Turn(OtherSubPage == SubPage)
-			end
+			ParentPage:SetActiveSubPage(SubPage)
 		end)
 
-		if #ParentPage.Pages == 0 then
-			SubPage:Turn(true)
-		end
-
 		TableInsert(ParentPage.Pages, SubPage)
+
+		if #ParentPage.Pages == 1 then
+			if ParentPage.Active and ParentPage.Items["SubPageHolder"] then
+				ParentPage:SetActiveSubPage(SubPage)
+			else
+				SubPage.Active = true
+			end
+		end
 
 		return setmetatable(SubPage, Library.Pages)
 	end
@@ -7205,7 +6923,7 @@ local Library do
 		Items["Section"] = Instances:Create("Frame", {
 			Parent = Section.Page.ColumnsData[Section.Side].Instance,
 			Name = "\0",
-			Size = UDim2New(1, -8, 0, 28),
+			Size = UDim2New(1, 0, 0, 28),
 			BackgroundColor3 = Library.Theme["Inline"],
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
@@ -7227,7 +6945,7 @@ local Library do
 		Items["Header"] = Instances:Create("TextButton", {
 			Parent = Items["Section"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, -8, 0, 28),
+			Size = UDim2New(1, 0, 0, 28),
 			Position = UDim2New(0, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
@@ -7488,7 +7206,7 @@ local Library do
 		Items["Section"] = Instances:Create("Frame", {
 			Parent = Section.Page.ColumnsData[Section.Side].Instance,
 			Name = "\0",
-			Size = UDim2New(1, -8, 0, 28),
+			Size = UDim2New(1, 0, 0, 28),
 			BackgroundColor3 = Library.Theme["Inline"],
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
