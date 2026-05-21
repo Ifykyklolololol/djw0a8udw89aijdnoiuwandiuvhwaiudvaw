@@ -1,4 +1,4 @@
-print("boy")
+print("revert noob")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -263,12 +263,6 @@ local Library do
 		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
 		BackgroundSnowEnabled = true,
-		SpinningLogoEnabled = true,
-		SolixLogoAsset = "rbxassetid://137698471325689",
-		SpinningLogoModelAsset = "rbxassetid://113170053514092",
-		SpinningLogos = {},
-		WorldSpinningLogo = nil,
-		WorldSpinningLogoRotation = 0,
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -1743,15 +1737,6 @@ local Library do
 			self.FloatingButtonHolder.Instance:Destroy()
 		end
 
-		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
-			pcall(function()
-				self.SpinningLogoWidgetGui.Instance:Destroy()
-			end)
-			self.SpinningLogoWidgetGui = nil
-			self.SpinningLogoWidgetRoot = nil
-			self.SpinningLogoWidget = nil
-		end
-
 		if self.WatermarkGui then
 			self.WatermarkGui:Clean()
 		end
@@ -1775,32 +1760,6 @@ local Library do
 
 		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
-
-		for _, LogoData in self.SpinningLogos or {} do
-			if LogoData.Destroy then
-				LogoData:Destroy()
-			elseif LogoData.SpinConnection then
-				pcall(function()
-					LogoData.SpinConnection:Disconnect()
-				end)
-			end
-		end
-
-		self.SpinningLogos = {}
-
-		if self.WorldSpinningLogoConnection then
-			pcall(function()
-				self.WorldSpinningLogoConnection:Disconnect()
-			end)
-			self.WorldSpinningLogoConnection = nil
-		end
-
-		if self.WorldSpinningLogo then
-			pcall(function()
-				self.WorldSpinningLogo:Destroy()
-			end)
-			self.WorldSpinningLogo = nil
-		end
 
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -1963,14 +1922,6 @@ local Library do
 				}
 			end
 
-			if Library.SpinningLogoWidgetRoot and Library.SpinningLogoWidgetRoot.Instance then
-				local Pos = Library.SpinningLogoWidgetRoot.Instance.Position
-
-				Config["SpinningLogoPosition"] = {
-					X = Pos.X.Offset,
-					Y = Pos.Y.Offset,
-				}
-			end
 		end)
 
 		return HttpService:JSONEncode(Config)
@@ -1986,13 +1937,6 @@ local Library do
 				if Index == "FloatingButtonPosition" then
 					if Library.FloatingButton and Library.FloatingButton.Instance then
 						Library.FloatingButton.Instance.Position = UDim2New(Value.X.Scale, Value.X.Offset, Value.Y.Scale, Value.Y.Offset)
-					end
-					continue
-				end
-
-				if Index == "SpinningLogoPosition" then
-					if Library.SpinningLogoWidgetRoot and Library.SpinningLogoWidgetRoot.Instance then
-						Library.SpinningLogoWidgetRoot.Instance.Position = UDim2New(0, Value.X or 125, 0, Value.Y or 125)
 					end
 					continue
 				end
@@ -2193,7 +2137,6 @@ local Library do
 		Track(self.Holder and self.Holder.Instance)
 		Track(self.InputBlockGui and self.InputBlockGui.Instance)
 		Track(self.FloatingButtonHolder and self.FloatingButtonHolder.Instance)
-		Track(self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance)
 		Track(self.OtherHolder and self.OtherHolder.Instance)
 		Track(self.UnusedHolder and self.UnusedHolder.Instance)
 		Track(self.WatermarkGui and self.WatermarkGui.Instance)
@@ -2210,10 +2153,6 @@ local Library do
 
 		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
 			TableInsert(Roots, self.FloatingButtonHolder.Instance)
-		end
-
-		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
-			TableInsert(Roots, self.SpinningLogoWidgetGui.Instance)
 		end
 
 		if self.WatermarkGui and self.WatermarkGui.Instance then
@@ -2301,311 +2240,6 @@ local Library do
 		end
 
 		return false
-	end
-
-	Library.CreateSpinningLogo = function(self, ParentInstance, Options)
-		Options = Options or {}
-
-		local Size = Options.Size or 50
-		local LogoId = Options.LogoId or self.SolixLogoAsset
-		local SpinSpeed = Options.SpinSpeed or 110
-		local Enabled = Options.Enabled ~= false and self.SpinningLogoEnabled
-
-		local Holder = Instances:Create("Frame", {
-			Parent = ParentInstance,
-			Name = "\0",
-			Size = Options.FillParent and UDim2New(1, 0, 1, 0) or UDim2FromOffset(Size, Size),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			ClipsDescendants = true,
-			Active = Options.Draggable and true or false,
-			ZIndex = Options.ZIndex or 2,
-		})
-
-		local Viewport = Instances:Create("ViewportFrame", {
-			Parent = Holder.Instance,
-			Name = "\0",
-			Size = UDim2New(1, 0, 1, 0),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Active = false,
-			ZIndex = Options.ZIndex or 2,
-		})
-
-		local ViewportCamera = InstanceNew("Camera")
-		ViewportCamera.Name = "\0"
-		ViewportCamera.Parent = Viewport.Instance
-		Viewport.Instance.CurrentCamera = ViewportCamera
-
-		local WorldModel = InstanceNew("WorldModel")
-		WorldModel.Name = "\0"
-		WorldModel.Parent = Viewport.Instance
-
-		local LogoPart = InstanceNew("Part")
-		LogoPart.Name = "\0"
-		LogoPart.Size = Vector3New(4, 4, 0.05)
-		LogoPart.Anchored = true
-		LogoPart.CanCollide = false
-		LogoPart.CanTouch = false
-		LogoPart.CanQuery = false
-		LogoPart.CastShadow = false
-		LogoPart.Material = Enum.Material.SmoothPlastic
-		LogoPart.Color = FromRGB(18, 18, 22)
-		LogoPart.Transparency = 1
-		LogoPart.Parent = WorldModel
-
-		local SurfaceGui = InstanceNew("SurfaceGui")
-		SurfaceGui.Name = "\0"
-		SurfaceGui.Face = Enum.NormalId.Front
-		SurfaceGui.LightInfluence = 0
-		SurfaceGui.Brightness = 1.2
-		SurfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		SurfaceGui.PixelsPerStud = 80
-		SurfaceGui.Parent = LogoPart
-
-		local LogoImage = InstanceNew("ImageLabel")
-		LogoImage.Name = "\0"
-		LogoImage.Size = UDim2New(1, 0, 1, 0)
-		LogoImage.BackgroundTransparency = 1
-		LogoImage.Image = LogoId
-		LogoImage.ImageColor3 = Library.Theme["Accent"]
-		LogoImage.ScaleType = Enum.ScaleType.Fit
-		LogoImage.Parent = SurfaceGui
-
-		local LogoData = {
-			Enabled = Enabled,
-			SpinSpeed = SpinSpeed,
-			Rotation = 0,
-			WorldModel = WorldModel,
-			LogoPart = LogoPart,
-			LogoImage = LogoImage,
-			ViewportCamera = ViewportCamera,
-			Items = {
-				Holder = Holder,
-				Viewport = Viewport,
-			},
-		}
-
-		function LogoData:SetVisible(Bool)
-			Holder.Instance.Visible = Bool and true or false
-		end
-
-		function LogoData:SetSpinning(Bool)
-			self.Enabled = Bool and true or false
-		end
-
-		function LogoData:Destroy()
-			if self.SpinConnection then
-				pcall(function()
-					self.SpinConnection:Disconnect()
-				end)
-				self.SpinConnection = nil
-			end
-
-			if self.WorldModel then
-				pcall(function()
-					self.WorldModel:Destroy()
-				end)
-			end
-		end
-
-		LogoData.SpinConnection = RunService.RenderStepped:Connect(function(DeltaTime)
-			if not self.SpinningLogoEnabled or not LogoData.Enabled then
-				return
-			end
-
-			if not Holder.Instance or not Holder.Instance.Parent then
-				return
-			end
-
-			LogoData.Rotation = (LogoData.Rotation + LogoData.SpinSpeed * DeltaTime) % 360
-			LogoPart.CFrame = CFrame.Angles(0, math.rad(LogoData.Rotation), 0)
-			ViewportCamera.CFrame = CFrame.new(0, 0.25, 7) * CFrame.Angles(math.rad(-12), 0, 0)
-		end)
-
-		if Options.Draggable then
-			Holder:MakeDraggable()
-		end
-
-		TableInsert(self.SpinningLogos, LogoData)
-
-		return LogoData
-	end
-
-	Library.SetupWorldSpinningLogo = function(self)
-		if self.WorldSpinningLogo then
-			return
-		end
-
-		local Success, Template = pcall(function()
-			return game:GetObjects(self.SpinningLogoModelAsset)[1]:Clone()
-		end)
-
-		if not Success or not Template then
-			return
-		end
-
-		Template.Anchored = true
-		Template.CanCollide = false
-		Template.CanTouch = false
-		Template.CanQuery = false
-		Template.Size = Vector3.zero
-		Template.Parent = nil
-
-		local SurfaceGui = Template:FindFirstChildWhichIsA("SurfaceGui", true)
-		if SurfaceGui then
-			SurfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			SurfaceGui.PixelsPerStud = 50
-
-			local ImageLabel = SurfaceGui:FindFirstChildWhichIsA("ImageLabel")
-			if ImageLabel then
-				ImageLabel.Image = self.SolixLogoAsset
-				ImageLabel.ImageTransparency = 0.12
-				ImageLabel.ImageColor3 = Color3.new(1, 1, 1)
-				ImageLabel.ScaleType = Enum.ScaleType.Fit
-			end
-		end
-
-		self.WorldSpinningLogo = Template
-		self.WorldSpinningLogoRotation = 0
-		self.WorldSpinningLogoVisible = false
-
-		self.WorldSpinningLogoConnection = RunService.RenderStepped:Connect(function(DeltaTime)
-			if not self.SpinningLogoEnabled or not self.WorldSpinningLogo then
-				Template.Parent = nil
-				Template.Size = Vector3.zero
-				return
-			end
-
-			local CurrentCamera = Workspace.CurrentCamera
-			if not CurrentCamera then
-				return
-			end
-
-			Template.Parent = CurrentCamera
-
-			self.WorldSpinningLogoRotation += math.rad(25 * DeltaTime)
-
-			local TargetSize = Vector3New(2.6, 2.6, 0.05)
-			Template.Size = Template.Size:Lerp(TargetSize, math.min(1, DeltaTime * 6))
-
-			local Offset = CurrentCamera.CFrame * CFrame.new(-2.4, -1.1, -3.2)
-			Template.CFrame = Offset * CFrame.Angles(0, self.WorldSpinningLogoRotation, 0)
-		end)
-	end
-
-	Library.SetWorldSpinningLogoVisible = function(self, Bool)
-		self.WorldSpinningLogoVisible = Bool and true or false
-
-		if not self.WorldSpinningLogo then
-			return
-		end
-
-		if not Bool then
-			self.WorldSpinningLogo.Parent = nil
-			self.WorldSpinningLogo.Size = Vector3.zero
-		end
-	end
-
-	Library.SaveSpinningLogoWidgetPosition = function(self)
-		if not writefile or not self.SpinningLogoWidgetRoot or not self.SpinningLogoWidgetRoot.Instance then
-			return
-		end
-
-		pcall(function()
-			local Position = self.SpinningLogoWidgetRoot.Instance.Position
-			writefile(GetFolders().Datas .. "/spinning-logo.json", HttpService:JSONEncode({
-				X = Position.X.Offset,
-				Y = Position.Y.Offset,
-			}))
-		end)
-	end
-
-	Library.LoadSpinningLogoWidgetPosition = function(self)
-		if not readfile or not isfile or not self.SpinningLogoWidgetRoot or not self.SpinningLogoWidgetRoot.Instance then
-			return
-		end
-
-		local Path = GetFolders().Datas .. "/spinning-logo.json"
-		if not isfile(Path) then
-			return
-		end
-
-		pcall(function()
-			local Saved = HttpService:JSONDecode(readfile(Path))
-			self.SpinningLogoWidgetRoot.Instance.Position = UDim2New(0, Saved.X or 125, 0, Saved.Y or 125)
-		end)
-	end
-
-	Library.SetupDraggableSpinningLogoWidget = function(self)
-		if self.SpinningLogoWidgetRoot and self.SpinningLogoWidgetRoot.Instance then
-			return
-		end
-
-		self.SpinningLogoWidgetGui = Instances:Create("ScreenGui", {
-			Parent = SafeGetUI(),
-			Name = "\0",
-			DisplayOrder = self.DisplayOrders.FloatingButtonOpen + 1,
-			ResetOnSpawn = false,
-			ZIndexBehavior = Enum.ZIndexBehavior.Global,
-		})
-
-		self.SpinningLogoWidgetRoot = Instances:Create("Frame", {
-			Parent = self.SpinningLogoWidgetGui.Instance,
-			Name = "\0",
-			Size = UDim2FromOffset(200, 160),
-			Position = UDim2New(0, 125, 0, 125),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Active = true,
-			ZIndex = 2,
-		})
-
-		self.SpinningLogoWidget = self:CreateSpinningLogo(self.SpinningLogoWidgetRoot.Instance, {
-			FillParent = true,
-			SpinSpeed = 95,
-			ZIndex = 3,
-		})
-
-		self.SpinningLogoWidgetRoot:MakeDraggable()
-		self:LoadSpinningLogoWidgetPosition()
-
-		local LastSave = 0
-		self.SpinningLogoWidgetRoot.Instance:GetPropertyChangedSignal("Position"):Connect(function()
-			if os.clock() - LastSave < 0.35 then
-				return
-			end
-
-			LastSave = os.clock()
-			self:SaveSpinningLogoWidgetPosition()
-		end)
-	end
-
-	Library.SetSpinningLogoWidgetVisible = function(self, Bool)
-		if self.SpinningLogoWidgetRoot and self.SpinningLogoWidgetRoot.Instance then
-			self.SpinningLogoWidgetRoot.Instance.Visible = Bool and true or false
-		end
-
-		if self.SpinningLogoWidgetGui and self.SpinningLogoWidgetGui.Instance then
-			self.SpinningLogoWidgetGui.Instance.Enabled = Bool and true or false
-		end
-
-		if self.SpinningLogoWidget and self.SpinningLogoWidget.SetVisible then
-			self.SpinningLogoWidget:SetVisible(Bool)
-		end
-	end
-
-	Library.SetSpinningLogoEnabled = function(self, Bool)
-		self.SpinningLogoEnabled = Bool and true or false
-
-		for _, LogoData in self.SpinningLogos do
-			if LogoData and LogoData.SetSpinning then
-				LogoData:SetSpinning(self.SpinningLogoEnabled)
-			end
-		end
-
-		self:SetSpinningLogoWidgetVisible(self.SpinningLogoEnabled)
-		self:SetWorldSpinningLogoVisible(self.SpinningLogoEnabled)
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
@@ -2916,10 +2550,6 @@ local Library do
 	Library:SetupBackgroundEffects()
 	Library:SetBackgroundEffectsVisible(false, true)
 	Library:ApplyWindowInputState(false)
-	Library:SetupDraggableSpinningLogoWidget()
-	Library:SetupWorldSpinningLogo()
-	Library:SetSpinningLogoWidgetVisible(Library.SpinningLogoEnabled)
-	Library:SetWorldSpinningLogoVisible(Library.SpinningLogoEnabled)
 
 	Library.Lerp = function(self, Start, Finish, Time)
 		return Start + (Finish - Start) * Time
@@ -5187,34 +4817,9 @@ local Library do
 				PaddingRight = UDimNew(0, 4),
 			})
 
-			Instances:Create("UIListLayout", {
-				Parent = Items["Frame"].Instance,
-				Name = "\0",
-				FillDirection = Enum.FillDirection.Horizontal,
-				Padding = UDimNew(0, 6),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-			})
-
-			local WatermarkLogoHolder = Instances:Create("Frame", {
-				Parent = Items["Frame"].Instance,
-				Name = "\0",
-				Size = UDim2FromOffset(25, 25),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				LayoutOrder = 1,
-			})
-
-			Watermark.SpinningLogo = Library:CreateSpinningLogo(WatermarkLogoHolder.Instance, {
-				Size = 25,
-				FillParent = true,
-				SpinSpeed = 110,
-			})
-
 			Items["Label"] = Instances:Create("TextLabel", {
 				Parent = Items["Frame"].Instance,
 				Name = "\0",
-				LayoutOrder = 2,
 				Position = UDim2New(0, 0, 0.5, 0),
 				Size = UDim2New(0, 0, 1, 0),
 				AnchorPoint = Vector2New(0, 0.5),
@@ -5338,10 +4943,6 @@ local Library do
 
 		function Watermark:SetVisibility(Bool)
 			Items["Frame"].Instance.Visible = Bool
-
-			if Watermark.SpinningLogo and Watermark.SpinningLogo.SetVisible then
-				Watermark.SpinningLogo:SetVisible(Bool)
-			end
 		end
 
 		function Watermark:SetDynamic(Enabled, Options)
@@ -6642,7 +6243,8 @@ local Library do
 				Position = UDim2New(0, 15, 0, 50),
 				AnchorPoint = Vector2New(0, 0),
 				BackgroundColor3 = Library.Theme['Background'],
-				Image = "",
+				Image = "rbxassetid://137698471325689",
+				ImageColor3 = Library.Theme['Accent'],
 				AutoButtonColor = false,
 				ZIndex = 128
 			}):AddToTheme({BackgroundColor3 = 'Background'})
@@ -6650,13 +6252,6 @@ local Library do
 			Instances:Create("UICorner", {
 				Parent = Items["FloatingButton"].Instance,
 				CornerRadius = UDimNew(0, 10)
-			})
-
-			Library.FloatingButtonSpinningLogo = Library:CreateSpinningLogo(Items["FloatingButton"].Instance, {
-				Size = 50,
-				FillParent = true,
-				SpinSpeed = 95,
-				ZIndex = 129,
 			})
 
 			Library.FloatingButton = Items["FloatingButton"]
@@ -6668,18 +6263,6 @@ local Library do
 			local FloatingButtonStartPosition
 			local FloatingButtonMoveConnection
 			local FloatingButtonEndConnection
-			local FloatingButtonDragMoved = false
-			local FloatingButtonDragClickThreshold = 6
-
-			local function SaveFloatingButtonPosition()
-				if not Library.AutoSave or Library.LoadingConfig or not writefile then
-					return
-				end
-
-				pcall(function()
-					writefile(GetAutoloadPath(), Library:GetConfig())
-				end)
-			end
 
 			local function StopFloatingButtonDrag()
 				FloatingButtonDragging = false
@@ -6713,7 +6296,6 @@ local Library do
 					NormalizeDragPosition(FloatingGui)
 
 					FloatingButtonDragging = true
-					FloatingButtonDragMoved = false
 					FloatingButtonDragStart = GetMouseLocation()
 					FloatingButtonStartPosition = FloatingGui.Position
 
@@ -6729,13 +6311,6 @@ local Library do
 						local Mouse = GetMouseLocation()
 						local DragDelta = Mouse - FloatingButtonDragStart
 
-						if DragDelta.Magnitude > FloatingButtonDragClickThreshold then
-							FloatingButtonDragMoved = true
-						end
-
-						local Scale = GetDragScale(FloatingGui)
-						DragDelta = DragDelta / Scale
-
 						FloatingGui.Position = UDim2New(
 							FloatingButtonStartPosition.X.Scale,
 							FloatingButtonStartPosition.X.Offset + DragDelta.X,
@@ -6750,19 +6325,14 @@ local Library do
 						end
 
 						if EndInput.UserInputType == Enum.UserInputType.MouseButton1 or EndInput.UserInputType == Enum.UserInputType.Touch then
-							local WasDrag = FloatingButtonDragMoved
 							StopFloatingButtonDrag()
-
-							if WasDrag then
-								if Library.AutoSave then
-									SaveFloatingButtonPosition()
-								end
-							else
-								Window:SetOpen(not Window.IsOpen)
-							end
 						end
 					end)
 				end
+			end)
+
+			Items["FloatingButton"]:Connect("MouseButton1Down", function()
+				Window:SetOpen(not Window.IsOpen)
 			end)
 
 			Window.Items = Items
@@ -11069,16 +10639,6 @@ local Library do
 					Default = false,
 					Callback = function(Value)
 						Watermark:SetVisibility(Value)
-					end
-				})
-
-				MenuSetting_Section:Toggle({
-					Name = "Spinning Logo",
-					Flag = "Spinning Logo",
-					Description = "Spinning Solix logo on watermark and floating button",
-					Default = true,
-					Callback = function(Value)
-						Library:SetSpinningLogoEnabled(Value)
 					end
 				})
 
