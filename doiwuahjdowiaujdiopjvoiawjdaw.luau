@@ -46,7 +46,7 @@ local PlaceId = tostring(game.PlaceId)
 local Folder_Configs = {
 	Directory = "solixhub",
 	Assets = "solixhub/Assets",
-	Configs = "solixhub/Configs",
+	Configurations = "solixhub/Configurations",
 	Datas = "solixhub/Datas",
 	Images = "solixhub/Images",
 	Themes = "solixhub/Themes"
@@ -57,11 +57,11 @@ local function GetFolders()
 end
 
 local function GetAutoloadPath()
-	return Folder_Configs.Configs .. "/" .. GameId .. "/autoload.json"
+	return Folder_Configs.Configurations .. "/" .. GameId .. "/autoload.json"
 end
 
 local function GetAutoloadConfigNamePath()
-	return Folder_Configs.Configs .. "/" .. GameId .. "/autoload_config.txt"
+	return Folder_Configs.Configurations .. "/" .. GameId .. "/autoload_config.txt"
 end
 
 local function GetAutoloadThemeNamePath()
@@ -72,7 +72,7 @@ local function GetLocalSettingsPath()
 	return Folder_Configs.Datas .. "/" .. GameId .. "/settings.json"
 end
 
-for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/fonts", "solixhub/Configs", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configs .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
+for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/fonts", "solixhub/Configurations", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configurations .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
 	if not isfolder(folder) then
 		makefolder(folder)
 	end
@@ -259,7 +259,7 @@ local Library do
 		Folders_Path = {
 			Directory = "solixhub",
 			Assets = "solixhub/Assets",
-			Configs = "solixhub/Configs",
+			Configurations = "solixhub/Configurations",
 			Datas = "solixhub/Datas",
 			Images = "solixhub/Images",
 			Themes = "solixhub/Themes"
@@ -2046,7 +2046,7 @@ local Library do
 					Library:SaveLocalSettings()
 				end
 
-				if Index == "Autoload Config On Execute" and type(Value) == "boolean" then
+				if Index == "Autoloads the selected configuration on next load" and type(Value) == "boolean" then
 					Library.AutoloadConfigEnabled = Value
 					Library:SaveLocalSettings()
 				end
@@ -2826,7 +2826,7 @@ local Library do
 	end
 
 	Library.GetFolder = function(self)
-		return GetFolders().Configs .. "/" .. GameId .. "/"
+		return GetFolders().Configurations .. "/" .. GameId .. "/"
 	end 
 
 	Library.GetFolderTheme = function(self)
@@ -9226,7 +9226,7 @@ local Library do
 		Items["SliderRow"] = Instances:Create("Frame", {
 			Parent = Items["SliderContainer"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 15),
+			Size = UDim2New(1, 0, 0, Slider.Compact and 22 or 15),
 			BackgroundTransparency = 1,
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
@@ -9336,6 +9336,22 @@ local Library do
 			Name = "\0",
 			CornerRadius = UDimNew(0, 5)
 		})
+
+		if Slider.Compact then
+			Items["TrackLabel"] = Instances:Create("TextLabel", {
+				Parent = Items["Accent"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = "",
+				TextColor3 = Library.Theme["Text"],
+				TextSize = 13,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = 6,
+			}):AddToTheme({TextColor3 = "Text"})
+		end
 
 		Items["Drag"] = Instances:Create("Frame", {
 			Parent = Items["Accent"].Instance,
@@ -9474,6 +9490,11 @@ local Library do
 				Items["Value"].Instance.Text = StringFormat("%s%s", DisplayValue, Slider.Suffix)
 			end
 
+			if Slider.Compact and Items["TrackLabel"] and Items["TrackLabel"].Instance then
+				local DisplayValue = string.format("%g", Slider.Value)
+				Items["TrackLabel"].Instance.Text = string.lower(Slider.Name) .. ": " .. DisplayValue
+			end
+
 			if Slider.Callback then
 				Library:SafeCall(Slider.Callback, Slider.Value)
 			end
@@ -9489,11 +9510,17 @@ local Library do
 				Items["Accent"]:Tween(nil, {BackgroundTransparency = 0.6})
 				Items["Value"]:Tween(nil, {TextTransparency = 0.6})
 				Items["ValueBackground"]:Tween(nil, {BackgroundTransparency = 0.6})
+				if Slider.Compact and Items["TrackLabel"] then
+					Items["TrackLabel"]:Tween(nil, {TextTransparency = 0.6})
+				end
 			else
 				Items["RealSlider"]:Tween(nil, {BackgroundTransparency = 0})
 				Items["Accent"]:Tween(nil, {BackgroundTransparency = 0})
 				Items["Value"]:Tween(nil, {TextTransparency = 0})
 				Items["ValueBackground"]:Tween(nil, {BackgroundTransparency = 0})
+				if Slider.Compact and Items["TrackLabel"] then
+					Items["TrackLabel"]:Tween(nil, {TextTransparency = 0})
+				end
 			end
 		end
 
@@ -9707,6 +9734,11 @@ local Library do
 			}
 		end
 
+		local function FormatSpeedLabel(Entry, Value)
+			local LabelPrefix = string.lower(Entry.Name or "value") .. ": "
+			return LabelPrefix .. string.format("%g", Value)
+		end
+
 		local function RefreshSpeedVisual(Entry)
 			local EntryItems = Entry.Items
 			local Alpha = (Entry.Speed - Entry.SpeedMin) / (Entry.SpeedMax - Entry.SpeedMin)
@@ -9714,7 +9746,11 @@ local Library do
 			EntryItems["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["SpeedLabel"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
+			EntryItems["SpeedLabel"].Instance.Text = FormatSpeedLabel(Entry, Entry.Speed)
+
+			if Entry.HideRange and EntryItems["ValueInput"] and EntryItems["ValueInput"].Instance and Entry.SpeedFocused ~= true then
+				EntryItems["ValueInput"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
+			end
 		end
 
 		local function RefreshStartVisual(Entry)
@@ -9768,8 +9804,10 @@ local Library do
 
 			UpdateEntryFlags(Entry)
 			RefreshSpeedVisual(Entry)
-			RefreshStartVisual(Entry)
-			RefreshEndVisual(Entry)
+			if not Entry.HideRange then
+				RefreshStartVisual(Entry)
+				RefreshEndVisual(Entry)
+			end
 			FireEntryCallback(Entry)
 			Library:SaveAutoloadIfEnabled()
 		end
@@ -9870,27 +9908,29 @@ local Library do
 				Page = SubSlider.Page,
 				Section = SubSlider.Section,
 
-				Name = Data.Name or Data.name or "Sub Slider",
+				Name = Data.Name or Data.name or "value",
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
 				Lifetime = Data.Lifetime or Data.lifetime or false,
+				HideRange = Data.HideRange == true or Data.hide_range == true,
 
-				Speed = Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or 1,
+				Speed = Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or Data.Default or Data.default or 1,
 				Start = Data.StartDefault or Data.start_default or 0,
 				["End"] = Data.EndDefault or Data.end_default or 100,
 
-				SpeedMin = Data.SpeedMin or Data.speed_min or 0,
-				SpeedMax = Data.SpeedMax or Data.speed_max or 10,
+				SpeedMin = Data.SpeedMin or Data.speed_min or Data.Min or Data.min or 0,
+				SpeedMax = Data.SpeedMax or Data.speed_max or Data.Max or Data.max or 10,
 				StartMin = Data.StartMin or Data.start_min or 0,
 				StartMax = Data.StartMax or Data.start_max or 100,
 				EndMin = Data.EndMin or Data.end_min or 0,
 				EndMax = Data.EndMax or Data.end_max or 100,
 
-				SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or 0.01,
+				SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or Data.Decimals or Data.decimals or 0.01,
 				RangeDecimals = Data.RangeDecimals or Data.range_decimals or 1,
 				SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or "",
 
 				Callback = Data.Callback or Data.callback or function() end,
 				Disabled = false,
+				SpeedFocused = false,
 				Items = {},
 			}
 
@@ -9914,40 +9954,168 @@ local Library do
 				FillDirection = Enum.FillDirection.Vertical,
 			})
 
-			local SpeedTrack = CreateTrack(EntryItems["Block"].Instance, 0, 2, UDim2New(1, 0, 0, TRACK_HEIGHT))
+			local SpeedTrackParent = EntryItems["Block"].Instance
+			local SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
+
+			if Entry.HideRange then
+				EntryItems["TrackRow"] = Instances:Create("Frame", {
+					Parent = EntryItems["Block"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					ZIndex = 2,
+					LayoutOrder = 0,
+				})
+
+				Instances:Create("UIListLayout", {
+					Parent = EntryItems["TrackRow"].Instance,
+					Name = "\0",
+					Padding = UDimNew(0, 5),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					FillDirection = Enum.FillDirection.Horizontal,
+					HorizontalAlignment = Enum.HorizontalAlignment.Left,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+				})
+
+				SpeedTrackParent = EntryItems["TrackRow"].Instance
+				SpeedTrackSize = UDim2New(1, -60, 0, TRACK_HEIGHT)
+
+				EntryItems["ValueBackground"] = Instances:Create("Frame", {
+					Parent = EntryItems["TrackRow"].Instance,
+					Name = "\0",
+					Size = UDim2New(0, 55, 1, 0),
+					BackgroundColor3 = Library.Theme["Element"],
+					BorderSizePixel = 0,
+					ZIndex = 3,
+					LayoutOrder = 1,
+				}):AddToTheme({BackgroundColor3 = "Element"})
+
+				Instances:Create("UICorner", {
+					Parent = EntryItems["ValueBackground"].Instance,
+					CornerRadius = UDimNew(0, 5),
+				})
+
+				EntryItems["ValueInput"] = Instances:Create("TextBox", {
+					Parent = EntryItems["ValueBackground"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Text = "",
+					TextColor3 = Library.Theme["Text"],
+					TextSize = 12,
+					FontFace = Library.Font,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					ClearTextOnFocus = false,
+					CursorPosition = -1,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					ZIndex = 4,
+				}):AddToTheme({TextColor3 = "Text"})
+			end
+
+			local SpeedTrack = CreateTrack(SpeedTrackParent, 0, 2, SpeedTrackSize)
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
 			EntryItems["SpeedLabel"] = SpeedTrack["Label"]
 			EntryItems["SpeedButton"] = SpeedTrack["Track"]
 
-			EntryItems["RangeRow"] = Instances:Create("Frame", {
-				Parent = EntryItems["Block"].Instance,
-				Name = "\0",
-				Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				ZIndex = 2,
-				LayoutOrder = 1,
-			})
+			if not Entry.HideRange then
+				EntryItems["RangeRow"] = Instances:Create("Frame", {
+					Parent = EntryItems["Block"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					ZIndex = 2,
+					LayoutOrder = 1,
+				})
 
-			Instances:Create("UIListLayout", {
-				Parent = EntryItems["RangeRow"].Instance,
-				Name = "\0",
-				Padding = UDimNew(0, RANGE_GAP),
-				SortOrder = Enum.SortOrder.LayoutOrder,
-				FillDirection = Enum.FillDirection.Horizontal,
-				HorizontalFlex = Enum.UIFlexAlignment.Fill,
-				VerticalFlex = Enum.UIFlexAlignment.Fill,
-			})
+				Instances:Create("UIListLayout", {
+					Parent = EntryItems["RangeRow"].Instance,
+					Name = "\0",
+					Padding = UDimNew(0, RANGE_GAP),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					FillDirection = Enum.FillDirection.Horizontal,
+					HorizontalFlex = Enum.UIFlexAlignment.Fill,
+					VerticalFlex = Enum.UIFlexAlignment.Fill,
+				})
 
-			local StartTrack = CreateTrack(EntryItems["RangeRow"].Instance, 0, 2, UDim2New(1, 0, 1, 0))
-			EntryItems["StartAccent"] = StartTrack["Accent"]
-			EntryItems["StartLabel"] = StartTrack["Label"]
-			EntryItems["StartButton"] = StartTrack["Track"]
+				local StartTrack = CreateTrack(EntryItems["RangeRow"].Instance, 0, 2, UDim2New(1, 0, 1, 0))
+				EntryItems["StartAccent"] = StartTrack["Accent"]
+				EntryItems["StartLabel"] = StartTrack["Label"]
+				EntryItems["StartButton"] = StartTrack["Track"]
 
-			local EndTrack = CreateTrack(EntryItems["RangeRow"].Instance, 1, 2, UDim2New(1, 0, 1, 0))
-			EntryItems["EndAccent"] = EndTrack["Accent"]
-			EntryItems["EndLabel"] = EndTrack["Label"]
-			EntryItems["EndButton"] = EndTrack["Track"]
+				local EndTrack = CreateTrack(EntryItems["RangeRow"].Instance, 1, 2, UDim2New(1, 0, 1, 0))
+				EntryItems["EndAccent"] = EndTrack["Accent"]
+				EntryItems["EndLabel"] = EndTrack["Label"]
+				EntryItems["EndButton"] = EndTrack["Track"]
+			end
+
+			local function ApplyEntrySpeedInput(LiveUpdate)
+				if Entry.Disabled or not EntryItems["ValueInput"] then
+					return false
+				end
+
+				local Text = EntryItems["ValueInput"].Instance.Text
+				local Stripped = StringGSub(Text, "[^0-9%.%-]", "")
+				local NumValue = tonumber(Stripped)
+
+				if LiveUpdate and Stripped ~= Text then
+					EntryItems["ValueInput"].Instance.Text = Stripped
+					Text = Stripped
+				end
+
+				if NumValue then
+					Entry.Speed = ClampSpeed(Entry, NumValue)
+					UpdateEntryFlags(Entry)
+					RefreshSpeedVisual(Entry)
+					FireEntryCallback(Entry)
+					EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
+					if not LiveUpdate then
+						Library:SaveAutoloadIfEnabled()
+					end
+					return true
+				end
+
+				if Text ~= "" then
+					EntryItems["ValueInput"].Instance.TextColor3 = FromRGB(255, 80, 80)
+				else
+					EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
+				end
+
+				return false
+			end
+
+			if Entry.HideRange and EntryItems["ValueInput"] then
+				EntryItems["ValueInput"]:Connect("Focused", function()
+					if Entry.Disabled then
+						return
+					end
+
+					Entry.SpeedFocused = true
+					local Stripped = StringGSub(EntryItems["ValueInput"].Instance.Text, "[^0-9%.%-]", "")
+					EntryItems["ValueInput"].Instance.Text = Stripped
+				end)
+
+				EntryItems["ValueInput"]:Connect("focusLost", function()
+					if Entry.Disabled then
+						return
+					end
+
+					Entry.SpeedFocused = false
+
+					if not ApplyEntrySpeedInput(false) then
+						EntryItems["ValueInput"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
+						EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
+					end
+				end)
+
+				EntryItems["ValueInput"]:Connect("Changed", function(Property)
+					if Property == "Text" and Entry.SpeedFocused then
+						ApplyEntrySpeedInput(true)
+					end
+				end)
+			end
 
 			function Entry:Set(Value)
 				EntrySet(Entry, Value)
@@ -9962,15 +10130,29 @@ local Library do
 				local Transparency = Bool and 0.6 or 0
 
 				for _, Key in {"SpeedButton", "StartButton", "EndButton"} do
-					EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+					if EntryItems[Key] then
+						EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+					end
 				end
 
 				for _, Key in {"SpeedAccent", "StartAccent", "EndAccent"} do
-					EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+					if EntryItems[Key] then
+						EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+					end
 				end
 
 				for _, Key in {"SpeedLabel", "StartLabel", "EndLabel"} do
-					EntryItems[Key]:Tween(nil, {TextTransparency = Transparency})
+					if EntryItems[Key] then
+						EntryItems[Key]:Tween(nil, {TextTransparency = Transparency})
+					end
+				end
+
+				if EntryItems["ValueBackground"] then
+					EntryItems["ValueBackground"]:Tween(nil, {BackgroundTransparency = Transparency})
+				end
+
+				if EntryItems["ValueInput"] then
+					EntryItems["ValueInput"]:Tween(nil, {TextTransparency = Transparency})
 				end
 			end
 
@@ -10003,8 +10185,10 @@ local Library do
 			end
 
 			BindTrack(EntryItems["SpeedButton"], "Speed")
-			BindTrack(EntryItems["StartButton"], "Start")
-			BindTrack(EntryItems["EndButton"], "End")
+			if not Entry.HideRange then
+				BindTrack(EntryItems["StartButton"], "Start")
+				BindTrack(EntryItems["EndButton"], "End")
+			end
 
 			Entry:Set({
 				Speed = Entry.Speed,
@@ -10034,7 +10218,7 @@ local Library do
 			return SubSlider, Entry
 		end
 
-		if Data.Flag or Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or Data.Callback or Data.callback then
+		if Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or Data.Default or Data.default then
 			SubSlider:Add(Data)
 		end
 
@@ -10047,6 +10231,10 @@ local Library do
 				UpdateEntryFromInput(SubSlider.SlidingEntry, SubSlider.SlidingKind)
 			end
 		end)
+
+		function SubSlider:SetVisibility(Bool)
+			Items["SubSliderContainer"].Instance.Visible = Bool
+		end
 
 		function SubSlider:Destroy()
 			if SubSlider.InputChangedConnection then
@@ -11450,7 +11638,7 @@ local Library do
 		local AccountTab = Settings:SubPage({Name = "Account"})
 		local ThemesTab = Settings:SubPage({Name = "Themes"})
 		local MenuTab = Settings:SubPage({Name = "Menu"})
-		local ConfigsTab = Settings:SubPage({Name = "Configs"})
+		local ConfigsTab = Settings:SubPage({Name = "Configurations"})
 
 		local ScaleValues = {
 			["Very Small"] = 1200,
@@ -11534,7 +11722,7 @@ local Library do
 				ThemeConfig_Section:Toggle({
 					Name = "Autoload Theme",
 					Flag = "Autoload Theme On Execute",
-					Description = "Auto loads theme on execute",
+					Description = "Autoloads the selected theme on next load",
 					Default = Library.AutoloadThemeEnabled == true,
 					Callback = function(Value)
 						Library.AutoloadThemeEnabled = Value
@@ -11688,7 +11876,7 @@ local Library do
 				Library:Unload()
 			end)
 
-			MenuSetting_Section:Label("Menu keybind", "Keybind to open/close the menu"):Keybind({
+			MenuSetting_Section:Label("Menu keybind", "open/close menu keybind"):Keybind({
 				Name = "Menu Keybind",
 				Flag = "Menu Keybind",
 				Default = Enum.KeyCode.RightControl,
@@ -11835,7 +12023,7 @@ local Library do
 			MenuSetting_Section:Toggle({
 				Name = "Background Darken",
 				Flag = "Background Darken",
-				Description = "Dark overlay and blur while menu is open",
+				Description = "Dark overlay/blur while menu is open",
 				Default = Library.BackgroundDarkenEnabled ~= false,
 				Callback = function(Value)
 					Library:SetBackgroundDarkenEnabled(Value)
@@ -11970,11 +12158,11 @@ local Library do
 				NotifyGame("Job ID copied")
 			end):Add("Copy Join Code", function()
 				CopyToClipboard(
-					'game:GetService("TeleportService"):TeleportToPlaceInstance('
+					'cloneref(game:GetService("TeleportService"):TeleportToPlaceInstance('
 						.. game.PlaceId
 						.. ', "'
 						.. game.JobId
-						.. '")'
+						.. '"))'
 				)
 				NotifyGame("Join code copied")
 			end)
@@ -12011,7 +12199,7 @@ local Library do
 				local Config_Dropdown = ScriptConfig_Section:Dropdown({
 					Name = "Config Select",
 					Flag = "Config Select",
-					Description = "List of the configs",
+					Description = "List of the Configurations",
 					Items = {},
 					Multi = false,
 					Callback = function(Value)
@@ -12026,9 +12214,9 @@ local Library do
 				})
 
 				ScriptConfig_Section:Toggle({
-					Name = "Autoload Config On Execute",
-					Flag = "Autoload Config On Execute",
-					Description = "Auto Loads Config On Execute",
+					Name = "Autoload Configuration",
+					Flag = "Autoloads the selected configuration on next load",
+					Description = "Autoloads the selected configuration on next load",
 					Default = Library.AutoloadConfigEnabled == true,
 					Callback = function(Value)
 						Library.AutoloadConfigEnabled = Value
