@@ -1,4 +1,4 @@
-warn("diff Animtiosnsns")
+print("kinda hungry")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -254,7 +254,7 @@ local Library do
 
 		FadeSpeed = 0.2,
 
-		BackgroundTransparency = 0.25,
+		BackgroundTransparency = 0.05,
 
 		Folders_Path = {
 			Directory = "solixhub",
@@ -2592,33 +2592,89 @@ local Library do
 		end
 
 		local function SpawnShootingStar(Holder, Width, Height)
-			local Star = InstanceNew("Frame")
-			Star.Name = "\0"
-			Star.Parent = Holder
-			Star.BackgroundColor3 = FromRGB(255, 255, 255)
-			Star.BackgroundTransparency = 0.15
-			Star.BorderSizePixel = 0
-			Star.AnchorPoint = Vector2New(0.5, 0.5)
-			Star.Size = UDim2FromOffset(math.random(50, 95), 2)
-			Star.Rotation = math.random(-52, -28)
-			Star.ZIndex = 0
+			local Length = math.random(110, 190)
+			local Rotation = math.random(-52, -30)
+			local Travel = math.random(math.floor(math.max(Width, Height) * 0.45), math.floor(math.max(Width, Height) * 0.85))
+			local Angle = math.rad(Rotation)
+			local DeltaX = math.cos(Angle) * Travel
+			local DeltaY = -math.sin(Angle) * Travel
 
-			local StartX = math.random(-40, math.max(0, Width * 0.45))
-			local StartY = math.random(-20, math.max(0, Height * 0.4))
-			local EndX = StartX + math.random(math.max(80, Width * 0.2), math.max(120, Width * 0.55))
-			local EndY = StartY + math.random(math.max(60, Height * 0.15), math.max(100, Height * 0.45))
+			local StartX = math.random(-Length, math.floor(Width * 0.35))
+			local StartY = math.random(-60, math.floor(Height * 0.3))
+			local EndX = StartX + DeltaX
+			local EndY = StartY + DeltaY
 
-			Star.Position = UDim2FromOffset(StartX, StartY)
+			local Container = InstanceNew("Frame")
+			Container.Name = "\0"
+			Container.Parent = Holder
+			Container.BackgroundTransparency = 1
+			Container.BorderSizePixel = 0
+			Container.AnchorPoint = Vector2New(0, 0.5)
+			Container.Size = UDim2FromOffset(Length, 5)
+			Container.Position = UDim2FromOffset(StartX, StartY)
+			Container.Rotation = Rotation
+			Container.ZIndex = 2
 
-			local FallTween = TweenService:Create(Star, TweenInfo.new(math.random(6, 12) / 10, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+			local Tail = InstanceNew("Frame")
+			Tail.Name = "\0"
+			Tail.Parent = Container
+			Tail.BackgroundColor3 = FromRGB(255, 255, 255)
+			Tail.BackgroundTransparency = 0
+			Tail.BorderSizePixel = 0
+			Tail.Size = UDim2New(1, 0, 1, 0)
+			Tail.ZIndex = 2
+
+			local TailGradient = InstanceNew("UIGradient")
+			TailGradient.Parent = Tail
+			TailGradient.Rotation = 0
+			TailGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, FromRGB(255, 255, 255)),
+				ColorSequenceKeypoint.new(1, FromRGB(255, 255, 255)),
+			})
+			TailGradient.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.25, 0.65),
+				NumberSequenceKeypoint.new(0.55, 0.15),
+				NumberSequenceKeypoint.new(1, 0),
+			})
+
+			local Head = InstanceNew("Frame")
+			Head.Name = "\0"
+			Head.Parent = Container
+			Head.AnchorPoint = Vector2New(1, 0.5)
+			Head.Position = UDim2New(1, 1, 0.5, 0)
+			Head.Size = UDim2FromOffset(6, 6)
+			Head.BackgroundColor3 = FromRGB(255, 255, 255)
+			Head.BackgroundTransparency = 0
+			Head.BorderSizePixel = 0
+			Head.ZIndex = 3
+
+			Instances:Create("UICorner", {
+				Parent = Head,
+				Name = "\0",
+				CornerRadius = UDimNew(1, 0),
+			})
+
+			local Duration = math.random(35, 65) / 100
+			local MoveTween = TweenService:Create(Container, TweenInfo.new(Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
 				Position = UDim2FromOffset(EndX, EndY),
+			})
+
+			local FadeTween = TweenService:Create(Tail, TweenInfo.new(Duration * 0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 				BackgroundTransparency = 1,
 			})
 
-			FallTween:Play()
-			Library:Connect(FallTween.Completed, function()
-				if Star and Star.Parent then
-					Star:Destroy()
+			local HeadFadeTween = TweenService:Create(Head, TweenInfo.new(Duration * 0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, Duration * 0.15), {
+				BackgroundTransparency = 1,
+			})
+
+			MoveTween:Play()
+			FadeTween:Play()
+			HeadFadeTween:Play()
+
+			Library:Connect(MoveTween.Completed, function()
+				if Container and Container.Parent then
+					Container:Destroy()
 				end
 			end)
 		end
@@ -2658,7 +2714,7 @@ local Library do
 					wait(0.04)
 				elseif EffectType == "Shooting Stars" then
 					SpawnShootingStar(Holder, Width, Height)
-					wait(math.random(15, 35) / 10)
+					wait(math.random(6, 14) / 10)
 				else
 					wait(0.1)
 				end
@@ -2752,6 +2808,8 @@ local Library do
 	Library.SetBackgroundEffect = function(self, Value, SkipSave)
 		if type(Value) == "boolean" then
 			Value = Value and "Snow" or "None"
+		elseif type(Value) == "string" then
+			Value = Value:match("^%s*(.-)%s*$")
 		end
 
 		local IsValid = false
