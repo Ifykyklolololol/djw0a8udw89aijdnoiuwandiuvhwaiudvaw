@@ -1,4 +1,4 @@
-print("gotta work")
+print("ccr is abusing me :sad:")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -311,6 +311,13 @@ local Library do
 		BackgroundDarkenEnabled = true,
 		BackgroundEffect = "Snow",
 		BackgroundEffectOptions = {"None", "Snow", "Rain"},
+		ShowWatermark = false,
+		ShowKeybindList = false,
+		ShowMenuButton = true,
+		AutoExecute = false,
+		MenuScalePreset = "Medium",
+		MenuTweenStyle = "Cubic",
+		MenuTweenDirection = "Out",
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -1320,7 +1327,7 @@ local Library do
 		end
 	end
 
-	Library.SetFont = function(self, FontName)
+	Library.SetFont = function(self, FontName, SkipSave)
 		local Face = self.FontFaces[FontName]
 
 		if not Face then
@@ -1331,10 +1338,14 @@ local Library do
 		self.FontSettings.Name = FontName
 		self:ApplyFontSettings()
 
+		if not SkipSave and not self.LoadingConfig then
+			self:SaveLocalSettings()
+		end
+
 		return true
 	end
 
-	Library.SetTextSizes = function(self, Main, Small, Title)
+	Library.SetTextSizes = function(self, Main, Small, Title, SkipSave)
 		if Main then
 			self.FontSettings.TextSize = MathClamp(MathFloor(Main), 10, 20)
 		end
@@ -1348,6 +1359,10 @@ local Library do
 		end
 
 		self:ApplyFontSettings()
+
+		if not SkipSave and not self.LoadingConfig then
+			self:SaveLocalSettings()
+		end
 	end
 
 	Library.Holder = Instances:Create("ScreenGui", {
@@ -2049,6 +2064,37 @@ local Library do
 					Library:SetBackgroundEffect(Value)
 				end
 
+				if Index == "Show Watermark" and type(Value) == "boolean" then
+					Library.ShowWatermark = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "Show Menu Button" and type(Value) == "boolean" then
+					Library.ShowMenuButton = Value
+					Library:SaveLocalSettings()
+				elseif Index == "Show Floating Button" and type(Value) == "boolean" then
+					Library.ShowMenuButton = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "Show Keybind List" and type(Value) == "boolean" then
+					Library.ShowKeybindList = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "Background Darken" and type(Value) == "boolean" then
+					Library:SetBackgroundDarkenEnabled(Value)
+				end
+
+				if Index == "Auto Execute" and type(Value) == "boolean" then
+					Library.AutoExecute = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "UI Font" and type(Value) == "string" then
+					Library:SetFont(Value)
+				end
+
 				local SetFunction = Library.SetFlags[Index]
 
 				if not SetFunction then
@@ -2712,6 +2758,10 @@ local Library do
 	Library.SetBackgroundDarkenEnabled = function(self, Bool)
 		self.BackgroundDarkenEnabled = Bool and true or false
 		self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
+
+		if not self.LoadingConfig then
+			self:SaveLocalSettings()
+		end
 	end
 
 	Library.SetBackgroundEffect = function(self, Value, SkipSave)
@@ -2802,30 +2852,98 @@ local Library do
 			return HttpService:JSONDecode(readfile(SettingsPath))
 		end)
 
-		if Success and type(Decoded) == "table" then
-			if Decoded.SafeMode == true then
-				self.SafeMode = true
-			end
+		if not Success or type(Decoded) ~= "table" then
+			return
+		end
 
-			if Decoded.AutoloadConfigEnabled == true then
-				self.AutoloadConfigEnabled = true
-			end
+		if Decoded.SafeMode == true then
+			self.SafeMode = true
+		end
 
-			if Decoded.AutoloadThemeEnabled == true then
-				self.AutoloadThemeEnabled = true
-			end
+		if Decoded.AutoloadConfigEnabled == true then
+			self.AutoloadConfigEnabled = true
+		end
 
-			if type(Decoded.BackgroundEffect) == "string" then
-				local Effect = Decoded.BackgroundEffect
-				if Effect == "Shooting Stars" then
-					Effect = "Snow"
-				end
-				self:SetBackgroundEffect(Effect, true)
-			elseif Decoded.BackgroundSnowEnabled == false then
-				self:SetBackgroundEffect("None", true)
-			elseif Decoded.BackgroundSnowEnabled == true then
-				self:SetBackgroundEffect("Snow", true)
+		if Decoded.AutoloadThemeEnabled == true then
+			self.AutoloadThemeEnabled = true
+		end
+
+		if type(Decoded.BackgroundEffect) == "string" then
+			local Effect = Decoded.BackgroundEffect
+			if Effect == "Shooting Stars" then
+				Effect = "Snow"
 			end
+			self:SetBackgroundEffect(Effect, true)
+		elseif Decoded.BackgroundSnowEnabled == false then
+			self:SetBackgroundEffect("None", true)
+		elseif Decoded.BackgroundSnowEnabled == true then
+			self:SetBackgroundEffect("Snow", true)
+		end
+
+		if Decoded.BackgroundDarkenEnabled == false then
+			self.BackgroundDarkenEnabled = false
+		elseif Decoded.BackgroundDarkenEnabled == true then
+			self.BackgroundDarkenEnabled = true
+		end
+
+		if type(Decoded.ShowWatermark) == "boolean" then
+			self.ShowWatermark = Decoded.ShowWatermark
+		end
+
+		if type(Decoded.ShowKeybindList) == "boolean" then
+			self.ShowKeybindList = Decoded.ShowKeybindList
+		end
+
+		if type(Decoded.ShowMenuButton) == "boolean" then
+			self.ShowMenuButton = Decoded.ShowMenuButton
+		elseif type(Decoded.ShowFloatingButton) == "boolean" then
+			self.ShowMenuButton = Decoded.ShowFloatingButton
+		end
+
+		if type(Decoded.AutoExecute) == "boolean" then
+			self.AutoExecute = Decoded.AutoExecute
+		end
+
+		if type(Decoded.BackgroundTransparency) == "number" then
+			self.BackgroundTransparency = MathClamp(Decoded.BackgroundTransparency, 0, 1)
+		end
+
+		if type(Decoded.MenuTweenTime) == "number" then
+			self.Tween.Time = Decoded.MenuTweenTime
+		end
+
+		if type(Decoded.MenuFadeTime) == "number" then
+			self.FadeSpeed = Decoded.MenuFadeTime
+		end
+
+		if type(Decoded.MenuScalePreset) == "string" then
+			self.MenuScalePreset = Decoded.MenuScalePreset
+		end
+
+		if type(Decoded.MenuTweenStyle) == "string" and Enum.EasingStyle[Decoded.MenuTweenStyle] then
+			self.MenuTweenStyle = Decoded.MenuTweenStyle
+			self.Tween.Style = Enum.EasingStyle[Decoded.MenuTweenStyle]
+		end
+
+		if type(Decoded.MenuTweenDirection) == "string" and Enum.EasingDirection[Decoded.MenuTweenDirection] then
+			self.MenuTweenDirection = Decoded.MenuTweenDirection
+			self.Tween.Direction = Enum.EasingDirection[Decoded.MenuTweenDirection]
+		end
+
+		if type(Decoded.UIFont) == "string" and self.FontFaces[Decoded.UIFont] then
+			self:SetFont(Decoded.UIFont, true)
+		end
+
+		if type(Decoded.UIMainTextSize) == "number" then
+			self:SetTextSizes(Decoded.UIMainTextSize, nil, nil, true)
+		end
+
+		if type(Decoded.UISmallTextSize) == "number" then
+			self:SetTextSizes(nil, Decoded.UISmallTextSize, nil, true)
+		end
+
+		if type(Decoded.UITitleTextSize) == "number" then
+			self:SetTextSizes(nil, nil, Decoded.UITitleTextSize, true)
 		end
 	end
 
@@ -2836,11 +2954,52 @@ local Library do
 			AutoloadConfigEnabled = self.AutoloadConfigEnabled == true,
 			AutoloadThemeEnabled = self.AutoloadThemeEnabled == true,
 			BackgroundEffect = self.BackgroundEffect or "Snow",
+			BackgroundDarkenEnabled = self.BackgroundDarkenEnabled ~= false,
+			ShowWatermark = self.ShowWatermark == true,
+			ShowKeybindList = self.ShowKeybindList == true,
+			ShowMenuButton = self.ShowMenuButton ~= false,
+			AutoExecute = self.AutoExecute == true,
+			BackgroundTransparency = self.BackgroundTransparency,
+			MenuTweenTime = self.Tween.Time,
+			MenuFadeTime = self.FadeSpeed,
+			MenuScalePreset = self.MenuScalePreset or "Medium",
+			MenuTweenStyle = self.MenuTweenStyle or "Cubic",
+			MenuTweenDirection = self.MenuTweenDirection or "Out",
+			UIFont = self.FontSettings.Name,
+			UIMainTextSize = self.FontSettings.TextSize,
+			UISmallTextSize = self.FontSettings.SmallTextSize,
+			UITitleTextSize = self.FontSettings.TitleTextSize,
 		}
 
 		pcall(function()
 			writefile(SettingsPath, HttpService:JSONEncode(Settings))
 		end)
+	end
+
+	Library.ApplyMenuSettingsFromLocal = function(self, Watermark, KeybindList, Window)
+		local ActiveWatermark = Watermark or self.WatermarkInstance
+
+		if ActiveWatermark and ActiveWatermark.SetVisibility then
+			ActiveWatermark:SetVisibility(self.ShowWatermark == true)
+		end
+
+		if KeybindList and KeybindList.SetVisibility then
+			KeybindList:SetVisibility(self.ShowKeybindList == true)
+		end
+
+		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
+			self.FloatingButtonHolder.Instance.Enabled = self.ShowMenuButton ~= false
+		end
+
+		if Window and Window.SetTransparency and type(self.BackgroundTransparency) == "number" then
+			Window:SetTransparency(self.BackgroundTransparency)
+		end
+
+		if KeybindList and KeybindList.SetTransparency and type(self.BackgroundTransparency) == "number" then
+			KeybindList:SetTransparency(self.BackgroundTransparency)
+		end
+
+		self:SetBackgroundDarkenEnabled(self.BackgroundDarkenEnabled)
 	end
 
 	Library.CheckForThemeAutoLoad = function(self)
@@ -6974,12 +7133,6 @@ local Library do
 			Items["MainFrame"].Instance.Size = UDim2New(0, 285, 0, 35)
 			Items["Pages"].Instance.Visible = false
 			Items["Content"].Instance.Visible = false
-		elseif Library.AutoMinimize then
-			Window.IsMinimized = true
-
-			Items["MainFrame"].Instance.Size = UDim2New(0, 285, 0, 35)
-			Items["Pages"].Instance.Visible = false
-			Items["Content"].Instance.Visible = false
 		end
 
 		Library:LoadLocalSettings()
@@ -6987,13 +7140,8 @@ local Library do
 		if Library.SafeMode then
 			Window:SetOpen(false)
 
-			local ShowFloatingButton = Library.Flags["Show Floating Button"]
-			if ShowFloatingButton == nil then
-				ShowFloatingButton = true
-			end
-
 			if Library.FloatingButtonHolder then
-				Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
+				Library.FloatingButtonHolder.Instance.Enabled = Library.ShowMenuButton ~= false
 			end
 		else
 			Window:SetOpen(true)
@@ -11318,13 +11466,27 @@ local Library do
 	end
 
 	Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
+		Library:LoadLocalSettings()
+
 		local Settings = Window:Page({Name = "Settings", Columns = 2})
 
 		local AccountTab = Settings:SubPage({Name = "Account"})
 		local ThemesTab = Settings:SubPage({Name = "Themes"})
 		local MenuTab = Settings:SubPage({Name = "Menu"})
-		local GameTab = Settings:SubPage({Name = "Game"})
 		local ConfigsTab = Settings:SubPage({Name = "Configs"})
+
+		local ScaleValues = {
+			["Very Small"] = 1200,
+			["Small"] = 1100,
+			["Medium"] = 1000,
+			["Large"] = 800,
+			["Bigger"] = 600,
+			["Massive"] = 500,
+		}
+
+		if ScaleValues[Library.MenuScalePreset] then
+			Library:SetScaleNumeric(ScaleValues[Library.MenuScalePreset])
+		end
 
 		do 
 			local PlayerInfo_Section = AccountTab:Section({Name = "Player Info", Side = 1})
@@ -11393,7 +11555,7 @@ local Library do
 				})
 
 				ThemeConfig_Section:Toggle({
-					Name = "Autoload Theme On Execute",
+					Name = "Autoload Theme",
 					Flag = "Autoload Theme On Execute",
 					Description = "Auto loads theme on execute",
 					Default = Library.AutoloadThemeEnabled == true,
@@ -11556,6 +11718,7 @@ local Library do
 				Mode = "Toggle",
 				Callback = function()
 					Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11571,6 +11734,7 @@ local Library do
 					Library.BackgroundTransparency = Value
 					Window:SetTransparency(Value)
 					KeybindList:SetTransparency(Value)
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11584,6 +11748,7 @@ local Library do
 				Decimals = 0.01,
 				Callback = function(Value)
 					Library.Tween.Time = Value
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11597,6 +11762,7 @@ local Library do
 				Decimals = 0.01,
 				Callback = function(Value)
 					Library.FadeSpeed = Value
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11604,10 +11770,16 @@ local Library do
 				Name = "Menu Scale Preset",
 				Flag = "Menu Scale Preset",
 				Description = "Select Menu scale preset",
-				Default = IsMobile and "Bigger" or "Medium",
+				Default = Library.MenuScalePreset or (IsMobile and "Bigger" or "Medium"),
 				Items = {"Very Small", "Small", "Medium", "Large", "Bigger", "Massive"},
 				Callback = function(Value)
-					Library:SetScaleNumeric(ScaleValues[Value])
+					Library.MenuScalePreset = Value
+
+					if ScaleValues[Value] then
+						Library:SetScaleNumeric(ScaleValues[Value])
+					end
+
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11615,10 +11787,12 @@ local Library do
 				Name = "Menu Tween Style",
 				Flag = "Menu Tween Style",
 				Description = "Menu animation easing style",
-				Default = "Cubic",
+				Default = Library.MenuTweenStyle or "Cubic",
 				Items = {"Linear", "Sine", "Quad", "Cubic", "Quart", "Quint", "Exponential", "Circular", "Back", "Elastic", "Bounce"},
 				Callback = function(Value)
+					Library.MenuTweenStyle = Value
 					Library.Tween.Style = Enum.EasingStyle[Value]
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11626,10 +11800,12 @@ local Library do
 				Name = "Menu Tween Direction",
 				Flag = "Menu Tween Direction",
 				Description = "Menu animation easing direction",
-				Default = "Out",
+				Default = Library.MenuTweenDirection or "Out",
 				Items = {"In", "Out", "InOut"},
 				Callback = function(Value)
+					Library.MenuTweenDirection = Value
 					Library.Tween.Direction = Enum.EasingDirection[Value]
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11637,13 +11813,17 @@ local Library do
 				Name = "Show Watermark",
 				Flag = "Show Watermark",
 				Description = "Show/hide the Watermark",
-				Default = false,
+				Default = Library.ShowWatermark == true,
 				Callback = function(Value)
+					Library.ShowWatermark = Value == true
+
 					local ActiveWatermark = Watermark or Library.WatermarkInstance
 
 					if ActiveWatermark and ActiveWatermark.SetVisibility then
 						ActiveWatermark:SetVisibility(Value == true)
 					end
+
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11651,21 +11831,27 @@ local Library do
 				Name = "Show Keybind List",
 				Flag = "Show Keybind List",
 				Description = "Show/hide list of all keybinds",
-				Default = false,
+				Default = Library.ShowKeybindList == true,
 				Callback = function(Value)
+					Library.ShowKeybindList = Value == true
 					KeybindList:SetVisibility(Value)
+					Library:SaveLocalSettings()
 				end,
 			})
 
 			MenuSetting_Section:Toggle({
-				Name = "Show Floating Button",
-				Flag = "Show Floating Button",
-				Description = "Show/hide the floating button",
-				Default = true,
+				Name = "Show Menu Button",
+				Flag = "Show Menu Button",
+				Description = "Show/hide the menu open button",
+				Default = Library.ShowMenuButton ~= false,
 				Callback = function(Value)
+					Library.ShowMenuButton = Value == true
+
 					if Library.FloatingButtonHolder then
 						Library.FloatingButtonHolder.Instance.Enabled = Value
 					end
+
+					Library:SaveLocalSettings()
 				end,
 			})
 
@@ -11673,7 +11859,7 @@ local Library do
 				Name = "Background Darken",
 				Flag = "Background Darken",
 				Description = "Dark overlay and blur while menu is open",
-				Default = true,
+				Default = Library.BackgroundDarkenEnabled ~= false,
 				Callback = function(Value)
 					Library:SetBackgroundDarkenEnabled(Value)
 				end,
@@ -11694,23 +11880,9 @@ local Library do
 				Name = "Auto Save Config",
 				Flag = "Auto Save Config",
 				Description = "Automatically save your config",
-				Default = false,
+				Default = Library.AutoSave == true,
 				Callback = function(Value)
 					Library.AutoSave = Value
-				end,
-			})
-
-			MenuSetting_Section:Toggle({
-				Name = "Auto Minimize",
-				Flag = "Auto Minimize",
-				Description = "Automatically minimize on startup",
-				Default = false,
-				Callback = function(Value)
-					Library.AutoMinimize = Value
-
-					if Value and Window.Minimize then
-						Window:Minimize(true)
-					end
 				end,
 			})
 
@@ -11726,13 +11898,8 @@ local Library do
 					if Value then
 						Window:SetOpen(false)
 
-						local ShowFloatingButton = Library.Flags["Show Floating Button"]
-						if ShowFloatingButton == nil then
-							ShowFloatingButton = true
-						end
-
 						if Library.FloatingButtonHolder then
-							Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
+							Library.FloatingButtonHolder.Instance.Enabled = Library.ShowMenuButton ~= false
 						end
 					end
 				end,
@@ -11742,9 +11909,10 @@ local Library do
 				Name = "Auto Execute",
 				Flag = "Auto Execute",
 				Description = "Auto execute script after teleport",
-				Default = false,
+				Default = Library.AutoExecute == true,
 				Callback = function(Value)
 					Library.AutoExecute = Value
+					Library:SaveLocalSettings()
 
 					if Value and not getgenv().auto_execute then
 						getgenv().auto_execute = true
@@ -11758,12 +11926,14 @@ local Library do
 				Name = "Font",
 				Side = 2,
 			})
+
+			Library:ApplyMenuSettingsFromLocal(Watermark, KeybindList, Window)
 		end
 
 		do
-			local Game_Section = GameTab:Section({Name = "Game", Side = 1})
-			local TeleportService = game:GetService("TeleportService")
-			local HttpService = game:GetService("HttpService")
+			local Server_Section = ConfigsTab:Section({Name = "Server", Side = 1})
+			local TeleportService = cloneref(game:GetService("TeleportService"))
+			local HttpService = cloneref(game:GetService("HttpService"))
 
 			local function CopyToClipboard(Text)
 				pcall(function()
@@ -11773,14 +11943,14 @@ local Library do
 
 			local function NotifyGame(Message, Color)
 				Library:Notification({
-					Name = "Game",
+					Name = "Server",
 					Description = Message,
 					Color = Color or Color3.fromRGB(100, 255, 100),
 					Duration = 3,
 				})
 			end
 
-			Game_Section:Button():Add("Rejoin", function()
+			Server_Section:Button():Add("Rejoin", function()
 				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 				NotifyGame("Rejoining...")
 			end):Add("Server Hop", function()
@@ -11810,7 +11980,7 @@ local Library do
 				end
 			end)
 
-			Game_Section:Button():Add("Copy Place ID", function()
+			Server_Section:Button():Add("Copy Place ID", function()
 				CopyToClipboard(tostring(game.PlaceId))
 				NotifyGame("Place ID copied")
 			end):Add("Copy Game ID", function()
@@ -11818,7 +11988,7 @@ local Library do
 				NotifyGame("Game ID copied")
 			end)
 
-			Game_Section:Button():Add("Copy Job ID", function()
+			Server_Section:Button():Add("Copy Job ID", function()
 				CopyToClipboard(tostring(game.JobId))
 				NotifyGame("Job ID copied")
 			end):Add("Copy Join Code", function()
