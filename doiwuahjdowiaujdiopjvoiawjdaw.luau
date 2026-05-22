@@ -1,4 +1,4 @@
-warn("plss speeed")
+print("hell naww")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1522,22 +1522,6 @@ local Library do
 		Active = false,
 	})
 
-	Library:Connect(RunService.RenderStepped, function()
-		local MouseCursor = Library.MouseCursor
-
-		if not MouseCursor or not MouseCursor.Instance or not Library.WindowOpenState then
-			return
-		end
-
-		local MouseLocation = GetMouseLocation()
-		local Offset = Library.MouseCursorOffset
-
-		MouseCursor.Instance.Position = UDim2FromOffset(
-			MouseLocation.X - Offset,
-			MouseLocation.Y - Offset
-		)
-	end)
-
 	Library.NotifHolder = Instances:Create("Frame", {
 		Parent = Library.Holder.Instance,
 		Name = "\0",
@@ -1866,6 +1850,22 @@ local Library do
 		TableInsert(self.Connections, NewConnection)
 		return NewConnection
 	end
+
+	Library:Connect(RunService.RenderStepped, function()
+		local MouseCursor = Library.MouseCursor
+
+		if not MouseCursor or not MouseCursor.Instance or not Library.WindowOpenState then
+			return
+		end
+
+		local MouseLocation = GetMouseLocation()
+		local Offset = Library.MouseCursorOffset
+
+		MouseCursor.Instance.Position = UDim2FromOffset(
+			MouseLocation.X - Offset,
+			MouseLocation.Y - Offset
+		)
+	end, "MouseCursor")
 
 	Library.Disconnect = function(self, Name)
 		for _, Connection in self.Connections do 
