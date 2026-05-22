@@ -951,6 +951,9 @@ local Library do
 			local StartPosition = nil
 			local StartSize = nil
 
+			local EdgeThickness = 6
+			local CornerSize = 14
+
 			local MakeEdge = function(Name, Position, Size)
 				local Button = Instances:Create("TextButton", {
 					Parent = Gui,
@@ -972,28 +975,56 @@ local Library do
 				{Button = MakeEdge(
 					"Left", 
 					UDim2New(0, 0, 0, 0), 
-					UDim2New(0, 1, 1, 0)), 
+					UDim2New(0, EdgeThickness, 1, 0)), 
 					Side = "L"
 				},
 
 				{Button = MakeEdge(
 					"Right", 
-					UDim2New(1, -1, 0, 0), 
-					UDim2New(0, 1, 1, 0)), 
+					UDim2New(1, -EdgeThickness, 0, 0), 
+					UDim2New(0, EdgeThickness, 1, 0)), 
 					Side = "R"
 				},
 
 				{Button = MakeEdge(
 					"Top", UDim2New(0, 0, 0, 0), 
-					UDim2New(1, 0, 0, 1)), 
+					UDim2New(1, 0, 0, EdgeThickness)), 
 					Side = "T"
 				},
 
 				{Button = MakeEdge(
 					"Bottom", 
-					UDim2New(0, 0, 1, -1), 
-					UDim2New(1, 0, 0, 1)),
+					UDim2New(0, 0, 1, -EdgeThickness), 
+					UDim2New(1, 0, 0, EdgeThickness)),
 					Side = "B"
+				},
+
+				{Button = MakeEdge(
+					"TopLeft",
+					UDim2New(0, 0, 0, 0),
+					UDim2New(0, CornerSize, 0, CornerSize)),
+					Side = "TL"
+				},
+
+				{Button = MakeEdge(
+					"TopRight",
+					UDim2New(1, -CornerSize, 0, 0),
+					UDim2New(0, CornerSize, 0, CornerSize)),
+					Side = "TR"
+				},
+
+				{Button = MakeEdge(
+					"BottomLeft",
+					UDim2New(0, 0, 1, -CornerSize),
+					UDim2New(0, CornerSize, 0, CornerSize)),
+					Side = "BL"
+				},
+
+				{Button = MakeEdge(
+					"BottomRight",
+					UDim2New(1, -CornerSize, 1, -CornerSize),
+					UDim2New(0, CornerSize, 0, CornerSize)),
+					Side = "BR"
 				},
 			}
 
@@ -1052,27 +1083,29 @@ local Library do
 				local PostionX, PostionY = StartPosition.X, StartPosition.Y
 				local SizeX, SizeY = StartSize.X, StartSize.Y
 
-				if CurrentSide == "L" then
+				if CurrentSide == "L" or CurrentSide == "TL" or CurrentSide == "BL" then
 					PostionX = StartPosition.X + MouseX
 					SizeX = StartSize.X - MouseX
-				elseif CurrentSide == "R" then
+				elseif CurrentSide == "R" or CurrentSide == "TR" or CurrentSide == "BR" then
 					SizeX = StartSize.X + MouseX
-				elseif CurrentSide == "T" then
+				end
+
+				if CurrentSide == "T" or CurrentSide == "TL" or CurrentSide == "TR" then
 					PostionY = StartPosition.Y + MouseY
 					SizeY = StartSize.Y - MouseY
-				elseif CurrentSide == "B" then
+				elseif CurrentSide == "B" or CurrentSide == "BL" or CurrentSide == "BR" then
 					SizeY = StartSize.Y + MouseY
 				end
 
 				if SizeX < Minimum.X then
-					if CurrentSide == "L" then
+					if CurrentSide == "L" or CurrentSide == "TL" or CurrentSide == "BL" then
 						PostionX = PostionX - (Minimum.X - SizeX)
 					end
 					SizeX = Minimum.X
 				end
 
 				if SizeY < Minimum.Y then
-					if CurrentSide == "T" then
+					if CurrentSide == "T" or CurrentSide == "TL" or CurrentSide == "TR" then
 						PostionY = PostionY - (Minimum.Y - SizeY)
 					end
 					SizeY = Minimum.Y
@@ -9317,6 +9350,10 @@ local Library do
 			Color = RGBSequence{RGBSequenceKeypoint(0, FromRGB(255, 255, 255)), RGBSequenceKeypoint(1, FromRGB(216, 216, 216))}
 		})
 
+		if Slider.Compact then
+			Items["RealSlider"].Instance.ClipsDescendants = false
+		end
+
 		Items["Accent"] = Instances:Create("Frame", {
 			Parent = Items["RealSlider"].Instance,
 			Name = "\0",
@@ -9341,7 +9378,7 @@ local Library do
 
 		if Slider.Compact then
 			Items["TrackLabel"] = Instances:Create("TextLabel", {
-				Parent = Items["Accent"].Instance,
+				Parent = Items["RealSlider"].Instance,
 				Name = "\0",
 				Size = UDim2New(1, 0, 1, 0),
 				BackgroundTransparency = 1,
@@ -9351,8 +9388,16 @@ local Library do
 				TextSize = 13,
 				FontFace = Library.Font,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				ZIndex = 6,
+				ZIndex = 8,
 			}):AddToTheme({TextColor3 = "Text"})
+
+			Instances:Create("UIStroke", {
+				Parent = Items["TrackLabel"].Instance,
+				Name = "\0",
+				Thickness = 1,
+				Color = FromRGB(0, 0, 0),
+				Transparency = 0.35,
+			})
 		end
 
 		Items["Drag"] = Instances:Create("Frame", {
@@ -9820,7 +9865,7 @@ local Library do
 				BackgroundColor3 = Library.Theme["Element"],
 				BorderSizePixel = 0,
 				Text = "",
-				ClipsDescendants = true,
+				ClipsDescendants = false,
 				AutoButtonColor = false,
 				ZIndex = ZIndex,
 				LayoutOrder = LayoutOrder,
@@ -9856,8 +9901,16 @@ local Library do
 				TextSize = 13,
 				FontFace = Library.Font,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				ZIndex = ZIndex + 2,
+				ZIndex = ZIndex + 3,
 			}):AddToTheme({TextColor3 = "Text"})
+
+			Instances:Create("UIStroke", {
+				Parent = TrackItems["Label"].Instance,
+				Name = "\0",
+				Thickness = 1,
+				Color = FromRGB(0, 0, 0),
+				Transparency = 0.35,
+			})
 
 			return TrackItems
 		end
