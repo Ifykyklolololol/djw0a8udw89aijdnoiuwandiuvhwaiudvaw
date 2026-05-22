@@ -1,4 +1,4 @@
-warn("want some burek fr")
+print("gotta work")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -11310,45 +11310,6 @@ local Library do
 			end,
 		})
 
-		Section:Slider({
-			Name = "Main Text Size",
-			Flag = "UI Main Text Size",
-			Description = "Default UI text size",
-			Min = 10,
-			Max = 20,
-			Default = self.FontSettings.TextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(Value, nil, nil)
-			end,
-		})
-
-		Section:Slider({
-			Name = "Small Text Size",
-			Flag = "UI Small Text Size",
-			Description = "Small labels and hints",
-			Min = 8,
-			Max = 16,
-			Default = self.FontSettings.SmallTextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(nil, Value, nil)
-			end,
-		})
-
-		Section:Slider({
-			Name = "Title Text Size",
-			Flag = "UI Title Text Size",
-			Description = "Titles and headers",
-			Min = 14,
-			Max = 28,
-			Default = self.FontSettings.TitleTextSize,
-			Decimals = 0.1,
-			Callback = function(Value)
-				self:SetTextSizes(nil, nil, Value)
-			end,
-		})
-
 		defer(function()
 			self:ApplyFontSettings()
 		end)
@@ -11362,7 +11323,6 @@ local Library do
 		local AccountTab = Settings:SubPage({Name = "Account"})
 		local ThemesTab = Settings:SubPage({Name = "Themes"})
 		local MenuTab = Settings:SubPage({Name = "Menu"})
-		local FontTab = Settings:SubPage({Name = "Font"})
 		local GameTab = Settings:SubPage({Name = "Game"})
 		local ConfigsTab = Settings:SubPage({Name = "Configs"})
 
@@ -11793,12 +11753,10 @@ local Library do
 					end
 				end,
 			})
-		end
 
-		do
-			Library:CreateFontSettingsSection(FontTab, {
+			Library:CreateFontSettingsSection(MenuTab, {
 				Name = "Font",
-				Side = 1,
+				Side = 2,
 			})
 		end
 
