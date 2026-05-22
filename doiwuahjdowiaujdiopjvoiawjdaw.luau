@@ -1,4 +1,4 @@
-warn("CMON MAN")
+warn("diff Animtiosnsns")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -309,7 +309,8 @@ local Library do
 		BackgroundEffects = nil,
 		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
-		BackgroundSnowEnabled = true,
+		BackgroundEffect = "Snow",
+		BackgroundEffectOptions = {"None", "Snow", "Rain", "Shooting Stars"},
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -2040,6 +2041,14 @@ local Library do
 					Library:SaveLocalSettings()
 				end
 
+				if Index == "Background Snow" and type(Value) == "boolean" then
+					Library:SetBackgroundEffect(Value and "Snow" or "None")
+				end
+
+				if Index == "Background Effect" and type(Value) == "string" then
+					Library:SetBackgroundEffect(Value)
+				end
+
 				local SetFunction = Library.SetFlags[Index]
 
 				if not SetFunction then
@@ -2482,7 +2491,7 @@ local Library do
 			ZIndex = 0,
 		})
 
-		local SnowHolder = Instances:Create("Frame", {
+		local ParticleHolder = Instances:Create("Frame", {
 			Parent = Background.Instance,
 			Name = "\0",
 			BackgroundTransparency = 1,
@@ -2500,11 +2509,11 @@ local Library do
 
 		self.BackgroundEffects = {
 			Background = Background.Instance,
-			SnowHolder = SnowHolder.Instance,
+			ParticleHolder = ParticleHolder.Instance,
 			BlurEffect = BlurEffect,
 			ScreenGui = self.InputBlockGui.Instance,
 			SnowAsset = "rbxassetid://6871196088",
-			IsSnowing = false,
+			IsParticleActive = false,
 		}
 
 		local function ResizeBackground()
@@ -2517,19 +2526,117 @@ local Library do
 			self.BackgroundEffects.Background.Size = UDim2FromOffset(Size.X, Size.Y)
 		end
 
+		local function SpawnSnow(Effects, Holder, Width, Height)
+			local Image = InstanceNew("ImageLabel")
+			Image.Name = "\0"
+			Image.Parent = Holder
+			Image.BackgroundTransparency = 1
+			Image.Image = Effects.SnowAsset
+			Image.ImageTransparency = 0.15
+			Image.ZIndex = 0
+
+			local RandomSize = math.random(5, 9)
+			local SpawnX = math.random(0, math.max(0, Width - RandomSize))
+
+			Image.Size = UDim2New(0, RandomSize, 0, RandomSize)
+			Image.Position = UDim2New(0, SpawnX, 0, -10)
+
+			local FallDuration = math.random(20, 40) / 10
+			local SwayX = math.random(-18, 18)
+			local GoalPosition = UDim2New(0, SpawnX + SwayX, 0, Height + 10)
+
+			local FallTween = TweenService:Create(Image, TweenInfo.new(FallDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+				Position = GoalPosition,
+				ImageTransparency = 1,
+			})
+
+			FallTween:Play()
+			Library:Connect(FallTween.Completed, function()
+				if Image and Image.Parent then
+					Image:Destroy()
+				end
+			end)
+		end
+
+		local function SpawnRain(Effects, Holder, Width, Height)
+			local Image = InstanceNew("ImageLabel")
+			Image.Name = "\0"
+			Image.Parent = Holder
+			Image.BackgroundTransparency = 1
+			Image.Image = Effects.SnowAsset
+			Image.ImageColor3 = FromRGB(175, 195, 255)
+			Image.ImageTransparency = 0.35
+			Image.ZIndex = 0
+
+			local RandomSize = math.random(3, 6)
+			local SpawnX = math.random(0, math.max(0, Width - RandomSize))
+
+			Image.Size = UDim2New(0, RandomSize, 0, RandomSize * 2)
+			Image.Position = UDim2New(0, SpawnX, 0, -12)
+
+			local FallDuration = math.random(8, 14) / 10
+			local SwayX = math.random(10, 24)
+			local GoalPosition = UDim2New(0, SpawnX + SwayX, 0, Height + 12)
+
+			local FallTween = TweenService:Create(Image, TweenInfo.new(FallDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+				Position = GoalPosition,
+				ImageTransparency = 1,
+			})
+
+			FallTween:Play()
+			Library:Connect(FallTween.Completed, function()
+				if Image and Image.Parent then
+					Image:Destroy()
+				end
+			end)
+		end
+
+		local function SpawnShootingStar(Holder, Width, Height)
+			local Star = InstanceNew("Frame")
+			Star.Name = "\0"
+			Star.Parent = Holder
+			Star.BackgroundColor3 = FromRGB(255, 255, 255)
+			Star.BackgroundTransparency = 0.15
+			Star.BorderSizePixel = 0
+			Star.AnchorPoint = Vector2New(0.5, 0.5)
+			Star.Size = UDim2FromOffset(math.random(50, 95), 2)
+			Star.Rotation = math.random(-52, -28)
+			Star.ZIndex = 0
+
+			local StartX = math.random(-40, math.max(0, Width * 0.45))
+			local StartY = math.random(-20, math.max(0, Height * 0.4))
+			local EndX = StartX + math.random(math.max(80, Width * 0.2), math.max(120, Width * 0.55))
+			local EndY = StartY + math.random(math.max(60, Height * 0.15), math.max(100, Height * 0.45))
+
+			Star.Position = UDim2FromOffset(StartX, StartY)
+
+			local FallTween = TweenService:Create(Star, TweenInfo.new(math.random(6, 12) / 10, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+				Position = UDim2FromOffset(EndX, EndY),
+				BackgroundTransparency = 1,
+			})
+
+			FallTween:Play()
+			Library:Connect(FallTween.Completed, function()
+				if Star and Star.Parent then
+					Star:Destroy()
+				end
+			end)
+		end
+
 		ResizeBackground()
 		self:Connect(Camera:GetPropertyChangedSignal("ViewportSize"), ResizeBackground, "BackgroundEffectsResize")
 
 		self:Thread(function()
 			while Library and Library.BackgroundEffects do
 				local Effects = Library.BackgroundEffects
+				local EffectType = Library.BackgroundEffect or "None"
 
-				if not Effects.IsSnowing then
+				if not Effects.IsParticleActive or EffectType == "None" then
 					wait(0.1)
 					continue
 				end
 
-				local Holder = Effects.SnowHolder
+				local Holder = Effects.ParticleHolder
 				if not Holder or not Holder.Parent then
 					wait(0.1)
 					continue
@@ -2543,39 +2650,33 @@ local Library do
 					continue
 				end
 
-				local Image = InstanceNew("ImageLabel")
-				Image.Name = "\0"
-				Image.Parent = Holder
-				Image.BackgroundTransparency = 1
-				Image.Image = Effects.SnowAsset
-				Image.ImageTransparency = 0.15
-				Image.ZIndex = 0
-
-				local RandomSize = math.random(5, 9)
-				local SpawnX = math.random(0, math.max(0, Width - RandomSize))
-
-				Image.Size = UDim2New(0, RandomSize, 0, RandomSize)
-				Image.Position = UDim2New(0, SpawnX, 0, -10)
-
-				local FallDuration = math.random(20, 40) / 10
-				local SwayX = math.random(-18, 18)
-				local GoalPosition = UDim2New(0, SpawnX + SwayX, 0, Height + 10)
-
-				local FallTween = TweenService:Create(Image, TweenInfo.new(FallDuration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
-					Position = GoalPosition,
-					ImageTransparency = 1,
-				})
-
-				FallTween:Play()
-				Library:Connect(FallTween.Completed, function()
-					if Image and Image.Parent then
-						Image:Destroy()
-					end
-				end)
-
-				wait(0.1)
+				if EffectType == "Snow" then
+					SpawnSnow(Effects, Holder, Width, Height)
+					wait(0.1)
+				elseif EffectType == "Rain" then
+					SpawnRain(Effects, Holder, Width, Height)
+					wait(0.04)
+				elseif EffectType == "Shooting Stars" then
+					SpawnShootingStar(Holder, Width, Height)
+					wait(math.random(15, 35) / 10)
+				else
+					wait(0.1)
+				end
 			end
 		end)
+	end
+
+	Library.ClearBackgroundParticles = function(self)
+		local Effects = self.BackgroundEffects
+		if not Effects or not Effects.ParticleHolder then
+			return
+		end
+
+		for _, Child in Effects.ParticleHolder:GetChildren() do
+			if Child:IsA("GuiObject") then
+				Child:Destroy()
+			end
+		end
 	end
 
 	Library.SetBackgroundEffectsVisible = function(self, IsOpen, Instant)
@@ -2585,11 +2686,11 @@ local Library do
 		end
 
 		local HasDarken = self.BackgroundDarkenEnabled
-		local HasSnow = self.BackgroundSnowEnabled
-		local HasAnyEffect = HasDarken or HasSnow
+		local HasParticles = self.BackgroundEffect and self.BackgroundEffect ~= "None"
+		local HasAnyEffect = HasDarken or HasParticles
 		local IsVisible = IsOpen and true or false
 
-		Effects.IsSnowing = IsVisible and HasSnow
+		Effects.IsParticleActive = IsVisible and HasParticles
 
 		local TargetTransparency = (IsVisible and HasDarken) and 0.55 or 1
 		local TargetBlur = (IsVisible and HasDarken) and 18 or 0
@@ -2628,7 +2729,7 @@ local Library do
 				end
 
 				local CurrentEffects = Library.BackgroundEffects
-				if CurrentEffects.IsSnowing then
+				if CurrentEffects.IsParticleActive then
 					return
 				end
 
@@ -2638,11 +2739,7 @@ local Library do
 					CurrentEffects.ScreenGui.Enabled = false
 				end
 
-				for _, Child in CurrentEffects.SnowHolder:GetChildren() do
-					if Child:IsA("ImageLabel") then
-						Child:Destroy()
-					end
-				end
+				Library:ClearBackgroundParticles()
 			end)
 		end
 	end
@@ -2652,9 +2749,35 @@ local Library do
 		self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
 	end
 
-	Library.SetBackgroundSnowEnabled = function(self, Bool)
-		self.BackgroundSnowEnabled = Bool and true or false
+	Library.SetBackgroundEffect = function(self, Value, SkipSave)
+		if type(Value) == "boolean" then
+			Value = Value and "Snow" or "None"
+		end
+
+		local IsValid = false
+		for _, Option in self.BackgroundEffectOptions do
+			if Option == Value then
+				IsValid = true
+				break
+			end
+		end
+
+		if not IsValid then
+			Value = "None"
+		end
+
+		if self.BackgroundEffect == Value then
+			self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
+			return
+		end
+
+		self.BackgroundEffect = Value
+		self:ClearBackgroundParticles()
 		self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
+
+		if not SkipSave then
+			self:SaveLocalSettings()
+		end
 	end
 
 	Library:SetupBackgroundEffects()
@@ -2720,6 +2843,14 @@ local Library do
 			if Decoded.AutoloadThemeEnabled == true then
 				self.AutoloadThemeEnabled = true
 			end
+
+			if type(Decoded.BackgroundEffect) == "string" then
+				self:SetBackgroundEffect(Decoded.BackgroundEffect, true)
+			elseif Decoded.BackgroundSnowEnabled == false then
+				self:SetBackgroundEffect("None", true)
+			elseif Decoded.BackgroundSnowEnabled == true then
+				self:SetBackgroundEffect("Snow", true)
+			end
 		end
 	end
 
@@ -2729,6 +2860,7 @@ local Library do
 			SafeMode = self.SafeMode == true,
 			AutoloadConfigEnabled = self.AutoloadConfigEnabled == true,
 			AutoloadThemeEnabled = self.AutoloadThemeEnabled == true,
+			BackgroundEffect = self.BackgroundEffect or "Snow",
 		}
 
 		pcall(function()
@@ -11526,13 +11658,14 @@ local Library do
 				end,
 			})
 
-			MenuSetting_Section:Toggle({
-				Name = "Background Snow",
-				Flag = "Background Snow",
-				Description = "Snow effect while menu is open",
-				Default = true,
+			MenuSetting_Section:Dropdown({
+				Name = "Background Effect",
+				Flag = "Background Effect",
+				Description = "Particle effect behind the menu",
+				Default = Library.BackgroundEffect or "Snow",
+				Items = Library.BackgroundEffectOptions,
 				Callback = function(Value)
-					Library:SetBackgroundSnowEnabled(Value)
+					Library:SetBackgroundEffect(Value)
 				end,
 			})
 
