@@ -1,6 +1,3 @@
-warn(
-'son'
-)
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -244,7 +241,7 @@ local Library do
 	Library = {
 		Theme =  {},
 
-		MenuKeybind = tostring(Enum.KeyCode.RightControl), 
+		MenuKeybind = tostring(Enum.KeyCode.Backspace),
 
 		Flags = {},
 
@@ -3384,7 +3381,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Toggle.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.E,
+				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -4670,7 +4667,7 @@ local Library do
 				BackgroundColor3 = Library.Theme["Background"],
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Text = "RightShift",
+				Text = "None",
 				TextColor3 = Library.Theme["Text"],
 				TextSize = 14,
 				FontFace = Library.Font,
@@ -5213,12 +5210,10 @@ local Library do
 			Keybind:SetMode("Always")
 		end)
 
-		if Data.Default then 
-			Keybind:Set({
-				Mode = Data.Mode or "Toggle",
-				Key = Data.Default,
-			})
-		end
+		Keybind:Set({
+			Mode = Data.Mode or "Toggle",
+			Key = Data.Default or Enum.KeyCode.Backspace,
+		})
 
 		Library.SetFlags[Keybind.Flag] = function(Value)
 			if Keybind.Disabled then
@@ -7081,6 +7076,9 @@ local Library do
 		end
 
 		Library:Connect(UserInputService.InputBegan, function(Input)
+			if Library.MenuKeybind == tostring(Enum.KeyCode.Backspace) then
+				return
+			end
 			if tostring(Input.KeyCode) == Library.MenuKeybind or tostring(Input.UserInputType) == Library.MenuKeybind then
 				Window:SetOpen(not Window.IsOpen)
 			end
@@ -8638,7 +8636,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Toggle.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.E,
+				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -8928,7 +8926,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Checkbox.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.E,
+				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -11185,7 +11183,7 @@ local Library do
 				Page = Label.Page,
 				Section = Label.Section,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.E,
+				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
 				Mode = Data.Mode or Data.mode or "Toggle",
 				Callback = Data.Callback or Data.callback or function() end
 			})
@@ -11798,7 +11796,7 @@ local Library do
 			MenuSetting_Section:Label("Menu keybind", "open/close menu keybind"):Keybind({
 				Name = "Menu Keybind",
 				Flag = "Menu Keybind",
-				Default = Enum.KeyCode.RightControl,
+				Default = Enum.KeyCode.Backspace,
 				Mode = "Toggle",
 				Callback = function()
 					Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
