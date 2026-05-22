@@ -1,4 +1,4 @@
-print("btuhhh")
+print("cmonnn hruhh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -58,6 +58,18 @@ end
 
 local function GetAutoloadPath()
 	return Folder_Configs.Configs .. "/" .. GameId .. "/autoload.json"
+end
+
+local function GetAutoloadConfigNamePath()
+	return Folder_Configs.Configs .. "/" .. GameId .. "/autoload_config.txt"
+end
+
+local function GetAutoloadThemeNamePath()
+	return Folder_Configs.Themes .. "/autoload_theme.txt"
+end
+
+local function GetLocalSettingsPath()
+	return Folder_Configs.Datas .. "/" .. GameId .. "/settings.json"
 end
 
 for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/fonts", "solixhub/Configs", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configs .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
@@ -285,6 +297,9 @@ local Library do
 			FloatingButtonOpen = 10000,
 		},
 		MouseStateBeforeOpen = nil,
+		MouseUnlockConnection = nil,
+		SafeMode = false,
+		KeybindEntries = {},
 		BackgroundEffects = nil,
 		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
@@ -1760,6 +1775,7 @@ local Library do
 
 		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
+		self:ApplyMouseForMenu(false)
 
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -1945,6 +1961,21 @@ local Library do
 					Library.AutoSave = Value
 				end
 
+				if Index == "Safe Mode" and type(Value) == "boolean" then
+					Library.SafeMode = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "Autoload Config On Execute" and type(Value) == "boolean" then
+					Library.AutoloadConfigEnabled = Value
+					Library:SaveLocalSettings()
+				end
+
+				if Index == "Autoload Theme On Execute" and type(Value) == "boolean" then
+					Library.AutoloadThemeEnabled = Value
+					Library:SaveLocalSettings()
+				end
+
 				local SetFunction = Library.SetFlags[Index]
 
 				if not SetFunction then
@@ -2100,14 +2131,31 @@ local Library do
 	end
 
 	Library.ApplyMouseForMenu = function(self, IsOpen)
+		if self.MouseUnlockConnection then
+			pcall(function()
+				self.MouseUnlockConnection:Disconnect()
+			end)
+			self.MouseUnlockConnection = nil
+		end
+
 		if IsOpen then
 			self.MouseStateBeforeOpen = {
 				MouseBehavior = UserInputService.MouseBehavior,
 				MouseIconEnabled = UserInputService.MouseIconEnabled,
 			}
 
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-			UserInputService.MouseIconEnabled = true
+			local function UnlockMouse()
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = true
+			end
+
+			UnlockMouse()
+
+			self.MouseUnlockConnection = RunService.RenderStepped:Connect(function()
+				if self.WindowOpenState then
+					UnlockMouse()
+				end
+			end)
 		elseif self.MouseStateBeforeOpen then
 			UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
 			UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
@@ -2587,7 +2635,124 @@ local Library do
 		end
 	end
 
+	Library.LoadLocalSettings = function(self)
+		local SettingsPath = GetLocalSettingsPath()
+
+		if not isfile(SettingsPath) then
+			return
+		end
+
+		local Success, Decoded = pcall(function()
+			return HttpService:JSONDecode(readfile(SettingsPath))
+		end)
+
+		if Success and type(Decoded) == "table" then
+			if Decoded.SafeMode == true then
+				self.SafeMode = true
+			end
+
+			if Decoded.AutoloadConfigEnabled == true then
+				self.AutoloadConfigEnabled = true
+			end
+
+			if Decoded.AutoloadThemeEnabled == true then
+				self.AutoloadThemeEnabled = true
+			end
+		end
+	end
+
+	Library.SaveLocalSettings = function(self)
+		local SettingsPath = GetLocalSettingsPath()
+		local Settings = {
+			SafeMode = self.SafeMode == true,
+			AutoloadConfigEnabled = self.AutoloadConfigEnabled == true,
+			AutoloadThemeEnabled = self.AutoloadThemeEnabled == true,
+		}
+
+		pcall(function()
+			writefile(SettingsPath, HttpService:JSONEncode(Settings))
+		end)
+	end
+
+	Library.CheckForThemeAutoLoad = function(self)
+		if not self.AutoloadThemeEnabled then
+			return
+		end
+
+		local ThemeNamePath = GetAutoloadThemeNamePath()
+
+		if not isfile(ThemeNamePath) then
+			return
+		end
+
+		local ThemeName = readfile(ThemeNamePath)
+
+		if not ThemeName or ThemeName == "" then
+			return
+		end
+
+		local ThemePath = self:GetFolderTheme() .. ThemeName .. ".json"
+
+		if not isfile(ThemePath) then
+			return
+		end
+
+		local Success, Error = self:LoadTheme(readfile(ThemePath))
+
+		if Success then
+			self:Notification({
+				Name = "Success",
+				Description = "Succesfully autoloaded theme: " .. ThemeName,
+				Color = Color3.fromRGB(0, 255, 0),
+				Duration = 5,
+			})
+		else
+			self:Notification({
+				Name = "Error",
+				Description = "Failed to autoload theme: " .. tostring(Error),
+				Color = Color3.fromRGB(255, 0, 0),
+				Duration = 5,
+			})
+		end
+	end
+
 	Library.CheckForAutoLoad = function(self)
+		self:CheckForThemeAutoLoad()
+
+		if self.AutoloadConfigEnabled then
+			local ConfigNamePath = GetAutoloadConfigNamePath()
+
+			if isfile(ConfigNamePath) then
+				local ConfigName = readfile(ConfigNamePath)
+
+				if ConfigName and ConfigName ~= "" then
+					local ConfigPath = self:GetFolder() .. ConfigName .. ".json"
+
+					if isfile(ConfigPath) then
+						local Success, Error = self:LoadConfig(readfile(ConfigPath))
+
+						if Success then
+							self:Notification({
+								Name = "Success",
+								Description = "Succesfully autoloaded config: " .. ConfigName,
+								Color = Color3.fromRGB(0, 255, 0),
+								Duration = 5,
+							})
+						else
+							self:Notification({
+								Name = "Error",
+								Description = "Failed to autoload config: " .. tostring(Error),
+								Color = Color3.fromRGB(255, 0, 0),
+								Duration = 5,
+							})
+						end
+
+						return
+					end
+				end
+			end
+		end
+
 		local AutoLoadPath = GetAutoloadPath()
 
 		if not isfile(AutoLoadPath) then
@@ -4315,17 +4480,37 @@ local Library do
 			}):AddToTheme({TextColor3 = 'Text'})                
 		end
 
-		local KeyListItem 
+		Keybind.Mode = Data.Mode or "Toggle"
+		Keybind.DisplayName = Data.Name or Data.name or "Keybind"
 
-		if Library.KeyList then
-			KeyListItem = Library.KeyList:Add("", "", "")
+		local KeyListItem
+
+		local function SyncKeyListItem()
+			if not KeyListItem and Library.KeyList then
+				KeyListItem = Library.KeyList:Add(Keybind.Value or "", Keybind.DisplayName, Keybind.Mode or "Toggle")
+			end
+
+			if KeyListItem then
+				KeyListItem:Set(Keybind.Value or "None", Keybind.DisplayName, Keybind.Mode or "Toggle")
+				KeyListItem:SetStatus(Keybind.Toggled)
+			end
 		end
 
 		local Update = function()
-			if KeyListItem then 
-				KeyListItem:Set(Keybind.Value, Data.Name, Keybind.Mode)
-				KeyListItem:SetStatus(Keybind.Toggled)
-			end
+			SyncKeyListItem()
+		end
+
+		local KeybindEntry = {
+			Keybind = Keybind,
+			Update = Update,
+			KeyListItem = KeyListItem,
+		}
+
+		TableInsert(Library.KeybindEntries, KeybindEntry)
+
+		if Library.KeyList then
+			SyncKeyListItem()
+			KeybindEntry.KeyListItem = KeyListItem
 		end
 
 		local Modes = {
@@ -4680,11 +4865,25 @@ local Library do
 		end
 
 		function Keybind:Destroy()
+			for Index, Entry in Library.KeybindEntries do
+				if Entry.Keybind == Keybind then
+					if Entry.KeyListItem and Entry.KeyListItem.Instance then
+						Entry.KeyListItem.Instance:Destroy()
+					end
+					TableRemove(Library.KeybindEntries, Index)
+					break
+				end
+			end
+
 			for _, Item in Items do
 				if Item.Instance then
 					Item.Instance:Destroy()
 					Item.Instance = nil
 				end
+			end
+
+			if Library.KeyList then
+				Library.KeyList:Resize()
 			end
 
 			return Keybind
@@ -5158,9 +5357,22 @@ local Library do
 			return NewKey
 		end
 
+		function KeybindList:SyncEntries()
+			for _, Entry in Library.KeybindEntries do
+				if Entry.Update then
+					if not Entry.KeyListItem and Library.KeyList then
+						Entry.KeyListItem = KeybindList:Add("", "", "")
+					end
+					Entry.Update()
+				end
+			end
+
+			KeybindList:Resize()
+		end
+
 		KeybindList:SetText(Name)
 		KeybindList:SetCenter()
-		KeybindList:Resize()
+		KeybindList:SyncEntries()
 
 		return KeybindList
 	end
@@ -6557,7 +6769,22 @@ local Library do
 			Items["Content"].Instance.Visible = false
 		end
 
-		Window:SetOpen(true)
+		Library:LoadLocalSettings()
+
+		if Library.SafeMode then
+			Window:SetOpen(false)
+
+			local ShowFloatingButton = Library.Flags["Show Floating Button"]
+			if ShowFloatingButton == nil then
+				ShowFloatingButton = true
+			end
+
+			if Library.FloatingButtonHolder then
+				Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
+			end
+		else
+			Window:SetOpen(true)
+		end
 
 		return setmetatable(Window, Library)
 	end
@@ -6726,7 +6953,7 @@ local Library do
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubPages"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 1),
+				Padding = UDimNew(0, 6),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -6735,8 +6962,10 @@ local Library do
 			Instances:Create("UIPadding", {
 				Parent = Items["SubPages"].Instance,
 				Name = "\0",
-				PaddingTop = UDimNew(0, 4),
-				PaddingBottom = UDimNew(0, 4),
+				PaddingTop = UDimNew(0, 6),
+				PaddingBottom = UDimNew(0, 6),
+				PaddingLeft = UDimNew(0, 2),
+				PaddingRight = UDimNew(0, 2),
 			})
 
 			if not Page.IsKeyPage then
@@ -6974,9 +7203,9 @@ local Library do
 		local SUBTAB_BG_ACTIVE_Z = 20
 		local SUBTAB_LINER_Z = 24
 		local SUBTAB_TEXT_Z = 25
-		local SUBTAB_PAD_H = 70
-		local SUBTAB_HEIGHT = 34
-		local SUBTAB_LINER_INSET = 10
+		local SUBTAB_PAD_H = 14
+		local SUBTAB_HEIGHT = 30
+		local SUBTAB_LINER_INSET = 8
 
 		local Items = {} do
 			Items["Tab"] = Instances:Create("Frame", {
@@ -8970,6 +9199,478 @@ local Library do
 		return Slider
 	end
 
+	Library.Sections.SubSlider = function(self, Data)
+		Data = Data or {}
+
+		local SubSlider = {
+			Window = self.Window,
+			Page = self.Page,
+			Section = self,
+
+			Name = Data.Name or Data.name or "Sub Slider",
+			Description = Data.Description or Data.description or nil,
+			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Tooltip = Data.Tooltip or Data.tooltip or nil,
+			Lifetime = Data.Lifetime or Data.lifetime or false,
+
+			Speed = Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or 1,
+			Start = Data.StartDefault or Data.start_default or 0,
+			["End"] = Data.EndDefault or Data.end_default or 100,
+
+			SpeedMin = Data.SpeedMin or Data.speed_min or 0,
+			SpeedMax = Data.SpeedMax or Data.speed_max or 10,
+			StartMin = Data.StartMin or Data.start_min or 0,
+			StartMax = Data.StartMax or Data.start_max or 100,
+			EndMin = Data.EndMin or Data.end_min or 0,
+			EndMax = Data.EndMax or Data.end_max or 100,
+
+			SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or 0.01,
+			RangeDecimals = Data.RangeDecimals or Data.range_decimals or 1,
+			SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or "",
+
+			Callback = Data.Callback or Data.callback or function() end,
+			Disabled = false,
+			Sliding = nil,
+		}
+
+		local Items = {}
+		local TRACK_HEIGHT = 22
+		local RANGE_GAP = 6
+
+		local function FormatSpeed(Value)
+			return string.format("%g", Value) .. SubSlider.SpeedSuffix
+		end
+
+		local function FormatPercent(Value)
+			return string.format("%g", Value) .. "%"
+		end
+
+		local function ClampSpeed(Value)
+			local Clamped = MathClamp(Value, SubSlider.SpeedMin, SubSlider.SpeedMax)
+
+			if SubSlider.SpeedDecimals then
+				local Offset = Clamped - SubSlider.SpeedMin
+				local StepFrac = Offset / SubSlider.SpeedDecimals
+				local NearestStep = MathFloor(StepFrac + 0.5)
+
+				Clamped = SubSlider.SpeedMin + NearestStep * SubSlider.SpeedDecimals
+				Clamped = MathClamp(Clamped, SubSlider.SpeedMin, SubSlider.SpeedMax)
+			else
+				Clamped = Library:Round(Clamped, 0)
+			end
+
+			return Clamped
+		end
+
+		local function ClampRange(Value, Min, Max)
+			local Clamped = MathClamp(Value, Min, Max)
+
+			if SubSlider.RangeDecimals then
+				local Offset = Clamped - Min
+				local StepFrac = Offset / SubSlider.RangeDecimals
+				local NearestStep = MathFloor(StepFrac + 0.5)
+
+				Clamped = Min + NearestStep * SubSlider.RangeDecimals
+				Clamped = MathClamp(Clamped, Min, Max)
+			else
+				Clamped = Library:Round(Clamped, 0)
+			end
+
+			return Clamped
+		end
+
+		local function UpdateFlags()
+			Library.Flags[SubSlider.Flag] = {
+				Speed = SubSlider.Speed,
+				Start = SubSlider.Start,
+				["End"] = SubSlider["End"],
+			}
+		end
+
+		local function RefreshSpeedVisual()
+			local Alpha = (SubSlider.Speed - SubSlider.SpeedMin) / (SubSlider.SpeedMax - SubSlider.SpeedMin)
+			Items["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			Items["SpeedLabel"].Instance.Text = "speed: " .. FormatSpeed(SubSlider.Speed)
+		end
+
+		local function RefreshStartVisual()
+			local Alpha = (SubSlider.Start - SubSlider.StartMin) / (SubSlider.StartMax - SubSlider.StartMin)
+			Items["StartAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			Items["StartLabel"].Instance.Text = "start: " .. FormatPercent(SubSlider.Start)
+		end
+
+		local function RefreshEndVisual()
+			local Alpha = (SubSlider["End"] - SubSlider.EndMin) / (SubSlider.EndMax - SubSlider.EndMin)
+			Items["EndAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			Items["EndLabel"].Instance.Text = "end: " .. FormatPercent(SubSlider["End"])
+		end
+
+		Items["SubSliderContainer"] = Instances:Create("Frame", {
+			Parent = SubSlider.Section.Items["Content"].Instance,
+			Name = "\0",
+			Size = UDim2New(1, 0, 0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AutomaticSize = Enum.AutomaticSize.Y,
+			ZIndex = 2,
+		})
+
+		Instances:Create("UIListLayout", {
+			Parent = Items["SubSliderContainer"].Instance,
+			Name = "\0",
+			Padding = UDimNew(0, 4),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			FillDirection = Enum.FillDirection.Vertical,
+		})
+
+		if SubSlider.Name ~= "" then
+			Items["Text"] = Instances:Create("TextLabel", {
+				Parent = Items["SubSliderContainer"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, 15),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = SubSlider.Name,
+				TextColor3 = Library.Theme["Text"],
+				TextSize = 14,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 4,
+				LayoutOrder = 0,
+			}):AddToTheme({TextColor3 = "Text"})
+
+			Items["Text"]:Tooltip(SubSlider.Tooltip)
+		end
+
+		if SubSlider.Description and SubSlider.Description ~= "" then
+			Items["Description"] = Instances:Create("TextLabel", {
+				Parent = Items["SubSliderContainer"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = SubSlider.Description,
+				TextColor3 = SubSlider.DescriptionColor or Library.Theme["Text"],
+				TextSize = 12,
+				FontFace = Library.Font,
+				TextTransparency = 0.5,
+				TextWrapped = true,
+				AutomaticSize = Enum.AutomaticSize.Y,
+				ZIndex = 4,
+				LayoutOrder = 1,
+			})
+
+			Library:BindDescriptionColor(Items["Description"], SubSlider.DescriptionColor)
+		end
+
+		local function CreateTrack(Parent, LayoutOrder, ZIndex)
+			local TrackItems = {}
+
+			TrackItems["Track"] = Instances:Create("TextButton", {
+				Parent = Parent,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+				BackgroundColor3 = Library.Theme["Element"],
+				BorderSizePixel = 0,
+				Text = "",
+				ClipsDescendants = true,
+				AutoButtonColor = false,
+				ZIndex = ZIndex,
+				LayoutOrder = LayoutOrder,
+			}):AddToTheme({BackgroundColor3 = "Element"})
+
+			Instances:Create("UICorner", {
+				Parent = TrackItems["Track"].Instance,
+				CornerRadius = UDimNew(0, 5),
+			})
+
+			TrackItems["Accent"] = Instances:Create("Frame", {
+				Parent = TrackItems["Track"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, 0, 1, 0),
+				BackgroundColor3 = Library.Theme["Accent"],
+				BorderSizePixel = 0,
+				ZIndex = ZIndex + 1,
+			}):AddToTheme({BackgroundColor3 = "Accent"})
+
+			Instances:Create("UICorner", {
+				Parent = TrackItems["Accent"].Instance,
+				CornerRadius = UDimNew(0, 5),
+			})
+
+			TrackItems["Label"] = Instances:Create("TextLabel", {
+				Parent = TrackItems["Track"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Text = "",
+				TextColor3 = Library.Theme["Text"],
+				TextSize = 13,
+				FontFace = Library.Font,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = ZIndex + 2,
+			}):AddToTheme({TextColor3 = "Text"})
+
+			return TrackItems
+		end
+
+		Items["SpeedTrack"] = CreateTrack(Items["SubSliderContainer"].Instance, 2, 2)
+		Items["SpeedAccent"] = Items["SpeedTrack"]["Accent"]
+		Items["SpeedLabel"] = Items["SpeedTrack"]["Label"]
+		Items["SpeedButton"] = Items["SpeedTrack"]["Track"]
+
+		Items["RangeRow"] = Instances:Create("Frame", {
+			Parent = Items["SubSliderContainer"].Instance,
+			Name = "\0",
+			Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+			LayoutOrder = 3,
+		})
+
+		Instances:Create("UIListLayout", {
+			Parent = Items["RangeRow"].Instance,
+			Name = "\0",
+			Padding = UDimNew(0, RANGE_GAP),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			FillDirection = Enum.FillDirection.Horizontal,
+		})
+
+		Items["StartTrack"] = CreateTrack(Items["RangeRow"].Instance, 0, 2)
+		Items["StartAccent"] = Items["StartTrack"]["Accent"]
+		Items["StartLabel"] = Items["StartTrack"]["Label"]
+		Items["StartButton"] = Items["StartTrack"]["Track"]
+		Items["StartButton"].Instance.Size = UDim2New(0.5, -RANGE_GAP / 2, 1, 0)
+
+		Items["EndTrack"] = CreateTrack(Items["RangeRow"].Instance, 1, 2)
+		Items["EndAccent"] = Items["EndTrack"]["Accent"]
+		Items["EndLabel"] = Items["EndTrack"]["Label"]
+		Items["EndButton"] = Items["EndTrack"]["Track"]
+		Items["EndButton"].Instance.Size = UDim2New(0.5, -RANGE_GAP / 2, 1, 0)
+
+		local function FireCallback()
+			if SubSlider.Callback then
+				Library:SafeCall(SubSlider.Callback, SubSlider.Speed, SubSlider.Start, SubSlider["End"])
+			end
+		end
+
+		function SubSlider:Set(Value)
+			if SubSlider.Disabled then
+				return
+			end
+
+			if not Library:CheckLifetime(SubSlider) then
+				return
+			end
+
+			if type(Value) == "table" then
+				if Value.Speed ~= nil then
+					SubSlider.Speed = ClampSpeed(Value.Speed)
+				end
+
+				if Value.Start ~= nil then
+					SubSlider.Start = ClampRange(Value.Start, SubSlider.StartMin, SubSlider.StartMax)
+				end
+
+				if Value["End"] ~= nil or Value.End ~= nil then
+					SubSlider["End"] = ClampRange(Value["End"] or Value.End, SubSlider.EndMin, SubSlider.EndMax)
+				end
+			end
+
+			if SubSlider.Start > SubSlider["End"] then
+				SubSlider["End"] = SubSlider.Start
+			end
+
+			UpdateFlags()
+			RefreshSpeedVisual()
+			RefreshStartVisual()
+			RefreshEndVisual()
+			FireCallback()
+			Library:SaveAutoloadIfEnabled()
+		end
+
+		function SubSlider:Get()
+			return SubSlider.Speed, SubSlider.Start, SubSlider["End"]
+		end
+
+		function SubSlider:SetDisabled(Bool)
+			SubSlider.Disabled = Bool
+			local Transparency = Bool and 0.6 or 0
+
+			for _, Key in {"SpeedButton", "StartButton", "EndButton"} do
+				Items[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+			end
+
+			for _, Key in {"SpeedAccent", "StartAccent", "EndAccent"} do
+				Items[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+			end
+
+			for _, Key in {"SpeedLabel", "StartLabel", "EndLabel"} do
+				Items[Key]:Tween(nil, {TextTransparency = Transparency})
+			end
+		end
+
+		local function BindTrack(TrackKey, Kind)
+			local function UpdateFromInput()
+				if SubSlider.Disabled or SubSlider.Sliding ~= Kind then
+					return
+				end
+
+				local TrackButton = Items[TrackKey].Instance
+				local MouseLocation = GetMouseLocation()
+				local TrackAbs = TrackButton.AbsolutePosition
+				local TrackSize = TrackButton.AbsoluteSize
+				local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
+
+				if Kind == "Speed" then
+					SubSlider.Speed = ClampSpeed(SubSlider.SpeedMin + (SubSlider.SpeedMax - SubSlider.SpeedMin) * SizeX)
+					RefreshSpeedVisual()
+				elseif Kind == "Start" then
+					SubSlider.Start = ClampRange(SubSlider.StartMin + (SubSlider.StartMax - SubSlider.StartMin) * SizeX, SubSlider.StartMin, SubSlider.StartMax)
+					if SubSlider.Start > SubSlider["End"] then
+						SubSlider["End"] = SubSlider.Start
+						RefreshEndVisual()
+					end
+					RefreshStartVisual()
+				else
+					SubSlider["End"] = ClampRange(SubSlider.EndMin + (SubSlider.EndMax - SubSlider.EndMin) * SizeX, SubSlider.EndMin, SubSlider.EndMax)
+					if SubSlider["End"] < SubSlider.Start then
+						SubSlider.Start = SubSlider["End"]
+						RefreshStartVisual()
+					end
+					RefreshEndVisual()
+				end
+
+				UpdateFlags()
+				FireCallback()
+			end
+
+			Items[TrackKey]:Connect("InputBegan", function(Input)
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+					if SubSlider.Disabled or not Library:CheckLifetime(SubSlider) then
+						return
+					end
+
+					SubSlider.Sliding = Kind
+					UpdateFromInput()
+
+					SubSlider.InputChangedConnection = Input.Changed:Connect(function()
+						if Input.UserInputState == Enum.UserInputState.End then
+							SubSlider.Sliding = nil
+							if SubSlider.InputChangedConnection then
+								SubSlider.InputChangedConnection:Disconnect()
+								SubSlider.InputChangedConnection = nil
+							end
+							Library:SaveAutoloadIfEnabled()
+						end
+					end)
+				end
+			end)
+		end
+
+		BindTrack("SpeedButton", "Speed")
+		BindTrack("StartButton", "Start")
+		BindTrack("EndButton", "End")
+
+		SubSlider.InputChangedConnection = Library:Connect(UserInputService.InputChanged, function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+				if SubSlider.Sliding == "Speed" then
+					local TrackButton = Items["SpeedButton"].Instance
+					local MouseLocation = GetMouseLocation()
+					local TrackAbs = TrackButton.AbsolutePosition
+					local TrackSize = TrackButton.AbsoluteSize
+					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
+					SubSlider.Speed = ClampSpeed(SubSlider.SpeedMin + (SubSlider.SpeedMax - SubSlider.SpeedMin) * SizeX)
+					UpdateFlags()
+					RefreshSpeedVisual()
+					FireCallback()
+				elseif SubSlider.Sliding == "Start" then
+					local TrackButton = Items["StartButton"].Instance
+					local MouseLocation = GetMouseLocation()
+					local TrackAbs = TrackButton.AbsolutePosition
+					local TrackSize = TrackButton.AbsoluteSize
+					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
+					SubSlider.Start = ClampRange(SubSlider.StartMin + (SubSlider.StartMax - SubSlider.StartMin) * SizeX, SubSlider.StartMin, SubSlider.StartMax)
+					if SubSlider.Start > SubSlider["End"] then
+						SubSlider["End"] = SubSlider.Start
+						RefreshEndVisual()
+					end
+					UpdateFlags()
+					RefreshStartVisual()
+					FireCallback()
+				elseif SubSlider.Sliding == "End" then
+					local TrackButton = Items["EndButton"].Instance
+					local MouseLocation = GetMouseLocation()
+					local TrackAbs = TrackButton.AbsolutePosition
+					local TrackSize = TrackButton.AbsoluteSize
+					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
+					SubSlider["End"] = ClampRange(SubSlider.EndMin + (SubSlider.EndMax - SubSlider.EndMin) * SizeX, SubSlider.EndMin, SubSlider.EndMax)
+					if SubSlider["End"] < SubSlider.Start then
+						SubSlider.Start = SubSlider["End"]
+						RefreshStartVisual()
+					end
+					UpdateFlags()
+					RefreshEndVisual()
+					FireCallback()
+				end
+			end
+		end)
+
+		SubSlider:Set({
+			Speed = SubSlider.Speed,
+			Start = SubSlider.Start,
+			["End"] = SubSlider["End"],
+		})
+
+		Library.SetFlags[SubSlider.Flag] = function(Value)
+			if SubSlider.Disabled then
+				return
+			end
+
+			SubSlider:Set(Value)
+		end
+
+		local PageSearchData = Library.SearchItems[SubSlider.Page]
+
+		if PageSearchData then
+			TableInsert(PageSearchData, {
+				Element = Items["SubSliderContainer"],
+				Name = SubSlider.Name,
+			})
+		end
+
+		function SubSlider:Destroy()
+			if SubSlider.InputChangedConnection then
+				SubSlider.InputChangedConnection:Disconnect()
+				SubSlider.InputChangedConnection = nil
+			end
+
+			if Library.SetFlags[SubSlider.Flag] then
+				Library.SetFlags[SubSlider.Flag] = nil
+			end
+
+			for _, Item in Items do
+				if type(Item) == "table" and Item.Instance then
+					Item.Instance:Destroy()
+					Item.Instance = nil
+				end
+			end
+
+			return SubSlider
+		end
+
+		SubSlider.Items = Items
+		return SubSlider
+	end
+
 	Library.Sections.Dropdown = function(self, Data)
 		Data = Data or {}
 
@@ -9334,20 +10035,6 @@ local Library do
 			return HEADER_HEIGHT + ClampedListHeight + FOOTER_HEIGHT
 		end
 
-		local function ScheduleLayoutUpdate()
-			task.defer(function()
-				if not Library or not Items["Holder"] or not Items["Holder"].Instance then
-					return
-				end
-
-				if Dropdown.IsOpen then
-					UpdatePosition()
-				else
-					UpdateListLayout()
-				end
-			end)
-		end
-
 		local function UpdatePosition()
 			if not Library or not Items["OptionHolder"].Instance.Parent then return end
 
@@ -9377,6 +10064,20 @@ local Library do
 				Items["OptionHolder"].Instance.Position = UDim2New(0, Left / Scale, 0, Top / Scale)
 				Items["OptionHolder"].Instance.Size = UDim2New(0, Out / Scale, 0, (CloseY - Top) / Scale)
 			end
+		end
+
+		local function ScheduleLayoutUpdate()
+			task.defer(function()
+				if not Library or not Items["Holder"] or not Items["Holder"].Instance then
+					return
+				end
+
+				if Dropdown.IsOpen then
+					UpdatePosition()
+				else
+					UpdateListLayout()
+				end
+			end)
 		end
 
 		function Dropdown:SetOpen(Bool)
@@ -10343,6 +11044,7 @@ local Library do
 		local AccountTab = Settings:SubPage({Name = "Account"})
 		local ThemesTab = Settings:SubPage({Name = "Themes"})
 		local MenuTab = Settings:SubPage({Name = "Menu"})
+		local GameTab = Settings:SubPage({Name = "Game"})
 		local ConfigsTab = Settings:SubPage({Name = "Configs"})
 
 		do 
@@ -10402,6 +11104,12 @@ local Library do
 					Multi = false,
 					Callback = function(Value)
 						Theme_Selected = Value
+
+						if Library.AutoloadThemeEnabled and Theme_Selected and Theme_Selected ~= "" then
+							pcall(function()
+								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
+							end)
+						end
 					end
 				})
 
@@ -10501,6 +11209,29 @@ local Library do
 					Library:RefreshThemeList(Theme_Dropdown)
 				end)
 
+				ThemeConfig_Section:Toggle({
+					Name = "Autoload Theme On Execute",
+					Flag = "Autoload Theme On Execute",
+					Description = "Automatically load the selected theme when the script runs",
+					Default = Library.AutoloadThemeEnabled == true,
+					Callback = function(Value)
+						Library.AutoloadThemeEnabled = Value
+						Library:SaveLocalSettings()
+
+						if Value and Theme_Selected and Theme_Selected ~= "" then
+							pcall(function()
+								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
+							end)
+						elseif not Value then
+							pcall(function()
+								if isfile(GetAutoloadThemeNamePath()) then
+									delfile(GetAutoloadThemeNamePath())
+								end
+							end)
+						end
+					end,
+				})
+
 				local Preset_Section = ThemeSetting_Section:Dropdown({
 					Name = "Themes Preset",
 					Flag = "Themes Preset",
@@ -10539,6 +11270,67 @@ local Library do
 		end
 
 		Library:CreateFontSettingsSection(MenuTab, { Side = 2 })
+
+		do
+			local Game_Section = GameTab:Section({Name = "Game", Side = 1})
+			local TeleportService = cloneref(game:GetService("TeleportService"))
+
+			local function NotifyGame(Message, IsSuccess)
+				Library:Notification({
+					Name = IsSuccess and "Success" or "Error",
+					Description = Message,
+					Color = IsSuccess and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
+					Duration = 4,
+				})
+			end
+
+			local function CopyToClipboard(Text, Label)
+				local Success, Error = pcall(setclipboard, Text)
+
+				if Success then
+					NotifyGame("Copied " .. Label .. " to clipboard", true)
+				else
+					NotifyGame("Failed to copy " .. Label .. ": " .. tostring(Error), false)
+				end
+			end
+
+			Game_Section:Button():Add("Rejoin", function()
+				local Success, Error = pcall(function()
+					TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+				end)
+
+				if Success then
+					NotifyGame("Rejoining current server...", true)
+				else
+					NotifyGame("Failed to rejoin: " .. tostring(Error), false)
+				end
+			end)
+
+			Game_Section:Button():Add("Server Hop", function()
+				local Success, Error = pcall(function()
+					TeleportService:Teleport(game.PlaceId, LocalPlayer)
+				end)
+
+				if Success then
+					NotifyGame("Server hopping...", true)
+				else
+					NotifyGame("Failed to server hop: " .. tostring(Error), false)
+				end
+			end)
+
+			Game_Section:Button():Add("Copy Place Id", function()
+				CopyToClipboard(tostring(game.PlaceId), "Place Id")
+			end):Add("Copy Game Id", function()
+				CopyToClipboard(tostring(game.GameId), "Game Id")
+			end)
+
+			Game_Section:Button():Add("Copy Job Id", function()
+				CopyToClipboard(tostring(game.JobId), "Job Id")
+			end):Add("Copy Join Code", function()
+				local JoinCode = "roblox://experiences/start?placeId=" .. tostring(game.PlaceId) .. "&gameInstanceId=" .. tostring(game.JobId)
+				CopyToClipboard(JoinCode, "Join Code")
+			end)
+		end
 
 		do
 			local MenuSetting_Section = MenuTab:Section({Name = "Menu Setting", Side = 1})
@@ -10709,6 +11501,30 @@ local Library do
 				})
 
 				MenuSetting_Section:Toggle({
+					Name = "Safe Mode",
+					Flag = "Safe Mode",
+					Description = "Hide the UI and floating button on execute until you open it manually",
+					Default = Library.SafeMode == true,
+					Callback = function(Value)
+						Library.SafeMode = Value
+						Library:SaveLocalSettings()
+
+						if Value then
+							Window:SetOpen(false)
+
+							local ShowFloatingButton = Library.Flags["Show Floating Button"]
+							if ShowFloatingButton == nil then
+								ShowFloatingButton = true
+							end
+
+							if Library.FloatingButtonHolder then
+								Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
+							end
+						end
+					end,
+				})
+
+				MenuSetting_Section:Toggle({
 					Name = "Auto Execute",
 					Flag = "Auto Execute",
 					Description = "Auto execute script after teleport",
@@ -10762,7 +11578,36 @@ local Library do
 					Multi = false,
 					Callback = function(Value)
 						Config_Selected = Value
+
+						if Library.AutoloadConfigEnabled and Config_Selected and Config_Selected ~= "" then
+							pcall(function()
+								writefile(GetAutoloadConfigNamePath(), Config_Selected)
+							end)
+						end
 					end
+				})
+
+				ScriptConfig_Section:Toggle({
+					Name = "Autoload Config On Execute",
+					Flag = "Autoload Config On Execute",
+					Description = "Automatically load the selected config when the script runs",
+					Default = Library.AutoloadConfigEnabled == true,
+					Callback = function(Value)
+						Library.AutoloadConfigEnabled = Value
+						Library:SaveLocalSettings()
+
+						if Value and Config_Selected and Config_Selected ~= "" then
+							pcall(function()
+								writefile(GetAutoloadConfigNamePath(), Config_Selected)
+							end)
+						elseif not Value then
+							pcall(function()
+								if isfile(GetAutoloadConfigNamePath()) then
+									delfile(GetAutoloadConfigNamePath())
+								end
+							end)
+						end
+					end,
 				})
 
 				ScriptConfig_Section:Textbox({
