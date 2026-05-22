@@ -1,4 +1,4 @@
-warn("Bruh")
+print("bluddd")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -298,6 +298,10 @@ local Library do
 		},
 		MouseStateBeforeOpen = nil,
 		MouseUnlockConnection = nil,
+		DefaultCursor = nil,
+		DefaultCursorImage = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+		DefaultCursorSize = 64,
+		DefaultCursorOffset = Vector2New(31, 32),
 		SafeMode = false,
 		KeybindEntries = {},
 		BackgroundEffects = nil,
@@ -1375,6 +1379,28 @@ local Library do
 
 	wait()
 
+	Library.EnsureDefaultCursor = function(self)
+		if self.DefaultCursor and self.DefaultCursor.Instance then
+			return
+		end
+
+		self.DefaultCursor = Instances:Create("ImageLabel", {
+			Parent = self.Holder.Instance,
+			Name = "\0",
+			Size = UDim2FromOffset(self.DefaultCursorSize, self.DefaultCursorSize),
+			Position = UDim2FromOffset(0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Image = self.DefaultCursorImage,
+			ScaleType = Enum.ScaleType.Fit,
+			Visible = false,
+			Active = false,
+			ZIndex = 10001,
+		})
+	end
+
+	Library:EnsureDefaultCursor()
+
 	Library.InputBlockGui = Instances:Create("ScreenGui", {
 		Parent = SafeGetUI(),
 		Name = "\0",
@@ -1777,6 +1803,10 @@ local Library do
 		self:ApplyWindowInputState(false)
 		self:ApplyMouseForMenu(false)
 
+		if self.DefaultCursor and self.DefaultCursor.Instance then
+			self.DefaultCursor.Instance.Visible = false
+		end
+
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 			UserInputService.MouseIconEnabled = true
@@ -2138,28 +2168,53 @@ local Library do
 			self.MouseUnlockConnection = nil
 		end
 
+		self:EnsureDefaultCursor()
+
 		if IsOpen then
 			self.MouseStateBeforeOpen = {
 				MouseBehavior = UserInputService.MouseBehavior,
 				MouseIconEnabled = UserInputService.MouseIconEnabled,
 			}
 
-			local function UnlockMouse()
+			local function UpdateMenuCursor()
 				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 				UserInputService.MouseIconEnabled = true
+
+				if not UserInputService.MouseEnabled or not self.DefaultCursor or not self.DefaultCursor.Instance then
+					return
+				end
+
+				local ShowDefaultCursorImage = not UserInputService.MouseIconEnabled
+				self.DefaultCursor.Instance.Visible = ShowDefaultCursorImage
+
+				if ShowDefaultCursorImage then
+					local MouseLocation = GetMouseLocation()
+					local Offset = self.DefaultCursorOffset
+
+					self.DefaultCursor.Instance.Position = UDim2FromOffset(
+						MouseLocation.X - Offset.X,
+						MouseLocation.Y - Offset.Y
+					)
+				end
 			end
 
-			UnlockMouse()
+			UpdateMenuCursor()
 
 			self.MouseUnlockConnection = RunService.RenderStepped:Connect(function()
 				if self.WindowOpenState then
-					UnlockMouse()
+					UpdateMenuCursor()
 				end
 			end)
-		elseif self.MouseStateBeforeOpen then
-			UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
-			UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
-			self.MouseStateBeforeOpen = nil
+		else
+			if self.DefaultCursor and self.DefaultCursor.Instance then
+				self.DefaultCursor.Instance.Visible = false
+			end
+
+			if self.MouseStateBeforeOpen then
+				UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
+				self.MouseStateBeforeOpen = nil
+			end
 		end
 	end
 
@@ -2278,7 +2333,7 @@ local Library do
 	end
 
 	Library.IsPointerOverSolixGui = function(self)
-		local MouseLocation = UserInputService:GetMouseLocation()
+		local MouseLocation = GetMouseLocation()
 		local Objects = GuiService:GetGuiObjectsAtPosition(MouseLocation.X, MouseLocation.Y)
 
 		for _, Object in Objects do
