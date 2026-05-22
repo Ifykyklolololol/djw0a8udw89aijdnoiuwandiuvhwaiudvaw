@@ -1,4 +1,4 @@
-print("bluddd")
+warn("CMONNNN")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -295,11 +295,13 @@ local Library do
 			InputBlock = 9998,
 			HolderOpen = 9999,
 			FloatingButtonOpen = 10000,
+			Cursor = 10001,
 		},
 		MouseStateBeforeOpen = nil,
 		MouseUnlockConnection = nil,
 		DefaultCursor = nil,
 		DefaultCursorImage = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+		DefaultCursorImageFallback = "rbxasset://textures/Cursors/KeyboardMouse/ArrowCursor.png",
 		DefaultCursorSize = 64,
 		DefaultCursorOffset = Vector2New(31, 32),
 		SafeMode = false,
@@ -1379,24 +1381,49 @@ local Library do
 
 	wait()
 
+	Library.CursorGui = Instances:Create("ScreenGui", {
+		Parent = SafeGetUI(),
+		Name = "\0",
+		Enabled = false,
+		DisplayOrder = Library.DisplayOrders.Cursor,
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	})
+
 	Library.EnsureDefaultCursor = function(self)
 		if self.DefaultCursor and self.DefaultCursor.Instance then
 			return
 		end
 
+		if not self.CursorGui or not self.CursorGui.Instance then
+			return
+		end
+
 		self.DefaultCursor = Instances:Create("ImageLabel", {
-			Parent = self.Holder.Instance,
+			Parent = self.CursorGui.Instance,
 			Name = "\0",
 			Size = UDim2FromOffset(self.DefaultCursorSize, self.DefaultCursorSize),
 			Position = UDim2FromOffset(0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Image = self.DefaultCursorImage,
+			ImageTransparency = 0,
 			ScaleType = Enum.ScaleType.Fit,
 			Visible = false,
 			Active = false,
 			ZIndex = 10001,
 		})
+
+		task.defer(function()
+			if not self.DefaultCursor or not self.DefaultCursor.Instance then
+				return
+			end
+
+			if self.DefaultCursor.Instance.Image == "" and self.DefaultCursorImageFallback then
+				self.DefaultCursor.Instance.Image = self.DefaultCursorImageFallback
+			end
+		end)
 	end
 
 	Library:EnsureDefaultCursor()
@@ -1777,6 +1804,15 @@ local Library do
 		if self.FloatingButtonHolder then
 			self.FloatingButtonHolder.Instance:Destroy()
 		end
+
+		if self.CursorGui and self.CursorGui.Instance then
+			pcall(function()
+				self.CursorGui.Instance:Destroy()
+			end)
+			self.CursorGui = nil
+		end
+
+		self.DefaultCursor = nil
 
 		if self.WatermarkGui then
 			self.WatermarkGui:Clean()
@@ -2170,6 +2206,10 @@ local Library do
 
 		self:EnsureDefaultCursor()
 
+		if self.CursorGui and self.CursorGui.Instance then
+			self.CursorGui.Instance.Enabled = IsOpen and true or false
+		end
+
 		if IsOpen then
 			self.MouseStateBeforeOpen = {
 				MouseBehavior = UserInputService.MouseBehavior,
@@ -2178,24 +2218,20 @@ local Library do
 
 			local function UpdateMenuCursor()
 				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-				UserInputService.MouseIconEnabled = true
+				UserInputService.MouseIconEnabled = false
 
 				if not UserInputService.MouseEnabled or not self.DefaultCursor or not self.DefaultCursor.Instance then
 					return
 				end
 
-				local ShowDefaultCursorImage = not UserInputService.MouseIconEnabled
-				self.DefaultCursor.Instance.Visible = ShowDefaultCursorImage
+				local MouseLocation = GetMouseLocation()
+				local Offset = self.DefaultCursorOffset
 
-				if ShowDefaultCursorImage then
-					local MouseLocation = GetMouseLocation()
-					local Offset = self.DefaultCursorOffset
-
-					self.DefaultCursor.Instance.Position = UDim2FromOffset(
-						MouseLocation.X - Offset.X,
-						MouseLocation.Y - Offset.Y
-					)
-				end
+				self.DefaultCursor.Instance.Visible = true
+				self.DefaultCursor.Instance.Position = UDim2FromOffset(
+					MouseLocation.X - Offset.X,
+					MouseLocation.Y - Offset.Y
+				)
 			end
 
 			UpdateMenuCursor()
@@ -2243,6 +2279,7 @@ local Library do
 		Track(self.OtherHolder and self.OtherHolder.Instance)
 		Track(self.UnusedHolder and self.UnusedHolder.Instance)
 		Track(self.WatermarkGui and self.WatermarkGui.Instance)
+		Track(self.CursorGui and self.CursorGui.Instance)
 
 		return Guis
 	end
@@ -2260,6 +2297,10 @@ local Library do
 
 		if self.WatermarkGui and self.WatermarkGui.Instance then
 			TableInsert(Roots, self.WatermarkGui.Instance)
+		end
+
+		if self.CursorGui and self.CursorGui.Instance then
+			TableInsert(Roots, self.CursorGui.Instance)
 		end
 
 		return Roots
