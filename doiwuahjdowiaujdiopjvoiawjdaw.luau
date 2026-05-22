@@ -1,4 +1,6 @@
-warn("crr cooking?!")
+warn(
+'son'
+)
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -8491,7 +8493,7 @@ local Library do
 				Items["Description"] = Instances:Create("TextLabel", {
 					Parent = Items["Toggle"].Instance,
 					Name = "\0",
-					Size = UDim2New(1, 0, 0, 0),
+					Size = UDim2New(1, -96, 0, 0),
 					Position = UDim2New(0, 0, 0, 16.5),
 					BackgroundTransparency = 1,
 					BorderColor3 = FromRGB(0, 0, 0),
@@ -9124,7 +9126,7 @@ local Library do
 			SuggestedDecimals = math.max(math.ceil(math.log10(Range)) - 2, 0)
 		end
 
-		local Compact = Data.Compact == true
+		local Compact = Data.Compact ~= false
 
 		local Slider = {
 			Window = self.Window,
@@ -9736,7 +9738,7 @@ local Library do
 
 		local function FormatSpeedLabel(Entry, Value)
 			local LabelPrefix = string.lower(Entry.Name or "value") .. ": "
-			return LabelPrefix .. string.format("%g", Value)
+			return LabelPrefix .. string.format("%g", Value) .. Entry.SpeedSuffix
 		end
 
 		local function RefreshSpeedVisual(Entry)
@@ -9747,10 +9749,6 @@ local Library do
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
 			EntryItems["SpeedLabel"].Instance.Text = FormatSpeedLabel(Entry, Entry.Speed)
-
-			if Entry.HideRange and EntryItems["ValueInput"] and EntryItems["ValueInput"].Instance and Entry.SpeedFocused ~= true then
-				EntryItems["ValueInput"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
-			end
 		end
 
 		local function RefreshStartVisual(Entry)
@@ -9930,7 +9928,6 @@ local Library do
 
 				Callback = Data.Callback or Data.callback or function() end,
 				Disabled = false,
-				SpeedFocused = false,
 				Items = {},
 			}
 
@@ -9956,63 +9953,6 @@ local Library do
 
 			local SpeedTrackParent = EntryItems["Block"].Instance
 			local SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
-
-			if Entry.HideRange then
-				EntryItems["TrackRow"] = Instances:Create("Frame", {
-					Parent = EntryItems["Block"].Instance,
-					Name = "\0",
-					Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					ZIndex = 2,
-					LayoutOrder = 0,
-				})
-
-				Instances:Create("UIListLayout", {
-					Parent = EntryItems["TrackRow"].Instance,
-					Name = "\0",
-					Padding = UDimNew(0, 5),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-					FillDirection = Enum.FillDirection.Horizontal,
-					HorizontalAlignment = Enum.HorizontalAlignment.Left,
-					VerticalAlignment = Enum.VerticalAlignment.Center,
-				})
-
-				SpeedTrackParent = EntryItems["TrackRow"].Instance
-				SpeedTrackSize = UDim2New(1, -60, 0, TRACK_HEIGHT)
-
-				EntryItems["ValueBackground"] = Instances:Create("Frame", {
-					Parent = EntryItems["TrackRow"].Instance,
-					Name = "\0",
-					Size = UDim2New(0, 55, 1, 0),
-					BackgroundColor3 = Library.Theme["Element"],
-					BorderSizePixel = 0,
-					ZIndex = 3,
-					LayoutOrder = 1,
-				}):AddToTheme({BackgroundColor3 = "Element"})
-
-				Instances:Create("UICorner", {
-					Parent = EntryItems["ValueBackground"].Instance,
-					CornerRadius = UDimNew(0, 5),
-				})
-
-				EntryItems["ValueInput"] = Instances:Create("TextBox", {
-					Parent = EntryItems["ValueBackground"].Instance,
-					Name = "\0",
-					Size = UDim2New(1, 0, 1, 0),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Text = "",
-					TextColor3 = Library.Theme["Text"],
-					TextSize = 12,
-					FontFace = Library.Font,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					ClearTextOnFocus = false,
-					CursorPosition = -1,
-					TextTruncate = Enum.TextTruncate.AtEnd,
-					ZIndex = 4,
-				}):AddToTheme({TextColor3 = "Text"})
-			end
 
 			local SpeedTrack = CreateTrack(SpeedTrackParent, 0, 2, SpeedTrackSize)
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
@@ -10051,72 +9991,6 @@ local Library do
 				EntryItems["EndButton"] = EndTrack["Track"]
 			end
 
-			local function ApplyEntrySpeedInput(LiveUpdate)
-				if Entry.Disabled or not EntryItems["ValueInput"] then
-					return false
-				end
-
-				local Text = EntryItems["ValueInput"].Instance.Text
-				local Stripped = StringGSub(Text, "[^0-9%.%-]", "")
-				local NumValue = tonumber(Stripped)
-
-				if LiveUpdate and Stripped ~= Text then
-					EntryItems["ValueInput"].Instance.Text = Stripped
-					Text = Stripped
-				end
-
-				if NumValue then
-					Entry.Speed = ClampSpeed(Entry, NumValue)
-					UpdateEntryFlags(Entry)
-					RefreshSpeedVisual(Entry)
-					FireEntryCallback(Entry)
-					EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
-					if not LiveUpdate then
-						Library:SaveAutoloadIfEnabled()
-					end
-					return true
-				end
-
-				if Text ~= "" then
-					EntryItems["ValueInput"].Instance.TextColor3 = FromRGB(255, 80, 80)
-				else
-					EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
-				end
-
-				return false
-			end
-
-			if Entry.HideRange and EntryItems["ValueInput"] then
-				EntryItems["ValueInput"]:Connect("Focused", function()
-					if Entry.Disabled then
-						return
-					end
-
-					Entry.SpeedFocused = true
-					local Stripped = StringGSub(EntryItems["ValueInput"].Instance.Text, "[^0-9%.%-]", "")
-					EntryItems["ValueInput"].Instance.Text = Stripped
-				end)
-
-				EntryItems["ValueInput"]:Connect("focusLost", function()
-					if Entry.Disabled then
-						return
-					end
-
-					Entry.SpeedFocused = false
-
-					if not ApplyEntrySpeedInput(false) then
-						EntryItems["ValueInput"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
-						EntryItems["ValueInput"].Instance.TextColor3 = Library.Theme["Text"]
-					end
-				end)
-
-				EntryItems["ValueInput"]:Connect("Changed", function(Property)
-					if Property == "Text" and Entry.SpeedFocused then
-						ApplyEntrySpeedInput(true)
-					end
-				end)
-			end
-
 			function Entry:Set(Value)
 				EntrySet(Entry, Value)
 			end
@@ -10145,14 +10019,6 @@ local Library do
 					if EntryItems[Key] then
 						EntryItems[Key]:Tween(nil, {TextTransparency = Transparency})
 					end
-				end
-
-				if EntryItems["ValueBackground"] then
-					EntryItems["ValueBackground"]:Tween(nil, {BackgroundTransparency = Transparency})
-				end
-
-				if EntryItems["ValueInput"] then
-					EntryItems["ValueInput"]:Tween(nil, {TextTransparency = Transparency})
 				end
 			end
 
