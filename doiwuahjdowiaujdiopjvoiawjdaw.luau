@@ -244,7 +244,7 @@ local Library do
 	Library = {
 		Theme =  {},
 
-		MenuKeybind = tostring(Enum.KeyCode.Backspace),
+		MenuKeybind = tostring(Enum.KeyCode.RightControl),
 
 		Flags = {},
 
@@ -498,6 +498,34 @@ local Library do
 		["LeftAlt"]           = "LeftAlt",
 		["RightAlt"]          = "RightAlt"
 	}
+
+	local KEYBIND_NONE_KEY = Enum.KeyCode.Backspace
+
+	local function is_keybind_none_key(key)
+		if key == nil then
+			return true
+		end
+
+		if key == "None" or key == "Backspace" then
+			return true
+		end
+
+		if typeof(key) == "EnumItem" then
+			return key == KEYBIND_NONE_KEY
+		end
+
+		local key_string = tostring(key)
+		return key_string == "Enum.KeyCode.Backspace" or key_string == "Backspace"
+	end
+
+	local function get_keybind_display_text(bound_key, stored_key)
+		if is_keybind_none_key(bound_key) or is_keybind_none_key(stored_key) then
+			return "None"
+		end
+
+		local key_string = Keys[stored_key] or StringGSub(tostring(bound_key), "Enum.", "") or "None"
+		return StringGSub(StringGSub(key_string, "KeyCode.", ""), "UserInputType.", "") or "None"
+	end
 
 	local Themes = {
 		["Solix"] = {
@@ -3384,7 +3412,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Toggle.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
+				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -5031,15 +5059,15 @@ local Library do
 
 		function Keybind:Set(Key)
 			if StringFind(tostring(Key), "Enum") then 
-				Keybind.Key = tostring(Key)
-
-				Key = Key.Name == "Backspace" and "None" or Key.Name
-
-				local KeyString = Keys[Keybind.Key] or StringGSub(Key, "Enum.", "") or "None"
-				local TextToDisplay = StringGSub(StringGSub(KeyString, "KeyCode.", ""), "UserInputType.", "") or "None"
-
-				Keybind.Value = TextToDisplay
-				Items["KeyButton"].Instance.Text = TextToDisplay
+				if is_keybind_none_key(Key) then
+					Keybind.Key = tostring(KEYBIND_NONE_KEY)
+					Keybind.Value = "None"
+					Items["KeyButton"].Instance.Text = "None"
+				else
+					Keybind.Key = tostring(Key)
+					Keybind.Value = get_keybind_display_text(Key, Keybind.Key)
+					Items["KeyButton"].Instance.Text = Keybind.Value
+				end
 
 				Library.Flags[Keybind.Flag] = {
 					Mode = Keybind.Mode,
@@ -5053,9 +5081,7 @@ local Library do
 
 				Update()
 			elseif type(Key) == "table" then
-				local RealKey = Key.Key == "Backspace" and "None" or Key.Key
-
-				Keybind.Key = tostring(Key.Key)
+				local bound_key = Key.Key
 
 				if Key.Mode then
 					Keybind.Mode = Key.Mode
@@ -5065,13 +5091,21 @@ local Library do
 					Keybind:SetMode("Toggle")
 				end
 
-				local KeyString = Keys[Keybind.Key] or StringGSub(tostring(RealKey), "Enum.", "") or RealKey
-				local TextToDisplay = KeyString and StringGSub(StringGSub(KeyString, "KeyCode.", ""), "UserInputType.", "") or "None"
+				if is_keybind_none_key(bound_key) then
+					Keybind.Key = tostring(KEYBIND_NONE_KEY)
+					Keybind.Value = "None"
+					Items["KeyButton"].Instance.Text = "None"
+				else
+					Keybind.Key = tostring(bound_key)
+					Keybind.Value = get_keybind_display_text(bound_key, Keybind.Key)
+					Items["KeyButton"].Instance.Text = Keybind.Value
+				end
 
-				TextToDisplay = StringGSub(StringGSub(KeyString, "KeyCode.", ""), "UserInputType.", "")
-
-				Keybind.Value = TextToDisplay
-				Items["KeyButton"].Instance.Text = TextToDisplay
+				Library.Flags[Keybind.Flag] = {
+					Mode = Keybind.Mode,
+					Key = Keybind.Key,
+					Toggled = Keybind.Toggled
+				}
 
 				if Data.Callback then 
 					Library:SafeCall(Data.Callback, Keybind.Toggled)
@@ -5215,7 +5249,7 @@ local Library do
 
 		Keybind:Set({
 			Mode = Data.Mode or "Toggle",
-			Key = Data.Default or Enum.KeyCode.Backspace,
+			Key = Data.Default or KEYBIND_NONE_KEY,
 		})
 
 		Library.SetFlags[Keybind.Flag] = function(Value)
@@ -7079,7 +7113,7 @@ local Library do
 		end
 
 		Library:Connect(UserInputService.InputBegan, function(Input)
-			if Library.MenuKeybind == tostring(Enum.KeyCode.Backspace) then
+			if is_keybind_none_key(Library.MenuKeybind) then
 				return
 			end
 			if tostring(Input.KeyCode) == Library.MenuKeybind or tostring(Input.UserInputType) == Library.MenuKeybind then
@@ -8645,7 +8679,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Toggle.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
+				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -8935,7 +8969,7 @@ local Library do
 
 				Name = Data.Name or Data.name or Checkbox.Name,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
+				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
 			}
@@ -9700,6 +9734,7 @@ local Library do
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
+			Compact = Data.Compact == true or Data.compact == true,
 
 			Entries = {},
 			SlidingEntry = nil,
@@ -9708,9 +9743,9 @@ local Library do
 
 		local Items = {}
 		local TRACK_HEIGHT = 22
-		local COMPACT_TRACK_WIDTH = 72
+		local COMPACT_TRACK_WIDTH = 80
 		local RANGE_GAP = 6
-		local BLOCK_GAP = 6
+		local BLOCK_GAP = 8
 
 		Items["SubSliderContainer"] = Instances:Create("Frame", {
 			Parent = SubSlider.Section.Items["Content"].Instance,
@@ -9733,10 +9768,10 @@ local Library do
 		Items["SubSliderRow"] = Instances:Create("Frame", {
 			Parent = Items["SubSliderContainer"].Instance,
 			Name = "\0",
-			Size = UDim2New(0, 0, 0, 0),
+			Size = SubSlider.Compact and UDim2New(0, 0, 0, 0) or UDim2New(1, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			AutomaticSize = Enum.AutomaticSize.XY,
+			AutomaticSize = SubSlider.Compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y,
 			ZIndex = 2,
 			LayoutOrder = 0,
 		})
@@ -9747,8 +9782,10 @@ local Library do
 			Padding = UDimNew(0, BLOCK_GAP),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+			HorizontalAlignment = SubSlider.Compact and Enum.HorizontalAlignment.Left or Enum.HorizontalAlignment.Left,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
+			HorizontalFlex = SubSlider.Compact and Enum.UIFlexAlignment.None or Enum.UIFlexAlignment.Fill,
+			VerticalFlex = SubSlider.Compact and Enum.UIFlexAlignment.None or Enum.UIFlexAlignment.Fill,
 		})
 
 		local function FormatSpeed(Entry, Value)
@@ -10012,10 +10049,10 @@ local Library do
 			EntryItems["Block"] = Instances:Create("Frame", {
 				Parent = Items["SubSliderRow"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 0, 0),
+				Size = SubSlider.Compact and UDim2New(0, 0, 0, 0) or UDim2New(0, 120, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				AutomaticSize = Enum.AutomaticSize.XY,
+				AutomaticSize = SubSlider.Compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y,
 				ZIndex = 2,
 			})
 
@@ -10028,9 +10065,12 @@ local Library do
 			})
 
 			local SpeedTrackParent = EntryItems["Block"].Instance
-			local SpeedTrackSize = Entry.HideRange
-				and UDim2New(0, COMPACT_TRACK_WIDTH, 0, TRACK_HEIGHT)
-				or UDim2New(1, 0, 0, TRACK_HEIGHT)
+			local SpeedTrackSize
+			if SubSlider.Compact and Entry.HideRange then
+				SpeedTrackSize = UDim2New(0, COMPACT_TRACK_WIDTH, 0, TRACK_HEIGHT)
+			else
+				SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
+			end
 
 			local SpeedTrack = CreateTrack(SpeedTrackParent, 0, 2, SpeedTrackSize)
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
@@ -11210,7 +11250,7 @@ local Library do
 				Page = Label.Page,
 				Section = Label.Section,
 				Flag = Data.Flag or Data.flag or Library:NextFlag(),
-				Default = Data.Default or Data.default or Enum.KeyCode.Backspace,
+				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Mode = Data.Mode or Data.mode or "Toggle",
 				Callback = Data.Callback or Data.callback or function() end
 			})
@@ -11823,13 +11863,17 @@ local Library do
 			MenuSetting_Section:Label("Menu keybind", "open/close menu keybind"):Keybind({
 				Name = "Menu Keybind",
 				Flag = "Menu Keybind",
-				Default = Enum.KeyCode.Backspace,
+				Default = Enum.KeyCode.RightControl,
 				Mode = "Toggle",
 				Callback = function()
 					Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
 					Library:SaveLocalSettings()
 				end,
 			})
+
+			if Library.Flags["Menu Keybind"] and Library.Flags["Menu Keybind"].Key then
+				Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
+			end
 
 			MenuSetting_Section:Slider({
 				Name = "Background Transparency",
