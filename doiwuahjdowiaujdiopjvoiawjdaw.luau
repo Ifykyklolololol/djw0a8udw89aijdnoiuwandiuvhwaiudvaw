@@ -1,4 +1,4 @@
-print("ccr is abusing me :sad:")
+warn("im gonna eat foods")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -9124,12 +9124,15 @@ local Library do
 			SuggestedDecimals = math.max(math.ceil(math.log10(Range)) - 2, 0)
 		end
 
+		local Compact = Data.Compact == true
+
 		local Slider = {
 			Window = self.Window,
 			Page = self.Page,
 			Section = self,
 
 			Name = Data.Name or Data.name or "Slider",
+			Compact = Compact,
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
 			Flag = Data.Flag or Data.flag or Library:NextFlag(),
@@ -9190,7 +9193,12 @@ local Library do
 			LayoutOrder = 0
 		}):AddToTheme({TextColor3 = 'Text'})
 
-		if Slider.Description ~= nil and Slider.Description ~= "" then
+		if Slider.Compact then
+			Items["Text"].Instance.Visible = false
+			Items["Text"].Instance.Size = UDim2New(1, 0, 0, 0)
+		end
+
+		if not Slider.Compact and Slider.Description ~= nil and Slider.Description ~= "" then
 			Items["Description"] = Instances:Create("TextLabel", {
 				Parent = Items["SliderContainer"].Instance,
 				Name = "\0",
@@ -9346,7 +9354,11 @@ local Library do
 			CornerRadius = UDimNew(0, 5)
 		})
 
-		Items["Text"]:Tooltip(Slider.Tooltip)
+		if Slider.Compact then
+			Items["ValueBackground"]:Tooltip(Slider.Tooltip)
+		else
+			Items["Text"]:Tooltip(Slider.Tooltip)
+		end
 
 		local SliderFocused = false
 
@@ -9362,7 +9374,36 @@ local Library do
 			Items["Value"].Instance.Text = Stripped
 		end)
 
-		Items["Value"]:Connect("focusLost", function(enterPressed)
+		local function ApplyValueInputText(LiveUpdate)
+			if Slider.Disabled then
+				return
+			end
+
+			local Text = Items["Value"].Instance.Text
+			local Stripped = StringGSub(Text, "[^0-9%.%-]", "")
+			local NumValue = tonumber(Stripped)
+
+			if LiveUpdate and Stripped ~= Text then
+				Items["Value"].Instance.Text = Stripped
+				Text = Stripped
+			end
+
+			if NumValue then
+				Slider:Set(NumValue, LiveUpdate)
+				Items["Value"].Instance.TextColor3 = Library.Theme["Text"]
+				return true
+			end
+
+			if Text ~= "" then
+				Items["Value"].Instance.TextColor3 = FromRGB(255, 80, 80)
+			else
+				Items["Value"].Instance.TextColor3 = Library.Theme["Text"]
+			end
+
+			return false
+		end
+
+		Items["Value"]:Connect("focusLost", function()
 			if Slider.Disabled then
 				return
 			end
@@ -9371,29 +9412,18 @@ local Library do
 
 			local Text = Items["Value"].Instance.Text
 			local Stripped = StringGSub(Text, "[^0-9%.%-]", "")
-			local InputValue = tonumber(Stripped)
+			local NumValue = tonumber(Stripped)
 
-			if InputValue then
-				Slider:Set(InputValue)
-				Items["Value"].Instance.TextColor3 = Library.Theme["Text"]
+			if NumValue then
+				Slider:Set(NumValue)
 			else
-				Items["Value"].Instance.Text = StringFormat("%s%s", Slider.Value, Slider.Suffix)
-				Items["Value"].Instance.TextColor3 = Library.Theme["Text"]
+				Slider:Set(Slider.Value)
 			end
 		end)
 
 		Items["Value"]:Connect("Changed", function(Property)
 			if Property == "Text" and SliderFocused then
-
-				local Text = Items["Value"].Instance.Text
-				local Stripped = StringGSub(Text, "[^0-9%.%-]", "")
-				local NumValue = tonumber(Stripped)
-
-				if NumValue then
-					Items["Value"].Instance.TextColor3 = Library.Theme["Text"]
-				elseif Text ~= "" then
-					Items["Value"].Instance.TextColor3 = FromRGB(255, 80, 80)
-				end
+				ApplyValueInputText(true)
 			end
 		end)
 
@@ -9412,7 +9442,7 @@ local Library do
 			Items["SliderContainer"].Instance.Visible = Bool
 		end
 
-		function Slider:Set(Value)
+		function Slider:Set(Value, SkipTextUpdate)
 			if Slider.Disabled then
 				return
 			end
@@ -9431,15 +9461,18 @@ local Library do
 				Slider.Value = Slider.Min + NearestStep * Slider.Decimals
 				Slider.Value = MathClamp(Slider.Value, Slider.Min, Slider.Max)
 			else
-				Slider.Value = Library:Round(ClampedValue, 0)
+				Slider.Value = Library:Round(ClampedValue, Slider.DisplayDecimals or 0)
+				Slider.Value = MathClamp(Slider.Value, Slider.Min, Slider.Max)
 			end
 
 			Library.Flags[Slider.Flag] = Slider.Value
 
 			Items["Accent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)})
 
-			local DisplayValue = string.format("%g", Slider.Value)
-			Items["Value"].Instance.Text = StringFormat("%s%s", DisplayValue, Slider.Suffix)
+			if not SkipTextUpdate and Items["Value"] and Items["Value"].Instance then
+				local DisplayValue = string.format("%g", Slider.Value)
+				Items["Value"].Instance.Text = StringFormat("%s%s", DisplayValue, Slider.Suffix)
+			end
 
 			if Slider.Callback then
 				Library:SafeCall(Slider.Callback, Slider.Value)
@@ -9622,45 +9655,7 @@ local Library do
 			VerticalFlex = Enum.UIFlexAlignment.Fill,
 		})
 
-		if SubSlider.Name and SubSlider.Name ~= "" then
-			Items["Text"] = Instances:Create("TextLabel", {
-				Parent = Items["SubSliderContainer"].Instance,
-				Name = "\0",
-				Size = UDim2New(1, 0, 0, 15),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Text = SubSlider.Name,
-				TextColor3 = Library.Theme["Text"],
-				TextSize = 14,
-				FontFace = Library.Font,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				ZIndex = 4,
-				LayoutOrder = 0,
-			}):AddToTheme({TextColor3 = "Text"})
-
-			Items["Text"]:Tooltip(SubSlider.Tooltip)
-		end
-
-		if SubSlider.Description and SubSlider.Description ~= "" then
-			Items["Description"] = Instances:Create("TextLabel", {
-				Parent = Items["SubSliderContainer"].Instance,
-				Name = "\0",
-				Size = UDim2New(1, 0, 0, 0),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				Text = SubSlider.Description,
-				TextColor3 = SubSlider.DescriptionColor or Library.Theme["Text"],
-				TextSize = 12,
-				FontFace = Library.Font,
-				TextTransparency = 0.5,
-				TextWrapped = true,
-				AutomaticSize = Enum.AutomaticSize.Y,
-				ZIndex = 4,
-				LayoutOrder = 1,
-			})
-
-			Library:BindDescriptionColor(Items["Description"], SubSlider.DescriptionColor)
-		end
+		Items["SubSliderRow"].Instance.LayoutOrder = 0
 
 		local function FormatSpeed(Entry, Value)
 			return string.format("%g", Value) .. Entry.SpeedSuffix
@@ -9719,7 +9714,7 @@ local Library do
 			EntryItems["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["SpeedLabel"].Instance.Text = "speed: " .. FormatSpeed(Entry, Entry.Speed)
+			EntryItems["SpeedLabel"].Instance.Text = FormatSpeed(Entry, Entry.Speed)
 		end
 
 		local function RefreshStartVisual(Entry)
@@ -9729,7 +9724,7 @@ local Library do
 			EntryItems["StartAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["StartLabel"].Instance.Text = "start: " .. FormatPercent(Entry.Start)
+			EntryItems["StartLabel"].Instance.Text = FormatPercent(Entry.Start)
 		end
 
 		local function RefreshEndVisual(Entry)
@@ -9739,7 +9734,7 @@ local Library do
 			EntryItems["EndAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["EndLabel"].Instance.Text = "end: " .. FormatPercent(Entry["End"])
+			EntryItems["EndLabel"].Instance.Text = FormatPercent(Entry["End"])
 		end
 
 		local function FireEntryCallback(Entry)
@@ -9919,25 +9914,7 @@ local Library do
 				FillDirection = Enum.FillDirection.Vertical,
 			})
 
-			if Entry.Name and Entry.Name ~= "" then
-				EntryItems["BlockName"] = Instances:Create("TextLabel", {
-					Parent = EntryItems["Block"].Instance,
-					Name = "\0",
-					Size = UDim2New(1, 0, 0, 14),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Text = Entry.Name,
-					TextColor3 = Library.Theme["Text"],
-					TextSize = 12,
-					FontFace = Library.Font,
-					TextTransparency = 0.35,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					ZIndex = 4,
-					LayoutOrder = 0,
-				}):AddToTheme({TextColor3 = "Text"})
-			end
-
-			local SpeedTrack = CreateTrack(EntryItems["Block"].Instance, 1, 2, UDim2New(1, 0, 0, TRACK_HEIGHT))
+			local SpeedTrack = CreateTrack(EntryItems["Block"].Instance, 0, 2, UDim2New(1, 0, 0, TRACK_HEIGHT))
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
 			EntryItems["SpeedLabel"] = SpeedTrack["Label"]
 			EntryItems["SpeedButton"] = SpeedTrack["Track"]
@@ -9949,7 +9926,7 @@ local Library do
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				ZIndex = 2,
-				LayoutOrder = 2,
+				LayoutOrder = 1,
 			})
 
 			Instances:Create("UIListLayout", {
