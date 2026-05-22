@@ -1,3 +1,6 @@
+warn(
+'son'
+)
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -8494,18 +8497,24 @@ local Library do
 			Items["SubElements"] = Instances:Create("Frame", {
 				Parent = Items["Toggle"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 1, 0),
+				Size = UDim2New(0, 0, 0, 0),
 				Position = UDim2New(1, -48, 0, 0),
 				AnchorPoint = Vector2New(1, 0),
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				AutomaticSize = Enum.AutomaticSize.Y,
+				AutomaticSize = Enum.AutomaticSize.XY,
 				LayoutOrder = 1
 			})
 
 			Instances:Create("UISizeConstraint", {
 				Parent = Items["SubElements"].Instance,
+				Name = "\0",
+				MinSize = Vector2New(0, 20)
+			})
+
+			Instances:Create("UISizeConstraint", {
+				Parent = Items["Toggle"].Instance,
 				Name = "\0",
 				MinSize = Vector2New(0, 20)
 			})
@@ -8983,7 +8992,9 @@ local Library do
 		return Checkbox
 	end
 
-	Library.Sections.Button = function(self)
+	Library.Sections.Button = function(self, Data)
+		Data = type(Data) == "table" and Data or {}
+
 		local Button = {
 			Window = self.Window,
 			Page = self.Page,
@@ -8995,10 +9006,11 @@ local Library do
 		Items["ButtonContainer"] = Instances:Create("Frame", {
 			Parent = Button.Section.Items["Content"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 25),
+			Size = UDim2New(1, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderColor3 = FromRGB(0, 0, 0),
 			BorderSizePixel = 0,
+			AutomaticSize = Enum.AutomaticSize.Y,
 			ZIndex = 2
 		})
 
@@ -9025,7 +9037,7 @@ local Library do
 				NewItems["NewButton"] = Instances:Create("TextButton", {
 					Parent = Items["ButtonContainer"].Instance,
 					Name = "\0",
-					Size = UDim2New(0, 200, 0, 50),
+					Size = UDim2New(1, 0, 0, 22),
 					BackgroundColor3 = Library.Theme["Element"],
 					BorderColor3 = FromRGB(0, 0, 0),
 					BorderSizePixel = 0,
@@ -9067,6 +9079,7 @@ local Library do
 
 			function NewButton:SetVisibility(Bool)
 				NewItems["NewButton"].Instance.Visible = Bool
+				Items["ButtonContainer"].Instance.Visible = Bool
 			end
 
 			function NewButton:Press()
@@ -9123,6 +9136,10 @@ local Library do
 			return Button, NewButton
 		end
 
+		function Button:SetVisibility(Bool)
+			Items["ButtonContainer"].Instance.Visible = Bool
+		end
+
 		function Button:Destroy()
 			for _, Item in Items do
 				if Item.Instance then
@@ -9134,6 +9151,12 @@ local Library do
 		end
 
 		Button.Items = Items
+
+		if Data.Name or Data.name then
+			local _, NewButton = Button:Add(Data.Name or Data.name, Data.Callback or Data.callback, Data)
+			return NewButton
+		end
+
 		return Button
 	end
 
@@ -9537,7 +9560,7 @@ local Library do
 
 			if Slider.Compact and Items["TrackLabel"] and Items["TrackLabel"].Instance then
 				local DisplayValue = string.format("%g", Slider.Value)
-				Items["TrackLabel"].Instance.Text = string.lower(Slider.Name) .. ": " .. DisplayValue
+				Items["TrackLabel"].Instance.Text = string.lower(Slider.Name) .. ": " .. DisplayValue .. Slider.Suffix
 			end
 
 			if Slider.Callback then
@@ -9685,8 +9708,9 @@ local Library do
 
 		local Items = {}
 		local TRACK_HEIGHT = 22
+		local COMPACT_TRACK_WIDTH = 72
 		local RANGE_GAP = 6
-		local BLOCK_GAP = 8
+		local BLOCK_GAP = 6
 
 		Items["SubSliderContainer"] = Instances:Create("Frame", {
 			Parent = SubSlider.Section.Items["Content"].Instance,
@@ -9709,12 +9733,12 @@ local Library do
 		Items["SubSliderRow"] = Instances:Create("Frame", {
 			Parent = Items["SubSliderContainer"].Instance,
 			Name = "\0",
-			Size = UDim2New(1, 0, 0, 0),
+			Size = UDim2New(0, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			AutomaticSize = Enum.AutomaticSize.Y,
+			AutomaticSize = Enum.AutomaticSize.XY,
 			ZIndex = 2,
-			LayoutOrder = 2,
+			LayoutOrder = 0,
 		})
 
 		Instances:Create("UIListLayout", {
@@ -9723,18 +9747,17 @@ local Library do
 			Padding = UDimNew(0, BLOCK_GAP),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalFlex = Enum.UIFlexAlignment.Fill,
-			VerticalFlex = Enum.UIFlexAlignment.Fill,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
 		})
-
-		Items["SubSliderRow"].Instance.LayoutOrder = 0
 
 		local function FormatSpeed(Entry, Value)
 			return string.format("%g", Value) .. Entry.SpeedSuffix
 		end
 
-		local function FormatPercent(Value)
-			return string.format("%g", Value) .. "%"
+		local function FormatRangeLabel(RangeName, Value, Suffix)
+			local LabelPrefix = string.lower(RangeName or "value") .. ": "
+			return LabelPrefix .. string.format("%g", Value) .. (Suffix or "")
 		end
 
 		local function ClampSpeed(Entry, Value)
@@ -9801,7 +9824,7 @@ local Library do
 			EntryItems["StartAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["StartLabel"].Instance.Text = FormatPercent(Entry.Start)
+			EntryItems["StartLabel"].Instance.Text = FormatRangeLabel("start", Entry.Start, Entry.StartSuffix)
 		end
 
 		local function RefreshEndVisual(Entry)
@@ -9811,7 +9834,7 @@ local Library do
 			EntryItems["EndAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["EndLabel"].Instance.Text = FormatPercent(Entry["End"])
+			EntryItems["EndLabel"].Instance.Text = FormatRangeLabel("end", Entry["End"], Entry.EndSuffix)
 		end
 
 		local function FireEntryCallback(Entry)
@@ -9975,7 +9998,9 @@ local Library do
 
 				SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or Data.Decimals or Data.decimals or 0.01,
 				RangeDecimals = Data.RangeDecimals or Data.range_decimals or 1,
-				SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or "",
+				SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or Data.Suffix or Data.suffix or "",
+				StartSuffix = Data.StartSuffix or Data.start_suffix or Data.RangeSuffix or Data.range_suffix or "%",
+				EndSuffix = Data.EndSuffix or Data.end_suffix or Data.RangeSuffix or Data.range_suffix or "%",
 
 				Callback = Data.Callback or Data.callback or function() end,
 				Disabled = false,
@@ -9987,10 +10012,10 @@ local Library do
 			EntryItems["Block"] = Instances:Create("Frame", {
 				Parent = Items["SubSliderRow"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 120, 0, 0),
+				Size = UDim2New(0, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				AutomaticSize = Enum.AutomaticSize.Y,
+				AutomaticSize = Enum.AutomaticSize.XY,
 				ZIndex = 2,
 			})
 
@@ -10003,7 +10028,9 @@ local Library do
 			})
 
 			local SpeedTrackParent = EntryItems["Block"].Instance
-			local SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
+			local SpeedTrackSize = Entry.HideRange
+				and UDim2New(0, COMPACT_TRACK_WIDTH, 0, TRACK_HEIGHT)
+				or UDim2New(1, 0, 0, TRACK_HEIGHT)
 
 			local SpeedTrack = CreateTrack(SpeedTrackParent, 0, 2, SpeedTrackSize)
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
