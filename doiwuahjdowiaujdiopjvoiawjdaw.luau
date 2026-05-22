@@ -1,4 +1,4 @@
-print("plssss speeedddd")
+warn("CMON MAN")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1684,7 +1684,7 @@ local Library do
 				Position = UDim2New(0.5, 0, 0.55, 0),
 				RichText = false,
 				Size = UDim2New(1, -20, 0, 40),
-				Text = "Your key is expiring soon 😭🙏",
+				Text = "Your key is expiring soon ðŸ˜­ðŸ™",
 				TextColor3 = Library.Theme["Text"],
 				TextSize = 20,
 				TextWrapped = true,
@@ -11240,447 +11240,438 @@ local Library do
 								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
 							end)
 						end
-							Name = "Safe Mode",
-					Flag = "Safe Mode",
-					Description = "Auto Hides Ui On Execute",
-					Default = Library.SafeMode == true,
-					Callback = function(Value)
-						Library.SafeMode = Value
-						Library:SaveLocalSettings()
-
-						if Value then
-							Window:SetOpen(false)
-
-							local ShowFloatingButton = Library.Flags["Show Floating Button"]
-							if ShowFloatingButton == nil then
-								ShowFloatingButton = true
-							end
-
-							if Library.FloatingButtonHolder then
-								Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
-							end
-						end
 					end,
 				})
 
-				MenuSetting_Section:Toggle({
-					Name = "Auto Execute",
-					Flag = "Auto Execute",
-					Description = "Auto execute script after teleport",
-					Default = false,
+				ThemeConfig_Section:Toggle({
+					Name = "Autoload Theme On Execute",
+					Flag = "Autoload Theme On Execute",
+					Description = "Auto loads theme on execute",
+					Default = Library.AutoloadThemeEnabled == true,
 					Callback = function(Value)
-						Library.AutoExecute = Value
-
-						if Value and not getgenv().auto_execute then
-							getgenv().auto_execute = true
-							wait(0.3)
-							queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/bao8jl/solixhub/main/loader"))()')
-						end
-					end
-				})
-			end
-		end
-
-		do
-			local ScriptConfig_Section = ConfigsTab:Section({Name = "Script Config", Side = 2})
-
-			local ConfigFolder = Library:GetFolder()
-			local AutoloadPath = GetAutoloadPath()
-
-			local function NotifySuccessConfig(Message)
-				Library:Notification({
-					Name = "Success",
-					Description = Message,
-					Color = Color3.fromRGB(0, 255, 0),
-					Duration = 5
-				})
-			end
-
-			local function NotifyErrorConfig(Message)
-				Library:Notification({
-					Name = "Error",
-					Description = Message,
-					Color = Color3.fromRGB(255, 0, 0),
-					Duration = 5
-				})
-			end
-
-			do
-				local Config_Name
-				local Config_Selected
-
-				local Config_Dropdown = ScriptConfig_Section:Dropdown({
-					Name = "Config Select",
-					Flag = "Config Select",
-					Description = "List of the configs",
-					Items = {},
-					Multi = false,
-					Callback = function(Value)
-						Config_Selected = Value
-
-						if Library.AutoloadConfigEnabled and Config_Selected and Config_Selected ~= "" then
-							pcall(function()
-								writefile(GetAutoloadConfigNamePath(), Config_Selected)
-							end)
-						end
-					end
-				})
-
-				ScriptConfig_Section:Toggle({
-					Name = "Autoload Config On Execute",
-					Flag = "Autoload Config On Execute",
-					Description = "Auto Loads Config On Execute",
-					Default = Library.AutoloadConfigEnabled == true,
-					Callback = function(Value)
-						Library.AutoloadConfigEnabled = Value
+						Library.AutoloadThemeEnabled = Value
 						Library:SaveLocalSettings()
 
-						if Value and Config_Selected and Config_Selected ~= "" then
+						if Value and Theme_Selected and Theme_Selected ~= "" then
 							pcall(function()
-								writefile(GetAutoloadConfigNamePath(), Config_Selected)
+								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
 							end)
 						elseif not Value then
 							pcall(function()
-								if isfile(GetAutoloadConfigNamePath()) then
-									delfile(GetAutoloadConfigNamePath())
+								if isfile(GetAutoloadThemeNamePath()) then
+									delfile(GetAutoloadThemeNamePath())
 								end
 							end)
 						end
 					end,
 				})
 
-				ScriptConfig_Section:Textbox({
-					Name = "Config Name",
-					Flag = "Config Name",
-					Description = "Name of the config",
-					Placeholder = "Config name...",
-					Finished = false,
-					Callback = function(Value)
-						Config_Name = Value
-					end
-				})
-
-				ScriptConfig_Section:Button():Add("Create", function()
-					if not Config_Name or Config_Name == "" then
-						return
-					end
-
-					local Success, Error = pcall(function()
-						writefile(ConfigFolder .. Config_Name .. ".json", Library:GetConfig())
-					end)
-
-					if Success then
-						Library:RefreshConfigsList(Config_Dropdown)
-						NotifySuccessConfig("Succesfully created config: " .. Config_Name)
-					else
-						NotifyErrorConfig("Failed to create config: " .. Config_Name .. " " .. tostring(Error))
-					end
-				end):Add("Delete", function()
-					if not Config_Selected then
-						NotifyErrorConfig("Please select a config first")
-						return
-					end
-
-					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
-					local Success, Error = pcall(function()
-						if isfile(ConfigPath) then
-							delfile(ConfigPath)
-						end
-					end)
-
-					if Success then
-						Library:RefreshConfigsList(Config_Dropdown)
-						NotifySuccessConfig("Succesfully deleted config: " .. Config_Selected)
-					else
-						NotifyErrorConfig("Failed to delete config: " .. Config_Selected .. " " .. tostring(Error))
-					end
-				end)
-
-				ScriptConfig_Section:Button():Add("Load", function()
-					if not Config_Selected then
-						NotifyErrorConfig("Please select a config first")
-						return
-					end
-
-					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
-
-					if not isfile(ConfigPath) then
-						NotifyErrorConfig("Failed to find config: " .. Config_Selected)
-						return
-					end
-
-					local ConfigContent = readfile(ConfigPath)
-					local Success, Error = Library:LoadConfig(ConfigContent)
-
-					if Success then
-						NotifySuccessConfig("Succesfully loaded config: " .. Config_Selected)
-					else
-						NotifyErrorConfig("Failed to load config: " .. (Config_Selected or "Unknown") .. " " .. tostring(Error))
-					end
-				end):Add("Save", function()
-					if not Config_Selected then
-						NotifyErrorConfig("Please select a config first")
-						return
-					end
-
-					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
-
-					if not isfile(ConfigPath) then
-						NotifyErrorConfig("Failed to find config: " .. Config_Selected)
-						return
-					end
-
-					local Success, Error = pcall(function()
-						writefile(ConfigPath, Library:GetConfig())
-					end)
-
-					if Success then
-						NotifySuccessConfig("Succesfully saved config: " .. Config_Selected)
-					else
-						NotifyErrorConfig("Failed to save config: " .. Config_Selected .. " " .. tostring(Error))
-					end
-				end)
-
-				ScriptConfig_Section:Button():Add("Refresh", function()
-					Library:RefreshConfigsList(Config_Dropdown)
-				end)
-
-				ScriptConfig_Section:Button():Add("Set Autoload", function()
-					local Success, Error = pcall(function()
-						writefile(AutoloadPath, Library:GetConfig())
-					end)
-
-					if Success then
-						NotifySuccessConfig("Autoload set to current config")
-					else
-						NotifyErrorConfig("Failed to set autoload: " .. tostring(Error))
-					end
-				end):Add("Remove Autoload", function()
-					local Success, Error = pcall(function()
-						writefile(AutoloadPath, "")
-					end)
-
-					if Success then
-						NotifySuccessConfig("Succesfully removed autoload")
-					else
-						NotifyErrorConfig("Failed to remove autoload: " .. tostring(Error))
-					end
-				end)
-
-				local Pasted_Config = ""
-
-				ScriptConfig_Section:Textbox({
-					Name = "Paste Shared Config",
-					Flag = "Paste Shared Config",
-					Description = "Press Enter after pasting!",
-					Placeholder = "Paste config here...",
+				ThemeConfig_Section:Textbox({
+					Name = "Theme Name",
+					Flag = "Theme Name",
+					Description = "Enter a name for your theme",
+					Placeholder = "Theme name...",
 					Finished = true,
 					Callback = function(Value)
-						Pasted_Config = Value
-					end
+						Theme_Name = Value
+					end,
 				})
 
-				ScriptConfig_Section:Button():Add("Share Config", function()
-					local CurrentConfig = Library:GetConfig()
-
-					local Success, Error = pcall(setclipboard, CurrentConfig:gsub('https://discord%.com/api/webhooks/%d+/%S+', ''))
-
-					if Success then
-						NotifySuccessConfig("Config copied to clipboard (webhooks removed)")
-					else
-						NotifyErrorConfig("Failed to copy config: " .. tostring(Error))
-					end
-				end):Add("Import Pasted", function()
-					if not Pasted_Config or Pasted_Config == "" then
-						NotifyErrorConfig("No config pasted")
+				ThemeConfig_Section:Button():Add("Create", function()
+					if not Theme_Name or Theme_Name == "" then
 						return
 					end
 
-					local Success, Error = Library:LoadConfig(Pasted_Config:gsub('https://discord%.com/api/webhooks/%d+/%S+', ''))
+					local Success, Error = pcall(function()
+						writefile(ThemeFolder .. Theme_Name .. ".json", Library:GetTheme())
+					end)
 
 					if Success then
-						NotifySuccessConfig("Succesfully imported config (webhooks removed)")
+						Library:RefreshThemeList(Theme_Dropdown)
+						NotifySuccessTheme("Succesfully created theme: " .. Theme_Name)
 					else
-						NotifyErrorConfig("Failed to import config: " .. tostring(Error))
+						NotifyErrorTheme("Failed to create theme: " .. Theme_Name .. " " .. tostring(Error))
+					end
+				end):Add("Delete", function()
+					if not Theme_Selected then
+						NotifyErrorTheme("Please select a theme first")
+						return
+					end
+
+					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
+					local Success, Error = pcall(function()
+						if isfile(ThemePath) then
+							delfile(ThemePath)
+						end
+					end)
+
+					if Success then
+						Library:RefreshThemeList(Theme_Dropdown)
+						NotifySuccessTheme("Succesfully deleted theme: " .. Theme_Selected)
+					else
+						NotifyErrorTheme("Failed to delete theme: " .. Theme_Selected .. " " .. tostring(Error))
 					end
 				end)
 
-				Library:RefreshConfigsList(Config_Dropdown)
-			end
-		end
-
-		return Settings
-	end
-end
-
-getgenv().Library = Library
-return Libraryk = function(Value)
-						Library.Tween.Time = Value
+				ThemeSetting_Section:Button():Add("Load", function()
+					if not Theme_Selected then
+						NotifyErrorTheme("Please select a theme first")
+						return
 					end
-				})
 
-				MenuSetting_Section:Slider({
-					Name = "Menu Fade Time",
-					Flag = "Menu Fade Time",
-					Description = "Menu fade animation time",
-					Min = 0,
-					Max = 5,
-					Default = Library.FadeSpeed,
-					Decimals = 0.01,
-					Callback = function(Value)
-						Library.FadeSpeed = Value
+					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
+
+					if not isfile(ThemePath) then
+						NotifyErrorTheme("Failed to find theme: " .. Theme_Selected)
+						return
 					end
-				})
 
-				MenuSetting_Section:Dropdown({
-					Name = "Menu Scale Preset",
-					Flag = "Menu Scale Preset",
-					Description = "Select Menu scale preset",
-					Default = IsMobile and "Bigger" or "Medium",
-					Items = {"Very Small", "Small", "Medium", "Large", "Bigger", "Massive"},
-					Callback = function(Value)
-						Library:SetScaleNumeric(ScaleValues[Value])
+					local ThemeContent = readfile(ThemePath)
+					local Success, Error = Library:LoadTheme(ThemeContent)
+
+					if Success then
+						NotifySuccessTheme("Succesfully loaded theme: " .. Theme_Selected)
+					else
+						NotifyErrorTheme("Failed to load theme: " .. Theme_Selected .. " " .. tostring(Error))
 					end
-				})
-
-				MenuSetting_Section:Dropdown({
-					Name = "Menu Tween Style",
-					Flag = "Menu Tween Style",
-					Description = "Menu animation easing style",                  
-					Default = "Cubic",
-					Items = {"Linear", "Sine", "Quad", "Cubic", "Quart", "Quint", "Exponential", "Circular", "Back", "Elastic", "Bounce"},
-					Callback = function(Value)
-						Library.Tween.Style = Enum.EasingStyle[Value]
+				end):Add("Save", function()
+					if not Theme_Selected then
+						NotifyErrorTheme("Please select a theme first")
+						return
 					end
-				})
 
-				MenuSetting_Section:Dropdown({
-					Name = "Menu Tween Direction",
-					Flag = "Menu Tween Direction",
-					Description = "Menu animation easing direction",
-					Default = "Out",
-					Items = {"In", "Out", "InOut"},
-					Callback = function(Value)
-						Library.Tween.Direction = Enum.EasingDirection[Value]
+					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
+
+					if not isfile(ThemePath) then
+						NotifyErrorTheme("Failed to find theme: " .. Theme_Selected)
+						return
 					end
-				})
 
-				MenuSetting_Section:Toggle({
-					Name = "Show Watermark",
-					Flag = "Show Watermark",
-					Description = "Show/hide the Watermark",
-					Default = false,
-					Callback = function(Value)
-						Watermark:SetVisibility(Value)
+					local Success, Error = pcall(function()
+						writefile(ThemePath, Library:GetTheme())
+					end)
+
+					if Success then
+						NotifySuccessTheme("Succesfully saved theme: " .. Theme_Selected)
+					else
+						NotifyErrorTheme("Failed to save theme: " .. Theme_Selected .. " " .. tostring(Error))
 					end
-				})
+				end)
 
-				MenuSetting_Section:Toggle({
-					Name = "Show Keybind List",
-					Flag = "Show Keybind List",
-					Description = "Show/hide list of all keybinds",
-					Default = false,
-					Callback = function(Value)
-						KeybindList:SetVisibility(Value)
-					end
-				})
+				ThemeSetting_Section:Button():Add("Refresh", function()
+					Library:RefreshThemeList(Theme_Dropdown)
+				end)
 
-				MenuSetting_Section:Toggle({
-					Name = "Show Floating Button",
-					Flag = "Show Floating Button",
-					Description = "Show/hide the floating button",
-					Default = true,
+				local Preset_Section = ThemeSetting_Section:Dropdown({
+					Name = "Themes Preset",
+					Flag = "Themes Preset",
+					Description = "Select a theme",
+					Items = {},
+					Default = "Solix",
+					Multi = false,
 					Callback = function(Value)
-						if Library.FloatingButtonHolder then
-							Library.FloatingButtonHolder.Instance.Enabled = Value
+						local ThemeData = Library.Themes[Value]
+
+						if not ThemeData then
+							return
 						end
-					end
-				})
 
-				MenuSetting_Section:Toggle({
-					Name = "Background Darken",
-					Flag = "Background Darken",
-					Description = "Dark overlay and blur while menu is open",
-					Default = true,
-					Callback = function(Value)
-						Library:SetBackgroundDarkenEnabled(Value)
-					end
-				})
+						for Index, Value in Library.Theme do
+							Library.Theme[Index] = ThemeData[Index]
+							Library:ChangeTheme(Index, ThemeData[Index])
 
-				MenuSetting_Section:Toggle({
-					Name = "Background Snow",
-					Flag = "Background Snow",
-					Description = "Snow effect while menu is open",
-					Default = true,
-					Callback = function(Value)
-						Library:SetBackgroundSnowEnabled(Value)
-					end
-				})
-
-				MenuSetting_Section:Toggle({
-					Name = "Auto Save Config",
-					Flag = "Auto Save Config",
-					Description = "Automatically save your config",
-					Default = false,
-					Callback = function(Value)
-						Library.AutoSave = Value
-					end
-				})
-
-				MenuSetting_Section:Toggle({
-					Name = "Auto Minimize",
-					Flag = "Auto Minimize",
-					Description = "Automatically minimize on startup",
-					Default = false,
-					Callback = function(Value)
-						Library.AutoMinimize = Value
-
-						if Value and Window.Minimize then
-							Window:Minimize(true)
-						end
-					end
-				})
-
-				MenuSetting_Section:Toggle({
-					Name = "Safe Mode",
-					Flag = "Safe Mode",
-					Description = "Auto Hides Ui On Execute",
-					Default = Library.SafeMode == true,
-					Callback = function(Value)
-						Library.SafeMode = Value
-						Library:SaveLocalSettings()
-
-						if Value then
-							Window:SetOpen(false)
-
-							local ShowFloatingButton = Library.Flags["Show Floating Button"]
-							if ShowFloatingButton == nil then
-								ShowFloatingButton = true
-							end
-
-							if Library.FloatingButtonHolder then
-								Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
-							end
+							Theme_Colorpicker[Index]:Set(ThemeData[Index])
 						end
 					end,
 				})
 
-				MenuSetting_Section:Toggle({
-					Name = "Auto Execute",
-					Flag = "Auto Execute",
-					Description = "Auto execute script after teleport",
-					Default = false,
-					Callback = function(Value)
-						Library.AutoExecute = Value
+				for Index in pairs(Library.Themes) do
+					Preset_Section:Add(Index)
+				end
 
-						if Value and not getgenv().auto_execute then
-							getgenv().auto_execute = true
-							wait(0.3)
-							queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/bao8jl/solixhub/main/loader"))()')
+				Library:RefreshThemeList(Theme_Dropdown)
+			end
+		end
+
+		do
+			local MenuSetting_Section = MenuTab:Section({Name = "Menu Setting", Side = 1})
+
+			MenuSetting_Section:Button():Add("Unload", function()
+				Library:Unload()
+			end)
+
+			MenuSetting_Section:Label("Menu keybind", "Keybind to open/close the menu"):Keybind({
+				Name = "Menu Keybind",
+				Flag = "Menu Keybind",
+				Default = Enum.KeyCode.RightControl,
+				Mode = "Toggle",
+				Callback = function()
+					Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
+				end,
+			})
+
+			MenuSetting_Section:Slider({
+				Name = "Background Transparency",
+				Flag = "Background Transparency",
+				Description = "Menu background transparency",
+				Min = 0,
+				Max = 1,
+				Default = Library.BackgroundTransparency,
+				Decimals = 0.01,
+				Callback = function(Value)
+					Library.BackgroundTransparency = Value
+					Window:SetTransparency(Value)
+					KeybindList:SetTransparency(Value)
+				end,
+			})
+
+			MenuSetting_Section:Slider({
+				Name = "Menu Tween Time",
+				Flag = "Menu Tween Time",
+				Description = "Menu animation tween time",
+				Min = 0,
+				Max = 5,
+				Default = Library.Tween.Time,
+				Decimals = 0.01,
+				Callback = function(Value)
+					Library.Tween.Time = Value
+				end,
+			})
+
+			MenuSetting_Section:Slider({
+				Name = "Menu Fade Time",
+				Flag = "Menu Fade Time",
+				Description = "Menu fade animation time",
+				Min = 0,
+				Max = 5,
+				Default = Library.FadeSpeed,
+				Decimals = 0.01,
+				Callback = function(Value)
+					Library.FadeSpeed = Value
+				end,
+			})
+
+			MenuSetting_Section:Dropdown({
+				Name = "Menu Scale Preset",
+				Flag = "Menu Scale Preset",
+				Description = "Select Menu scale preset",
+				Default = IsMobile and "Bigger" or "Medium",
+				Items = {"Very Small", "Small", "Medium", "Large", "Bigger", "Massive"},
+				Callback = function(Value)
+					Library:SetScaleNumeric(ScaleValues[Value])
+				end,
+			})
+
+			MenuSetting_Section:Dropdown({
+				Name = "Menu Tween Style",
+				Flag = "Menu Tween Style",
+				Description = "Menu animation easing style",
+				Default = "Cubic",
+				Items = {"Linear", "Sine", "Quad", "Cubic", "Quart", "Quint", "Exponential", "Circular", "Back", "Elastic", "Bounce"},
+				Callback = function(Value)
+					Library.Tween.Style = Enum.EasingStyle[Value]
+				end,
+			})
+
+			MenuSetting_Section:Dropdown({
+				Name = "Menu Tween Direction",
+				Flag = "Menu Tween Direction",
+				Description = "Menu animation easing direction",
+				Default = "Out",
+				Items = {"In", "Out", "InOut"},
+				Callback = function(Value)
+					Library.Tween.Direction = Enum.EasingDirection[Value]
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Show Watermark",
+				Flag = "Show Watermark",
+				Description = "Show/hide the Watermark",
+				Default = false,
+				Callback = function(Value)
+					Watermark:SetVisibility(Value)
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Show Keybind List",
+				Flag = "Show Keybind List",
+				Description = "Show/hide list of all keybinds",
+				Default = false,
+				Callback = function(Value)
+					KeybindList:SetVisibility(Value)
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Show Floating Button",
+				Flag = "Show Floating Button",
+				Description = "Show/hide the floating button",
+				Default = true,
+				Callback = function(Value)
+					if Library.FloatingButtonHolder then
+						Library.FloatingButtonHolder.Instance.Enabled = Value
+					end
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Background Darken",
+				Flag = "Background Darken",
+				Description = "Dark overlay and blur while menu is open",
+				Default = true,
+				Callback = function(Value)
+					Library:SetBackgroundDarkenEnabled(Value)
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Background Snow",
+				Flag = "Background Snow",
+				Description = "Snow effect while menu is open",
+				Default = true,
+				Callback = function(Value)
+					Library:SetBackgroundSnowEnabled(Value)
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Auto Save Config",
+				Flag = "Auto Save Config",
+				Description = "Automatically save your config",
+				Default = false,
+				Callback = function(Value)
+					Library.AutoSave = Value
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Auto Minimize",
+				Flag = "Auto Minimize",
+				Description = "Automatically minimize on startup",
+				Default = false,
+				Callback = function(Value)
+					Library.AutoMinimize = Value
+
+					if Value and Window.Minimize then
+						Window:Minimize(true)
+					end
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Safe Mode",
+				Flag = "Safe Mode",
+				Description = "Auto Hides Ui On Execute",
+				Default = Library.SafeMode == true,
+				Callback = function(Value)
+					Library.SafeMode = Value
+					Library:SaveLocalSettings()
+
+					if Value then
+						Window:SetOpen(false)
+
+						local ShowFloatingButton = Library.Flags["Show Floating Button"]
+						if ShowFloatingButton == nil then
+							ShowFloatingButton = true
+						end
+
+						if Library.FloatingButtonHolder then
+							Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
 						end
 					end
+				end,
+			})
+
+			MenuSetting_Section:Toggle({
+				Name = "Auto Execute",
+				Flag = "Auto Execute",
+				Description = "Auto execute script after teleport",
+				Default = false,
+				Callback = function(Value)
+					Library.AutoExecute = Value
+
+					if Value and not getgenv().auto_execute then
+						getgenv().auto_execute = true
+						task.wait(0.3)
+						queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/bao8jl/solixhub/main/loader"))()')
+					end
+				end,
+			})
+		end
+
+		do
+			local Game_Section = GameTab:Section({Name = "Game", Side = 1})
+			local TeleportService = game:GetService("TeleportService")
+			local HttpService = game:GetService("HttpService")
+
+			local function CopyToClipboard(Text)
+				pcall(function()
+					setclipboard(Text)
+				end)
+			end
+
+			local function NotifyGame(Message, Color)
+				Library:Notification({
+					Name = "Game",
+					Description = Message,
+					Color = Color or Color3.fromRGB(100, 255, 100),
+					Duration = 3,
 				})
 			end
+
+			Game_Section:Button():Add("Rejoin", function()
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+				NotifyGame("Rejoining...")
+			end):Add("Server Hop", function()
+				local Servers = {}
+				local Success, Result = pcall(function()
+					return HttpService:GetAsync(
+						"https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+					)
+				end)
+
+				if Success and Result then
+					local Data = HttpService:JSONDecode(Result)
+
+					for _, Server in Data.data or {} do
+						if Server.id ~= game.JobId and Server.playing < Server.maxPlayers then
+							TableInsert(Servers, Server.id)
+						end
+					end
+				end
+
+				if #Servers > 0 then
+					TeleportService:TeleportToPlaceInstance(game.PlaceId, Servers[math.random(1, #Servers)], LocalPlayer)
+					NotifyGame("Server hopping...")
+				else
+					TeleportService:Teleport(game.PlaceId, LocalPlayer)
+					NotifyGame("No servers found, joining a new server", Color3.fromRGB(255, 200, 100))
+				end
+			end)
+
+			Game_Section:Button():Add("Copy Place ID", function()
+				CopyToClipboard(tostring(game.PlaceId))
+				NotifyGame("Place ID copied")
+			end):Add("Copy Game ID", function()
+				CopyToClipboard(tostring(game.GameId))
+				NotifyGame("Game ID copied")
+			end)
+
+			Game_Section:Button():Add("Copy Job ID", function()
+				CopyToClipboard(tostring(game.JobId))
+				NotifyGame("Job ID copied")
+			end):Add("Copy Join Code", function()
+				CopyToClipboard(
+					'game:GetService("TeleportService"):TeleportToPlaceInstance('
+						.. game.PlaceId
+						.. ', "'
+						.. game.JobId
+						.. '")'
+				)
+				NotifyGame("Join code copied")
+			end)
 		end
 
 		do
