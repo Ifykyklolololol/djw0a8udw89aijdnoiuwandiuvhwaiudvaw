@@ -1,4 +1,4 @@
-print("hell naww")
+print("plssss speeedddd")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -295,12 +295,15 @@ local Library do
 			InputBlock = 9998,
 			HolderOpen = 9999,
 			FloatingButtonOpen = 10000,
+			Cursor = 10001,
 		},
 		MouseStateBeforeOpen = nil,
+		CursorGui = nil,
 		MouseCursor = nil,
-		MouseCursorImage = "http://www.roblox.com/asset/?id=5545698398",
-		MouseCursorSize = 36,
-		MouseCursorOffset = 18,
+		MouseCursorImage = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
+		MouseCursorImageFallback = "rbxasset://textures/Cursors/KeyboardMouse/ArrowCursor.png",
+		MouseCursorSize = 64,
+		MouseCursorHotspot = Vector2New(31, 32),
 		SafeMode = false,
 		KeybindEntries = {},
 		BackgroundEffects = nil,
@@ -1510,17 +1513,39 @@ local Library do
 		ZIndex = 2,
 	})
 
+	Library.CursorGui = Instances:Create("ScreenGui", {
+		Parent = SafeGetUI(),
+		Name = "\0",
+		Enabled = false,
+		DisplayOrder = Library.DisplayOrders.Cursor,
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Global,
+	})
+
 	Library.MouseCursor = Instances:Create("ImageLabel", {
-		Parent = Library.Holder.Instance,
+		Parent = Library.CursorGui.Instance,
 		Name = "\0",
 		Visible = false,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
+		AnchorPoint = Vector2New(0, 0),
 		Image = Library.MouseCursorImage,
 		Size = UDim2FromOffset(Library.MouseCursorSize, Library.MouseCursorSize),
+		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 10001,
 		Active = false,
 	})
+
+	task.defer(function()
+		if not Library.MouseCursor or not Library.MouseCursor.Instance then
+			return
+		end
+
+		if Library.MouseCursor.Instance.Image == "" and Library.MouseCursorImageFallback then
+			Library.MouseCursor.Instance.Image = Library.MouseCursorImageFallback
+		end
+	end)
 
 	Library.NotifHolder = Instances:Create("Frame", {
 		Parent = Library.Holder.Instance,
@@ -1788,6 +1813,14 @@ local Library do
 			self.InputBlockGui = nil
 		end
 
+		if self.CursorGui and self.CursorGui.Instance then
+			pcall(function()
+				self.CursorGui.Instance:Destroy()
+			end)
+			self.CursorGui = nil
+		end
+
+		self.MouseCursor = nil
 		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
 		self:ApplyMouseForMenu(false)
@@ -1859,11 +1892,11 @@ local Library do
 		end
 
 		local MouseLocation = GetMouseLocation()
-		local Offset = Library.MouseCursorOffset
+		local Hotspot = Library.MouseCursorHotspot
 
 		MouseCursor.Instance.Position = UDim2FromOffset(
-			MouseLocation.X - Offset,
-			MouseLocation.Y - Offset
+			MouseLocation.X - Hotspot.X,
+			MouseLocation.Y - Hotspot.Y
 		)
 	end, "MouseCursor")
 
@@ -2178,6 +2211,10 @@ local Library do
 			UserInputService.MouseIconEnabled = true
 		end
 
+		if self.CursorGui and self.CursorGui.Instance then
+			self.CursorGui.Instance.Enabled = self.WindowOpenState
+		end
+
 		if self.MouseCursor and self.MouseCursor.Instance then
 			self.MouseCursor.Instance.Visible = self.WindowOpenState
 		end
@@ -2208,6 +2245,7 @@ local Library do
 		Track(self.OtherHolder and self.OtherHolder.Instance)
 		Track(self.UnusedHolder and self.UnusedHolder.Instance)
 		Track(self.WatermarkGui and self.WatermarkGui.Instance)
+		Track(self.CursorGui and self.CursorGui.Instance)
 
 		return Guis
 	end
@@ -2225,6 +2263,10 @@ local Library do
 
 		if self.WatermarkGui and self.WatermarkGui.Instance then
 			TableInsert(Roots, self.WatermarkGui.Instance)
+		end
+
+		if self.CursorGui and self.CursorGui.Instance then
+			TableInsert(Roots, self.CursorGui.Instance)
 		end
 
 		return Roots
@@ -11198,270 +11240,281 @@ local Library do
 								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
 							end)
 						end
-					end
-				})
-
-				ThemeConfig_Section:Textbox({
-					Name = "Theme Name",
-					Flag = "Theme Name",
-					Description = "Enter a name for your theme",
-					Placeholder = "Theme name...",
-					Finished = true,
+							Name = "Safe Mode",
+					Flag = "Safe Mode",
+					Description = "Auto Hides Ui On Execute",
+					Default = Library.SafeMode == true,
 					Callback = function(Value)
-						Theme_Name = Value
-					end
-				})
-
-				ThemeConfig_Section:Button():Add("Create", function()
-					if not Theme_Name or Theme_Name == "" then
-						return
-					end
-
-					local Success, Error = pcall(function()
-						writefile(ThemeFolder .. Theme_Name .. ".json", Library:GetTheme())
-					end)
-
-					if Success then
-						Library:RefreshThemeList(Theme_Dropdown)
-						NotifySuccessTheme("Succesfully created theme: " .. Theme_Name)
-					else
-						NotifyErrorTheme("Failed to create theme: " .. Theme_Name .. " " .. tostring(Error))
-					end
-				end):Add("Delete", function()
-					if not Theme_Selected then
-						NotifyErrorTheme("Please select a theme first")
-						return
-					end
-
-					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
-					local Success, Error = pcall(function()
-						if isfile(ThemePath) then
-							delfile(ThemePath)
-						end
-					end)
-
-					if Success then
-						Library:RefreshThemeList(Theme_Dropdown)
-						NotifySuccessTheme("Succesfully deleted theme: " .. Theme_Selected)
-					else
-						NotifyErrorTheme("Failed to delete theme: " .. Theme_Selected .. " " .. tostring(Error))
-					end
-				end)
-
-				ThemeSetting_Section:Button():Add("Load", function()
-					if not Theme_Selected then
-						NotifyErrorTheme("Please select a theme first")
-						return
-					end
-
-					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
-
-					if not isfile(ThemePath) then
-						NotifyErrorTheme("Failed to find theme: " .. Theme_Selected)
-						return
-					end
-
-					local ThemeContent = readfile(ThemePath)
-					local Success, Error = Library:LoadTheme(ThemeContent)
-
-					if Success then
-						NotifySuccessTheme("Succesfully loaded theme: " .. Theme_Selected)
-					else
-						NotifyErrorTheme("Failed to load theme: " .. Theme_Selected .. " " .. tostring(Error))
-					end
-				end):Add("Save", function()
-					if not Theme_Selected then
-						NotifyErrorTheme("Please select a theme first")
-						return
-					end
-
-					local ThemePath = ThemeFolder .. Theme_Selected .. ".json"
-
-					if not isfile(ThemePath) then
-						NotifyErrorTheme("Failed to find theme: " .. Theme_Selected)
-						return
-					end
-
-					local Success, Error = pcall(function()
-						writefile(ThemePath, Library:GetTheme())
-					end)
-
-					if Success then
-						NotifySuccessTheme("Succesfully saved theme: " .. Theme_Selected)
-					else
-						NotifyErrorTheme("Failed to save theme: " .. Theme_Selected .. " " .. tostring(Error))
-					end
-				end)
-
-				ThemeSetting_Section:Button():Add("Refresh", function()
-					Library:RefreshThemeList(Theme_Dropdown)
-				end)
-
-				ThemeConfig_Section:Toggle({
-					Name = "Autoload Theme On Execute",
-					Flag = "Autoload Theme On Execute",
-					Description = "Auto Loads Theme On Execute",
-					Default = Library.AutoloadThemeEnabled == true,
-					Callback = function(Value)
-						Library.AutoloadThemeEnabled = Value
+						Library.SafeMode = Value
 						Library:SaveLocalSettings()
 
-						if Value and Theme_Selected and Theme_Selected ~= "" then
+						if Value then
+							Window:SetOpen(false)
+
+							local ShowFloatingButton = Library.Flags["Show Floating Button"]
+							if ShowFloatingButton == nil then
+								ShowFloatingButton = true
+							end
+
+							if Library.FloatingButtonHolder then
+								Library.FloatingButtonHolder.Instance.Enabled = ShowFloatingButton == true
+							end
+						end
+					end,
+				})
+
+				MenuSetting_Section:Toggle({
+					Name = "Auto Execute",
+					Flag = "Auto Execute",
+					Description = "Auto execute script after teleport",
+					Default = false,
+					Callback = function(Value)
+						Library.AutoExecute = Value
+
+						if Value and not getgenv().auto_execute then
+							getgenv().auto_execute = true
+							wait(0.3)
+							queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/bao8jl/solixhub/main/loader"))()')
+						end
+					end
+				})
+			end
+		end
+
+		do
+			local ScriptConfig_Section = ConfigsTab:Section({Name = "Script Config", Side = 2})
+
+			local ConfigFolder = Library:GetFolder()
+			local AutoloadPath = GetAutoloadPath()
+
+			local function NotifySuccessConfig(Message)
+				Library:Notification({
+					Name = "Success",
+					Description = Message,
+					Color = Color3.fromRGB(0, 255, 0),
+					Duration = 5
+				})
+			end
+
+			local function NotifyErrorConfig(Message)
+				Library:Notification({
+					Name = "Error",
+					Description = Message,
+					Color = Color3.fromRGB(255, 0, 0),
+					Duration = 5
+				})
+			end
+
+			do
+				local Config_Name
+				local Config_Selected
+
+				local Config_Dropdown = ScriptConfig_Section:Dropdown({
+					Name = "Config Select",
+					Flag = "Config Select",
+					Description = "List of the configs",
+					Items = {},
+					Multi = false,
+					Callback = function(Value)
+						Config_Selected = Value
+
+						if Library.AutoloadConfigEnabled and Config_Selected and Config_Selected ~= "" then
 							pcall(function()
-								writefile(GetAutoloadThemeNamePath(), Theme_Selected)
+								writefile(GetAutoloadConfigNamePath(), Config_Selected)
+							end)
+						end
+					end
+				})
+
+				ScriptConfig_Section:Toggle({
+					Name = "Autoload Config On Execute",
+					Flag = "Autoload Config On Execute",
+					Description = "Auto Loads Config On Execute",
+					Default = Library.AutoloadConfigEnabled == true,
+					Callback = function(Value)
+						Library.AutoloadConfigEnabled = Value
+						Library:SaveLocalSettings()
+
+						if Value and Config_Selected and Config_Selected ~= "" then
+							pcall(function()
+								writefile(GetAutoloadConfigNamePath(), Config_Selected)
 							end)
 						elseif not Value then
 							pcall(function()
-								if isfile(GetAutoloadThemeNamePath()) then
-									delfile(GetAutoloadThemeNamePath())
+								if isfile(GetAutoloadConfigNamePath()) then
+									delfile(GetAutoloadConfigNamePath())
 								end
 							end)
 						end
 					end,
 				})
 
-				local Preset_Section = ThemeSetting_Section:Dropdown({
-					Name = "Themes Preset",
-					Flag = "Themes Preset",
-					Description = "Select a theme",
-					Items = {},
-					Default = "Solix",
-					Multi = false,
+				ScriptConfig_Section:Textbox({
+					Name = "Config Name",
+					Flag = "Config Name",
+					Description = "Name of the config",
+					Placeholder = "Config name...",
+					Finished = false,
 					Callback = function(Value)
-						local ThemeData = Library.Themes[Value]
+						Config_Name = Value
+					end
+				})
 
-						if not ThemeData then
-							return
+				ScriptConfig_Section:Button():Add("Create", function()
+					if not Config_Name or Config_Name == "" then
+						return
+					end
+
+					local Success, Error = pcall(function()
+						writefile(ConfigFolder .. Config_Name .. ".json", Library:GetConfig())
+					end)
+
+					if Success then
+						Library:RefreshConfigsList(Config_Dropdown)
+						NotifySuccessConfig("Succesfully created config: " .. Config_Name)
+					else
+						NotifyErrorConfig("Failed to create config: " .. Config_Name .. " " .. tostring(Error))
+					end
+				end):Add("Delete", function()
+					if not Config_Selected then
+						NotifyErrorConfig("Please select a config first")
+						return
+					end
+
+					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
+					local Success, Error = pcall(function()
+						if isfile(ConfigPath) then
+							delfile(ConfigPath)
 						end
+					end)
 
-						for Index, Value in Library.Theme do
-							Library.Theme[Index] = ThemeData[Index]
-							Library:ChangeTheme(Index, ThemeData[Index])
+					if Success then
+						Library:RefreshConfigsList(Config_Dropdown)
+						NotifySuccessConfig("Succesfully deleted config: " .. Config_Selected)
+					else
+						NotifyErrorConfig("Failed to delete config: " .. Config_Selected .. " " .. tostring(Error))
+					end
+				end)
 
-							Theme_Colorpicker[Index]:Set(ThemeData[Index])
-						end
+				ScriptConfig_Section:Button():Add("Load", function()
+					if not Config_Selected then
+						NotifyErrorConfig("Please select a config first")
+						return
+					end
+
+					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
+
+					if not isfile(ConfigPath) then
+						NotifyErrorConfig("Failed to find config: " .. Config_Selected)
+						return
+					end
+
+					local ConfigContent = readfile(ConfigPath)
+					local Success, Error = Library:LoadConfig(ConfigContent)
+
+					if Success then
+						NotifySuccessConfig("Succesfully loaded config: " .. Config_Selected)
+					else
+						NotifyErrorConfig("Failed to load config: " .. (Config_Selected or "Unknown") .. " " .. tostring(Error))
+					end
+				end):Add("Save", function()
+					if not Config_Selected then
+						NotifyErrorConfig("Please select a config first")
+						return
+					end
+
+					local ConfigPath = ConfigFolder .. Config_Selected .. ".json"
+
+					if not isfile(ConfigPath) then
+						NotifyErrorConfig("Failed to find config: " .. Config_Selected)
+						return
+					end
+
+					local Success, Error = pcall(function()
+						writefile(ConfigPath, Library:GetConfig())
+					end)
+
+					if Success then
+						NotifySuccessConfig("Succesfully saved config: " .. Config_Selected)
+					else
+						NotifyErrorConfig("Failed to save config: " .. Config_Selected .. " " .. tostring(Error))
+					end
+				end)
+
+				ScriptConfig_Section:Button():Add("Refresh", function()
+					Library:RefreshConfigsList(Config_Dropdown)
+				end)
+
+				ScriptConfig_Section:Button():Add("Set Autoload", function()
+					local Success, Error = pcall(function()
+						writefile(AutoloadPath, Library:GetConfig())
+					end)
+
+					if Success then
+						NotifySuccessConfig("Autoload set to current config")
+					else
+						NotifyErrorConfig("Failed to set autoload: " .. tostring(Error))
+					end
+				end):Add("Remove Autoload", function()
+					local Success, Error = pcall(function()
+						writefile(AutoloadPath, "")
+					end)
+
+					if Success then
+						NotifySuccessConfig("Succesfully removed autoload")
+					else
+						NotifyErrorConfig("Failed to remove autoload: " .. tostring(Error))
+					end
+				end)
+
+				local Pasted_Config = ""
+
+				ScriptConfig_Section:Textbox({
+					Name = "Paste Shared Config",
+					Flag = "Paste Shared Config",
+					Description = "Press Enter after pasting!",
+					Placeholder = "Paste config here...",
+					Finished = true,
+					Callback = function(Value)
+						Pasted_Config = Value
 					end
 				})
 
-				for Index, Value in Library.Themes do
-					Preset_Section:Add(Index)
-				end
+				ScriptConfig_Section:Button():Add("Share Config", function()
+					local CurrentConfig = Library:GetConfig()
 
-				Library:RefreshThemeList(Theme_Dropdown)
-			end
-		end
+					local Success, Error = pcall(setclipboard, CurrentConfig:gsub('https://discord%.com/api/webhooks/%d+/%S+', ''))
 
-		do
-			local KeyInfo_Section = AccountTab:Section({Name = "Key Info", Side = 2})
-
-			Library:GetDataFromLuarmor(KeyInfo_Section)
-		end
-
-		Library:CreateFontSettingsSection(MenuTab, { Side = 2 })
-
-		do
-			local Game_Section = GameTab:Section({Name = "Game", Side = 1})
-			local TeleportService = cloneref(game:GetService("TeleportService"))
-
-			local function NotifyGame(Message, IsSuccess)
-				Library:Notification({
-					Name = IsSuccess and "Success" or "Error",
-					Description = Message,
-					Color = IsSuccess and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
-					Duration = 4,
-				})
-			end
-
-			local function CopyToClipboard(Text, Label)
-				local Success, Error = pcall(setclipboard, Text)
-
-				if Success then
-					NotifyGame("Copied " .. Label .. " to clipboard", true)
-				else
-					NotifyGame("Failed to copy " .. Label .. ": " .. tostring(Error), false)
-				end
-			end
-
-			Game_Section:Button():Add("Rejoin", function()
-				local Success, Error = pcall(function()
-					TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-				end)
-
-				if Success then
-					NotifyGame("Rejoining current server...", true)
-				else
-					NotifyGame("Failed to rejoin: " .. tostring(Error), false)
-				end
-			end)
-
-			Game_Section:Button():Add("Server Hop", function()
-				local Success, Error = pcall(function()
-					TeleportService:Teleport(game.PlaceId, LocalPlayer)
-				end)
-
-				if Success then
-					NotifyGame("Server hopping...", true)
-				else
-					NotifyGame("Failed to server hop: " .. tostring(Error), false)
-				end
-			end)
-
-			Game_Section:Button():Add("Copy Place Id", function()
-				CopyToClipboard(tostring(game.PlaceId), "Place Id")
-			end):Add("Copy Game Id", function()
-				CopyToClipboard(tostring(game.GameId), "Game Id")
-			end)
-
-			Game_Section:Button():Add("Copy Job Id", function()
-				CopyToClipboard(tostring(game.JobId), "Job Id")
-			end):Add("Copy Join Code", function()
-				local JoinCode = "roblox://experiences/start?placeId=" .. tostring(game.PlaceId) .. "&gameInstanceId=" .. tostring(game.JobId)
-				CopyToClipboard(JoinCode, "Join Code")
-			end)
-		end
-
-		do
-			local MenuSetting_Section = MenuTab:Section({Name = "Menu Setting", Side = 1})
-
-			do
-				MenuSetting_Section:Button():Add("Unload", function()
-					Library:Unload()
-				end)
-
-				MenuSetting_Section:Label("Menu keybind", "Keybind to open/close the menu"):Keybind({
-					Name = "Menu Keybind",
-					Flag = "Menu Keybind",
-					Default = Enum.KeyCode.RightControl,
-					Mode = "Toggle",
-					Callback = function(Value)
-						Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
+					if Success then
+						NotifySuccessConfig("Config copied to clipboard (webhooks removed)")
+					else
+						NotifyErrorConfig("Failed to copy config: " .. tostring(Error))
 					end
-				})
-
-				MenuSetting_Section:Slider({
-					Name = "Background Transparency",
-					Flag = "Background Transparency",
-					Description = "Menu background transparency",
-					Min = 0,
-					Max = 1,
-					Default = Library.BackgroundTransparency,
-					Decimals = 0.01,                
-					Callback = function(Value)
-						Library.BackgroundTransparency = Value
-						Window:SetTransparency(Value)
-						KeybindList:SetTransparency(Value)
+				end):Add("Import Pasted", function()
+					if not Pasted_Config or Pasted_Config == "" then
+						NotifyErrorConfig("No config pasted")
+						return
 					end
-				})
 
-				MenuSetting_Section:Slider({
-					Name = "Menu Tween Time",
-					Flag = "Menu Tween Time",
-					Description = "Menu animation tween time",
-					Min = 0,
-					Max = 5,
-					Default = Library.Tween.Time,
-					Decimals = 0.01,                 
-					Callback = function(Value)
+					local Success, Error = Library:LoadConfig(Pasted_Config:gsub('https://discord%.com/api/webhooks/%d+/%S+', ''))
+
+					if Success then
+						NotifySuccessConfig("Succesfully imported config (webhooks removed)")
+					else
+						NotifyErrorConfig("Failed to import config: " .. tostring(Error))
+					end
+				end)
+
+				Library:RefreshConfigsList(Config_Dropdown)
+			end
+		end
+
+		return Settings
+	end
+end
+
+getgenv().Library = Library
+return Libraryk = function(Value)
 						Library.Tween.Time = Value
 					end
 				})
