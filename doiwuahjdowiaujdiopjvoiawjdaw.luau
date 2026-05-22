@@ -1,4 +1,4 @@
-warn("CMONNNN")
+warn("plss speeed")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -295,15 +295,12 @@ local Library do
 			InputBlock = 9998,
 			HolderOpen = 9999,
 			FloatingButtonOpen = 10000,
-			Cursor = 10001,
 		},
 		MouseStateBeforeOpen = nil,
-		MouseUnlockConnection = nil,
-		DefaultCursor = nil,
-		DefaultCursorImage = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
-		DefaultCursorImageFallback = "rbxasset://textures/Cursors/KeyboardMouse/ArrowCursor.png",
-		DefaultCursorSize = 64,
-		DefaultCursorOffset = Vector2New(31, 32),
+		MouseCursor = nil,
+		MouseCursorImage = "http://www.roblox.com/asset/?id=5545698398",
+		MouseCursorSize = 36,
+		MouseCursorOffset = 18,
 		SafeMode = false,
 		KeybindEntries = {},
 		BackgroundEffects = nil,
@@ -1381,53 +1378,6 @@ local Library do
 
 	wait()
 
-	Library.CursorGui = Instances:Create("ScreenGui", {
-		Parent = SafeGetUI(),
-		Name = "\0",
-		Enabled = false,
-		DisplayOrder = Library.DisplayOrders.Cursor,
-		IgnoreGuiInset = true,
-		ResetOnSpawn = false,
-		ZIndexBehavior = Enum.ZIndexBehavior.Global,
-	})
-
-	Library.EnsureDefaultCursor = function(self)
-		if self.DefaultCursor and self.DefaultCursor.Instance then
-			return
-		end
-
-		if not self.CursorGui or not self.CursorGui.Instance then
-			return
-		end
-
-		self.DefaultCursor = Instances:Create("ImageLabel", {
-			Parent = self.CursorGui.Instance,
-			Name = "\0",
-			Size = UDim2FromOffset(self.DefaultCursorSize, self.DefaultCursorSize),
-			Position = UDim2FromOffset(0, 0),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			Image = self.DefaultCursorImage,
-			ImageTransparency = 0,
-			ScaleType = Enum.ScaleType.Fit,
-			Visible = false,
-			Active = false,
-			ZIndex = 10001,
-		})
-
-		task.defer(function()
-			if not self.DefaultCursor or not self.DefaultCursor.Instance then
-				return
-			end
-
-			if self.DefaultCursor.Instance.Image == "" and self.DefaultCursorImageFallback then
-				self.DefaultCursor.Instance.Image = self.DefaultCursorImageFallback
-			end
-		end)
-	end
-
-	Library:EnsureDefaultCursor()
-
 	Library.InputBlockGui = Instances:Create("ScreenGui", {
 		Parent = SafeGetUI(),
 		Name = "\0",
@@ -1559,6 +1509,34 @@ local Library do
 		Text = "",
 		ZIndex = 2,
 	})
+
+	Library.MouseCursor = Instances:Create("ImageLabel", {
+		Parent = Library.Holder.Instance,
+		Name = "\0",
+		Visible = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = Library.MouseCursorImage,
+		Size = UDim2FromOffset(Library.MouseCursorSize, Library.MouseCursorSize),
+		ZIndex = 10001,
+		Active = false,
+	})
+
+	Library:Connect(RunService.RenderStepped, function()
+		local MouseCursor = Library.MouseCursor
+
+		if not MouseCursor or not MouseCursor.Instance or not Library.WindowOpenState then
+			return
+		end
+
+		local MouseLocation = GetMouseLocation()
+		local Offset = Library.MouseCursorOffset
+
+		MouseCursor.Instance.Position = UDim2FromOffset(
+			MouseLocation.X - Offset,
+			MouseLocation.Y - Offset
+		)
+	end)
 
 	Library.NotifHolder = Instances:Create("Frame", {
 		Parent = Library.Holder.Instance,
@@ -1805,15 +1783,6 @@ local Library do
 			self.FloatingButtonHolder.Instance:Destroy()
 		end
 
-		if self.CursorGui and self.CursorGui.Instance then
-			pcall(function()
-				self.CursorGui.Instance:Destroy()
-			end)
-			self.CursorGui = nil
-		end
-
-		self.DefaultCursor = nil
-
 		if self.WatermarkGui then
 			self.WatermarkGui:Clean()
 		end
@@ -1838,10 +1807,6 @@ local Library do
 		self.InputBlocker = nil
 		self:ApplyWindowInputState(false)
 		self:ApplyMouseForMenu(false)
-
-		if self.DefaultCursor and self.DefaultCursor.Instance then
-			self.DefaultCursor.Instance.Visible = false
-		end
 
 		pcall(function()
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -2197,60 +2162,24 @@ local Library do
 	end
 
 	Library.ApplyMouseForMenu = function(self, IsOpen)
-		if self.MouseUnlockConnection then
-			pcall(function()
-				self.MouseUnlockConnection:Disconnect()
-			end)
-			self.MouseUnlockConnection = nil
-		end
-
-		self:EnsureDefaultCursor()
-
-		if self.CursorGui and self.CursorGui.Instance then
-			self.CursorGui.Instance.Enabled = IsOpen and true or false
-		end
-
 		if IsOpen then
 			self.MouseStateBeforeOpen = {
 				MouseBehavior = UserInputService.MouseBehavior,
 				MouseIconEnabled = UserInputService.MouseIconEnabled,
 			}
 
-			local function UpdateMenuCursor()
-				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-				UserInputService.MouseIconEnabled = false
-
-				if not UserInputService.MouseEnabled or not self.DefaultCursor or not self.DefaultCursor.Instance then
-					return
-				end
-
-				local MouseLocation = GetMouseLocation()
-				local Offset = self.DefaultCursorOffset
-
-				self.DefaultCursor.Instance.Visible = true
-				self.DefaultCursor.Instance.Position = UDim2FromOffset(
-					MouseLocation.X - Offset.X,
-					MouseLocation.Y - Offset.Y
-				)
-			end
-
-			UpdateMenuCursor()
-
-			self.MouseUnlockConnection = RunService.RenderStepped:Connect(function()
-				if self.WindowOpenState then
-					UpdateMenuCursor()
-				end
-			end)
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = false
+		elseif self.MouseStateBeforeOpen then
+			UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
+			self.MouseStateBeforeOpen = nil
 		else
-			if self.DefaultCursor and self.DefaultCursor.Instance then
-				self.DefaultCursor.Instance.Visible = false
-			end
+			UserInputService.MouseIconEnabled = true
+		end
 
-			if self.MouseStateBeforeOpen then
-				UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
-				UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
-				self.MouseStateBeforeOpen = nil
-			end
+		if self.MouseCursor and self.MouseCursor.Instance then
+			self.MouseCursor.Instance.Visible = self.WindowOpenState
 		end
 	end
 
@@ -2279,7 +2208,6 @@ local Library do
 		Track(self.OtherHolder and self.OtherHolder.Instance)
 		Track(self.UnusedHolder and self.UnusedHolder.Instance)
 		Track(self.WatermarkGui and self.WatermarkGui.Instance)
-		Track(self.CursorGui and self.CursorGui.Instance)
 
 		return Guis
 	end
@@ -2297,10 +2225,6 @@ local Library do
 
 		if self.WatermarkGui and self.WatermarkGui.Instance then
 			TableInsert(Roots, self.WatermarkGui.Instance)
-		end
-
-		if self.CursorGui and self.CursorGui.Instance then
-			TableInsert(Roots, self.CursorGui.Instance)
 		end
 
 		return Roots
