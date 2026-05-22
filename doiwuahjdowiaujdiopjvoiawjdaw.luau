@@ -1,4 +1,4 @@
-print("kinda hungry")
+warn("want some burek fr")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -254,7 +254,7 @@ local Library do
 
 		FadeSpeed = 0.2,
 
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = 0,
 
 		Folders_Path = {
 			Directory = "solixhub",
@@ -310,7 +310,7 @@ local Library do
 		ExternalGuiStates = {},
 		BackgroundDarkenEnabled = true,
 		BackgroundEffect = "Snow",
-		BackgroundEffectOptions = {"None", "Snow", "Rain", "Shooting Stars"},
+		BackgroundEffectOptions = {"None", "Snow", "Rain"},
 		MainWindowFrame = nil,
 
 		Fonts = {
@@ -2591,94 +2591,6 @@ local Library do
 			end)
 		end
 
-		local function SpawnShootingStar(Holder, Width, Height)
-			local Length = math.random(110, 190)
-			local Rotation = math.random(-52, -30)
-			local Travel = math.random(math.floor(math.max(Width, Height) * 0.45), math.floor(math.max(Width, Height) * 0.85))
-			local Angle = math.rad(Rotation)
-			local DeltaX = math.cos(Angle) * Travel
-			local DeltaY = -math.sin(Angle) * Travel
-
-			local StartX = math.random(-Length, math.floor(Width * 0.35))
-			local StartY = math.random(-60, math.floor(Height * 0.3))
-			local EndX = StartX + DeltaX
-			local EndY = StartY + DeltaY
-
-			local Container = InstanceNew("Frame")
-			Container.Name = "\0"
-			Container.Parent = Holder
-			Container.BackgroundTransparency = 1
-			Container.BorderSizePixel = 0
-			Container.AnchorPoint = Vector2New(0, 0.5)
-			Container.Size = UDim2FromOffset(Length, 5)
-			Container.Position = UDim2FromOffset(StartX, StartY)
-			Container.Rotation = Rotation
-			Container.ZIndex = 2
-
-			local Tail = InstanceNew("Frame")
-			Tail.Name = "\0"
-			Tail.Parent = Container
-			Tail.BackgroundColor3 = FromRGB(255, 255, 255)
-			Tail.BackgroundTransparency = 0
-			Tail.BorderSizePixel = 0
-			Tail.Size = UDim2New(1, 0, 1, 0)
-			Tail.ZIndex = 2
-
-			local TailGradient = InstanceNew("UIGradient")
-			TailGradient.Parent = Tail
-			TailGradient.Rotation = 0
-			TailGradient.Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, FromRGB(255, 255, 255)),
-				ColorSequenceKeypoint.new(1, FromRGB(255, 255, 255)),
-			})
-			TailGradient.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.25, 0.65),
-				NumberSequenceKeypoint.new(0.55, 0.15),
-				NumberSequenceKeypoint.new(1, 0),
-			})
-
-			local Head = InstanceNew("Frame")
-			Head.Name = "\0"
-			Head.Parent = Container
-			Head.AnchorPoint = Vector2New(1, 0.5)
-			Head.Position = UDim2New(1, 1, 0.5, 0)
-			Head.Size = UDim2FromOffset(6, 6)
-			Head.BackgroundColor3 = FromRGB(255, 255, 255)
-			Head.BackgroundTransparency = 0
-			Head.BorderSizePixel = 0
-			Head.ZIndex = 3
-
-			Instances:Create("UICorner", {
-				Parent = Head,
-				Name = "\0",
-				CornerRadius = UDimNew(1, 0),
-			})
-
-			local Duration = math.random(35, 65) / 100
-			local MoveTween = TweenService:Create(Container, TweenInfo.new(Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
-				Position = UDim2FromOffset(EndX, EndY),
-			})
-
-			local FadeTween = TweenService:Create(Tail, TweenInfo.new(Duration * 0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				BackgroundTransparency = 1,
-			})
-
-			local HeadFadeTween = TweenService:Create(Head, TweenInfo.new(Duration * 0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, Duration * 0.15), {
-				BackgroundTransparency = 1,
-			})
-
-			MoveTween:Play()
-			FadeTween:Play()
-			HeadFadeTween:Play()
-
-			Library:Connect(MoveTween.Completed, function()
-				if Container and Container.Parent then
-					Container:Destroy()
-				end
-			end)
-		end
-
 		ResizeBackground()
 		self:Connect(Camera:GetPropertyChangedSignal("ViewportSize"), ResizeBackground, "BackgroundEffectsResize")
 
@@ -2712,9 +2624,6 @@ local Library do
 				elseif EffectType == "Rain" then
 					SpawnRain(Effects, Holder, Width, Height)
 					wait(0.04)
-				elseif EffectType == "Shooting Stars" then
-					SpawnShootingStar(Holder, Width, Height)
-					wait(math.random(6, 14) / 10)
 				else
 					wait(0.1)
 				end
@@ -2812,6 +2721,10 @@ local Library do
 			Value = Value:match("^%s*(.-)%s*$")
 		end
 
+		if Value == "Shooting Stars" then
+			Value = "Snow"
+		end
+
 		local IsValid = false
 		for _, Option in self.BackgroundEffectOptions do
 			if Option == Value then
@@ -2903,7 +2816,11 @@ local Library do
 			end
 
 			if type(Decoded.BackgroundEffect) == "string" then
-				self:SetBackgroundEffect(Decoded.BackgroundEffect, true)
+				local Effect = Decoded.BackgroundEffect
+				if Effect == "Shooting Stars" then
+					Effect = "Snow"
+				end
+				self:SetBackgroundEffect(Effect, true)
 			elseif Decoded.BackgroundSnowEnabled == false then
 				self:SetBackgroundEffect("None", true)
 			elseif Decoded.BackgroundSnowEnabled == true then
@@ -5222,15 +5139,18 @@ local Library do
 			Dynamic = Dynamic,
 			DynamicOptions = DynamicOptions,
 			BrandName = BrandName,
+			IsVisible = false,
 		}
 
 		local Items = {} do
 			Items["WatermarkGui"] = Instances:Create("ScreenGui", {
 				Parent = SafeGetUI(),
 				Name = "\0",
-				DisplayOrder = 9999,
+				Enabled = true,
+				DisplayOrder = Library.DisplayOrders.FloatingButtonOpen,
+				IgnoreGuiInset = true,
 				ResetOnSpawn = false,
-				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+				ZIndexBehavior = Enum.ZIndexBehavior.Global,
 			})
 
 			Items["Frame"] = Instances:Create("Frame", {
@@ -5392,8 +5312,47 @@ local Library do
 			RefreshLabel()
 		end
 
+		local function ClampWatermarkPosition()
+			local Frame = Items["Frame"] and Items["Frame"].Instance
+			local Camera = Workspace.CurrentCamera
+
+			if not Frame or not Camera then
+				return
+			end
+
+			local Viewport = Camera.ViewportSize
+			local Size = Frame.AbsoluteSize
+			local Position = Frame.Position
+			local X = Position.X.Offset
+			local Y = Position.Y.Offset
+
+			if Size.X <= 0 or Size.Y <= 0 then
+				Frame.Position = UDim2FromOffset(5, 5)
+				return
+			end
+
+			if X < -Size.X or X > Viewport.X or Y < -Size.Y or Y > Viewport.Y then
+				Frame.Position = UDim2FromOffset(5, 5)
+				SavePosition()
+			end
+		end
+
 		function Watermark:SetVisibility(Bool)
-			Items["Frame"].Instance.Visible = Bool
+			local Visible = Bool == true
+			Watermark.IsVisible = Visible
+
+			if Items["WatermarkGui"] and Items["WatermarkGui"].Instance then
+				Items["WatermarkGui"].Instance.Enabled = Visible
+			end
+
+			if Items["Frame"] and Items["Frame"].Instance then
+				Items["Frame"].Instance.Visible = Visible
+
+				if Visible then
+					ClampWatermarkPosition()
+					RefreshLabel()
+				end
+			end
 		end
 
 		function Watermark:SetDynamic(Enabled, Options)
@@ -5419,6 +5378,7 @@ local Library do
 		LoadPosition()
 		RefreshLabel()
 		Watermark:SetCenter()
+		Watermark:SetVisibility(false)
 
 		Library:Connect(RunService.RenderStepped, function(DeltaTime)
 			if not Items["Frame"].Instance.Visible then
@@ -5446,6 +5406,7 @@ local Library do
 		end)
 
 		Library.WatermarkGui = Items["WatermarkGui"]
+		Library.WatermarkInstance = Watermark
 		self:ApplyFontSettings()
 
 		return Watermark
@@ -11331,7 +11292,7 @@ local Library do
 		Section:Dropdown({
 			Name = "Font",
 			Flag = "UI Font",
-			Description = "List of Fonts To Use On The SolixHub Ui", 
+			Description = "List of fonts to use on the Solix Hub UI",
 			Items = self:GetFontNames(),
 			Default = self.FontSettings.Name,
 			Multi = false,
@@ -11346,10 +11307,47 @@ local Library do
 						})
 					end
 				end)
-			end
+			end,
 		})
 
-		
+		Section:Slider({
+			Name = "Main Text Size",
+			Flag = "UI Main Text Size",
+			Description = "Default UI text size",
+			Min = 10,
+			Max = 20,
+			Default = self.FontSettings.TextSize,
+			Decimals = 0.1,
+			Callback = function(Value)
+				self:SetTextSizes(Value, nil, nil)
+			end,
+		})
+
+		Section:Slider({
+			Name = "Small Text Size",
+			Flag = "UI Small Text Size",
+			Description = "Small labels and hints",
+			Min = 8,
+			Max = 16,
+			Default = self.FontSettings.SmallTextSize,
+			Decimals = 0.1,
+			Callback = function(Value)
+				self:SetTextSizes(nil, Value, nil)
+			end,
+		})
+
+		Section:Slider({
+			Name = "Title Text Size",
+			Flag = "UI Title Text Size",
+			Description = "Titles and headers",
+			Min = 14,
+			Max = 28,
+			Default = self.FontSettings.TitleTextSize,
+			Decimals = 0.1,
+			Callback = function(Value)
+				self:SetTextSizes(nil, nil, Value)
+			end,
+		})
 
 		defer(function()
 			self:ApplyFontSettings()
@@ -11364,6 +11362,7 @@ local Library do
 		local AccountTab = Settings:SubPage({Name = "Account"})
 		local ThemesTab = Settings:SubPage({Name = "Themes"})
 		local MenuTab = Settings:SubPage({Name = "Menu"})
+		local FontTab = Settings:SubPage({Name = "Font"})
 		local GameTab = Settings:SubPage({Name = "Game"})
 		local ConfigsTab = Settings:SubPage({Name = "Configs"})
 
@@ -11680,7 +11679,11 @@ local Library do
 				Description = "Show/hide the Watermark",
 				Default = false,
 				Callback = function(Value)
-					Watermark:SetVisibility(Value)
+					local ActiveWatermark = Watermark or Library.WatermarkInstance
+
+					if ActiveWatermark and ActiveWatermark.SetVisibility then
+						ActiveWatermark:SetVisibility(Value == true)
+					end
 				end,
 			})
 
@@ -11789,6 +11792,13 @@ local Library do
 						queueonteleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/bao8jl/solixhub/main/loader"))()')
 					end
 				end,
+			})
+		end
+
+		do
+			Library:CreateFontSettingsSection(FontTab, {
+				Name = "Font",
+				Side = 1,
 			})
 		end
 
