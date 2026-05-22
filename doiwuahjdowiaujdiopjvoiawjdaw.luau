@@ -1,4 +1,4 @@
-warn("Mokey")
+warn("Bruh")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -9410,10 +9410,6 @@ local Library do
 				end
 			end
 
-			if Entry.Start > Entry["End"] then
-				Entry["End"] = Entry.Start
-			end
-
 			UpdateEntryFlags(Entry)
 			RefreshSpeedVisual(Entry)
 			RefreshStartVisual(Entry)
@@ -9500,21 +9496,9 @@ local Library do
 				RefreshSpeedVisual(Entry)
 			elseif Kind == "Start" then
 				Entry.Start = ClampRange(Entry, Entry.StartMin + (Entry.StartMax - Entry.StartMin) * SizeX, Entry.StartMin, Entry.StartMax)
-
-				if Entry.Start > Entry["End"] then
-					Entry["End"] = Entry.Start
-					RefreshEndVisual(Entry)
-				end
-
 				RefreshStartVisual(Entry)
 			else
 				Entry["End"] = ClampRange(Entry, Entry.EndMin + (Entry.EndMax - Entry.EndMin) * SizeX, Entry.EndMin, Entry.EndMax)
-
-				if Entry["End"] < Entry.Start then
-					Entry.Start = Entry["End"]
-					RefreshStartVisual(Entry)
-				end
-
 				RefreshEndVisual(Entry)
 			end
 
@@ -11296,7 +11280,7 @@ local Library do
 				ThemeConfig_Section:Toggle({
 					Name = "Autoload Theme On Execute",
 					Flag = "Autoload Theme On Execute",
-					Description = "Automatically load the selected theme when the script runs",
+					Description = "Auto Loads Theme On Execute",
 					Default = Library.AutoloadThemeEnabled == true,
 					Callback = function(Value)
 						Library.AutoloadThemeEnabled = Value
@@ -11587,7 +11571,7 @@ local Library do
 				MenuSetting_Section:Toggle({
 					Name = "Safe Mode",
 					Flag = "Safe Mode",
-					Description = "Hide the UI and floating button on execute until you open it manually",
+					Description = "Auto Hides Ui On Execute",
 					Default = Library.SafeMode == true,
 					Callback = function(Value)
 						Library.SafeMode = Value
@@ -11674,7 +11658,7 @@ local Library do
 				ScriptConfig_Section:Toggle({
 					Name = "Autoload Config On Execute",
 					Flag = "Autoload Config On Execute",
-					Description = "Automatically load the selected config when the script runs",
+					Description = "Auto Loads Config On Execute",
 					Default = Library.AutoloadConfigEnabled == true,
 					Callback = function(Value)
 						Library.AutoloadConfigEnabled = Value
