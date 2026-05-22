@@ -1,4 +1,4 @@
-print("cmonnn hruhh")
+warn("Mokey")
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -9207,109 +9207,20 @@ local Library do
 			Page = self.Page,
 			Section = self,
 
-			Name = Data.Name or Data.name or "Sub Slider",
+			Name = Data.Name or Data.name or nil,
 			Description = Data.Description or Data.description or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
-			Lifetime = Data.Lifetime or Data.lifetime or false,
 
-			Speed = Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or 1,
-			Start = Data.StartDefault or Data.start_default or 0,
-			["End"] = Data.EndDefault or Data.end_default or 100,
-
-			SpeedMin = Data.SpeedMin or Data.speed_min or 0,
-			SpeedMax = Data.SpeedMax or Data.speed_max or 10,
-			StartMin = Data.StartMin or Data.start_min or 0,
-			StartMax = Data.StartMax or Data.start_max or 100,
-			EndMin = Data.EndMin or Data.end_min or 0,
-			EndMax = Data.EndMax or Data.end_max or 100,
-
-			SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or 0.01,
-			RangeDecimals = Data.RangeDecimals or Data.range_decimals or 1,
-			SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or "",
-
-			Callback = Data.Callback or Data.callback or function() end,
-			Disabled = false,
-			Sliding = nil,
+			Entries = {},
+			SlidingEntry = nil,
+			SlidingKind = nil,
 		}
 
 		local Items = {}
 		local TRACK_HEIGHT = 22
 		local RANGE_GAP = 6
-
-		local function FormatSpeed(Value)
-			return string.format("%g", Value) .. SubSlider.SpeedSuffix
-		end
-
-		local function FormatPercent(Value)
-			return string.format("%g", Value) .. "%"
-		end
-
-		local function ClampSpeed(Value)
-			local Clamped = MathClamp(Value, SubSlider.SpeedMin, SubSlider.SpeedMax)
-
-			if SubSlider.SpeedDecimals then
-				local Offset = Clamped - SubSlider.SpeedMin
-				local StepFrac = Offset / SubSlider.SpeedDecimals
-				local NearestStep = MathFloor(StepFrac + 0.5)
-
-				Clamped = SubSlider.SpeedMin + NearestStep * SubSlider.SpeedDecimals
-				Clamped = MathClamp(Clamped, SubSlider.SpeedMin, SubSlider.SpeedMax)
-			else
-				Clamped = Library:Round(Clamped, 0)
-			end
-
-			return Clamped
-		end
-
-		local function ClampRange(Value, Min, Max)
-			local Clamped = MathClamp(Value, Min, Max)
-
-			if SubSlider.RangeDecimals then
-				local Offset = Clamped - Min
-				local StepFrac = Offset / SubSlider.RangeDecimals
-				local NearestStep = MathFloor(StepFrac + 0.5)
-
-				Clamped = Min + NearestStep * SubSlider.RangeDecimals
-				Clamped = MathClamp(Clamped, Min, Max)
-			else
-				Clamped = Library:Round(Clamped, 0)
-			end
-
-			return Clamped
-		end
-
-		local function UpdateFlags()
-			Library.Flags[SubSlider.Flag] = {
-				Speed = SubSlider.Speed,
-				Start = SubSlider.Start,
-				["End"] = SubSlider["End"],
-			}
-		end
-
-		local function RefreshSpeedVisual()
-			local Alpha = (SubSlider.Speed - SubSlider.SpeedMin) / (SubSlider.SpeedMax - SubSlider.SpeedMin)
-			Items["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
-			})
-			Items["SpeedLabel"].Instance.Text = "speed: " .. FormatSpeed(SubSlider.Speed)
-		end
-
-		local function RefreshStartVisual()
-			local Alpha = (SubSlider.Start - SubSlider.StartMin) / (SubSlider.StartMax - SubSlider.StartMin)
-			Items["StartAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
-			})
-			Items["StartLabel"].Instance.Text = "start: " .. FormatPercent(SubSlider.Start)
-		end
-
-		local function RefreshEndVisual()
-			local Alpha = (SubSlider["End"] - SubSlider.EndMin) / (SubSlider.EndMax - SubSlider.EndMin)
-			Items["EndAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
-			})
-			Items["EndLabel"].Instance.Text = "end: " .. FormatPercent(SubSlider["End"])
-		end
+		local BLOCK_GAP = 8
 
 		Items["SubSliderContainer"] = Instances:Create("Frame", {
 			Parent = SubSlider.Section.Items["Content"].Instance,
@@ -9329,7 +9240,28 @@ local Library do
 			FillDirection = Enum.FillDirection.Vertical,
 		})
 
-		if SubSlider.Name ~= "" then
+		Items["SubSliderRow"] = Instances:Create("Frame", {
+			Parent = Items["SubSliderContainer"].Instance,
+			Name = "\0",
+			Size = UDim2New(1, 0, 0, 0),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			AutomaticSize = Enum.AutomaticSize.Y,
+			ZIndex = 2,
+			LayoutOrder = 2,
+		})
+
+		Instances:Create("UIListLayout", {
+			Parent = Items["SubSliderRow"].Instance,
+			Name = "\0",
+			Padding = UDimNew(0, BLOCK_GAP),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
+		})
+
+		if SubSlider.Name and SubSlider.Name ~= "" then
 			Items["Text"] = Instances:Create("TextLabel", {
 				Parent = Items["SubSliderContainer"].Instance,
 				Name = "\0",
@@ -9369,13 +9301,134 @@ local Library do
 			Library:BindDescriptionColor(Items["Description"], SubSlider.DescriptionColor)
 		end
 
-		local function CreateTrack(Parent, LayoutOrder, ZIndex)
+		local function FormatSpeed(Entry, Value)
+			return string.format("%g", Value) .. Entry.SpeedSuffix
+		end
+
+		local function FormatPercent(Value)
+			return string.format("%g", Value) .. "%"
+		end
+
+		local function ClampSpeed(Entry, Value)
+			local Clamped = MathClamp(Value, Entry.SpeedMin, Entry.SpeedMax)
+
+			if Entry.SpeedDecimals then
+				local Offset = Clamped - Entry.SpeedMin
+				local StepFrac = Offset / Entry.SpeedDecimals
+				local NearestStep = MathFloor(StepFrac + 0.5)
+
+				Clamped = Entry.SpeedMin + NearestStep * Entry.SpeedDecimals
+				Clamped = MathClamp(Clamped, Entry.SpeedMin, Entry.SpeedMax)
+			else
+				Clamped = Library:Round(Clamped, 0)
+			end
+
+			return Clamped
+		end
+
+		local function ClampRange(Entry, Value, Min, Max)
+			local Clamped = MathClamp(Value, Min, Max)
+
+			if Entry.RangeDecimals then
+				local Offset = Clamped - Min
+				local StepFrac = Offset / Entry.RangeDecimals
+				local NearestStep = MathFloor(StepFrac + 0.5)
+
+				Clamped = Min + NearestStep * Entry.RangeDecimals
+				Clamped = MathClamp(Clamped, Min, Max)
+			else
+				Clamped = Library:Round(Clamped, 0)
+			end
+
+			return Clamped
+		end
+
+		local function UpdateEntryFlags(Entry)
+			Library.Flags[Entry.Flag] = {
+				Speed = Entry.Speed,
+				Start = Entry.Start,
+				["End"] = Entry["End"],
+			}
+		end
+
+		local function RefreshSpeedVisual(Entry)
+			local EntryItems = Entry.Items
+			local Alpha = (Entry.Speed - Entry.SpeedMin) / (Entry.SpeedMax - Entry.SpeedMin)
+
+			EntryItems["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			EntryItems["SpeedLabel"].Instance.Text = "speed: " .. FormatSpeed(Entry, Entry.Speed)
+		end
+
+		local function RefreshStartVisual(Entry)
+			local EntryItems = Entry.Items
+			local Alpha = (Entry.Start - Entry.StartMin) / (Entry.StartMax - Entry.StartMin)
+
+			EntryItems["StartAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			EntryItems["StartLabel"].Instance.Text = "start: " .. FormatPercent(Entry.Start)
+		end
+
+		local function RefreshEndVisual(Entry)
+			local EntryItems = Entry.Items
+			local Alpha = (Entry["End"] - Entry.EndMin) / (Entry.EndMax - Entry.EndMin)
+
+			EntryItems["EndAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
+			})
+			EntryItems["EndLabel"].Instance.Text = "end: " .. FormatPercent(Entry["End"])
+		end
+
+		local function FireEntryCallback(Entry)
+			if Entry.Callback then
+				Library:SafeCall(Entry.Callback, Entry.Speed, Entry.Start, Entry["End"])
+			end
+		end
+
+		local function EntrySet(Entry, Value)
+			if Entry.Disabled then
+				return
+			end
+
+			if not Library:CheckLifetime(Entry) then
+				return
+			end
+
+			if type(Value) == "table" then
+				if Value.Speed ~= nil then
+					Entry.Speed = ClampSpeed(Entry, Value.Speed)
+				end
+
+				if Value.Start ~= nil then
+					Entry.Start = ClampRange(Entry, Value.Start, Entry.StartMin, Entry.StartMax)
+				end
+
+				if Value["End"] ~= nil or Value.End ~= nil then
+					Entry["End"] = ClampRange(Entry, Value["End"] or Value.End, Entry.EndMin, Entry.EndMax)
+				end
+			end
+
+			if Entry.Start > Entry["End"] then
+				Entry["End"] = Entry.Start
+			end
+
+			UpdateEntryFlags(Entry)
+			RefreshSpeedVisual(Entry)
+			RefreshStartVisual(Entry)
+			RefreshEndVisual(Entry)
+			FireEntryCallback(Entry)
+			Library:SaveAutoloadIfEnabled()
+		end
+
+		local function CreateTrack(Parent, LayoutOrder, ZIndex, Size)
 			local TrackItems = {}
 
 			TrackItems["Track"] = Instances:Create("TextButton", {
 				Parent = Parent,
 				Name = "\0",
-				Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+				Size = Size or UDim2New(1, 0, 0, TRACK_HEIGHT),
 				BackgroundColor3 = Library.Theme["Element"],
 				BorderSizePixel = 0,
 				Text = "",
@@ -9421,231 +9474,257 @@ local Library do
 			return TrackItems
 		end
 
-		Items["SpeedTrack"] = CreateTrack(Items["SubSliderContainer"].Instance, 2, 2)
-		Items["SpeedAccent"] = Items["SpeedTrack"]["Accent"]
-		Items["SpeedLabel"] = Items["SpeedTrack"]["Label"]
-		Items["SpeedButton"] = Items["SpeedTrack"]["Track"]
-
-		Items["RangeRow"] = Instances:Create("Frame", {
-			Parent = Items["SubSliderContainer"].Instance,
-			Name = "\0",
-			Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
-			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
-			ZIndex = 2,
-			LayoutOrder = 3,
-		})
-
-		Instances:Create("UIListLayout", {
-			Parent = Items["RangeRow"].Instance,
-			Name = "\0",
-			Padding = UDimNew(0, RANGE_GAP),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			FillDirection = Enum.FillDirection.Horizontal,
-		})
-
-		Items["StartTrack"] = CreateTrack(Items["RangeRow"].Instance, 0, 2)
-		Items["StartAccent"] = Items["StartTrack"]["Accent"]
-		Items["StartLabel"] = Items["StartTrack"]["Label"]
-		Items["StartButton"] = Items["StartTrack"]["Track"]
-		Items["StartButton"].Instance.Size = UDim2New(0.5, -RANGE_GAP / 2, 1, 0)
-
-		Items["EndTrack"] = CreateTrack(Items["RangeRow"].Instance, 1, 2)
-		Items["EndAccent"] = Items["EndTrack"]["Accent"]
-		Items["EndLabel"] = Items["EndTrack"]["Label"]
-		Items["EndButton"] = Items["EndTrack"]["Track"]
-		Items["EndButton"].Instance.Size = UDim2New(0.5, -RANGE_GAP / 2, 1, 0)
-
-		local function FireCallback()
-			if SubSlider.Callback then
-				Library:SafeCall(SubSlider.Callback, SubSlider.Speed, SubSlider.Start, SubSlider["End"])
-			end
-		end
-
-		function SubSlider:Set(Value)
-			if SubSlider.Disabled then
+		local function UpdateEntryFromInput(Entry, Kind)
+			if Entry.Disabled or SubSlider.SlidingEntry ~= Entry or SubSlider.SlidingKind ~= Kind then
 				return
 			end
 
-			if not Library:CheckLifetime(SubSlider) then
-				return
+			local EntryItems = Entry.Items
+			local TrackButton
+
+			if Kind == "Speed" then
+				TrackButton = EntryItems["SpeedButton"].Instance
+			elseif Kind == "Start" then
+				TrackButton = EntryItems["StartButton"].Instance
+			else
+				TrackButton = EntryItems["EndButton"].Instance
 			end
 
-			if type(Value) == "table" then
-				if Value.Speed ~= nil then
-					SubSlider.Speed = ClampSpeed(Value.Speed)
+			local MouseLocation = GetMouseLocation()
+			local TrackAbs = TrackButton.AbsolutePosition
+			local TrackSize = TrackButton.AbsoluteSize
+			local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
+
+			if Kind == "Speed" then
+				Entry.Speed = ClampSpeed(Entry, Entry.SpeedMin + (Entry.SpeedMax - Entry.SpeedMin) * SizeX)
+				RefreshSpeedVisual(Entry)
+			elseif Kind == "Start" then
+				Entry.Start = ClampRange(Entry, Entry.StartMin + (Entry.StartMax - Entry.StartMin) * SizeX, Entry.StartMin, Entry.StartMax)
+
+				if Entry.Start > Entry["End"] then
+					Entry["End"] = Entry.Start
+					RefreshEndVisual(Entry)
 				end
 
-				if Value.Start ~= nil then
-					SubSlider.Start = ClampRange(Value.Start, SubSlider.StartMin, SubSlider.StartMax)
+				RefreshStartVisual(Entry)
+			else
+				Entry["End"] = ClampRange(Entry, Entry.EndMin + (Entry.EndMax - Entry.EndMin) * SizeX, Entry.EndMin, Entry.EndMax)
+
+				if Entry["End"] < Entry.Start then
+					Entry.Start = Entry["End"]
+					RefreshStartVisual(Entry)
 				end
 
-				if Value["End"] ~= nil or Value.End ~= nil then
-					SubSlider["End"] = ClampRange(Value["End"] or Value.End, SubSlider.EndMin, SubSlider.EndMax)
+				RefreshEndVisual(Entry)
+			end
+
+			UpdateEntryFlags(Entry)
+			FireEntryCallback(Entry)
+		end
+
+		function SubSlider:Add(Data)
+			Data = Data or {}
+
+			local Entry = {
+				Window = SubSlider.Window,
+				Page = SubSlider.Page,
+				Section = SubSlider.Section,
+
+				Name = Data.Name or Data.name or "Sub Slider",
+				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Lifetime = Data.Lifetime or Data.lifetime or false,
+
+				Speed = Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or 1,
+				Start = Data.StartDefault or Data.start_default or 0,
+				["End"] = Data.EndDefault or Data.end_default or 100,
+
+				SpeedMin = Data.SpeedMin or Data.speed_min or 0,
+				SpeedMax = Data.SpeedMax or Data.speed_max or 10,
+				StartMin = Data.StartMin or Data.start_min or 0,
+				StartMax = Data.StartMax or Data.start_max or 100,
+				EndMin = Data.EndMin or Data.end_min or 0,
+				EndMax = Data.EndMax or Data.end_max or 100,
+
+				SpeedDecimals = Data.SpeedDecimals or Data.speed_decimals or 0.01,
+				RangeDecimals = Data.RangeDecimals or Data.range_decimals or 1,
+				SpeedSuffix = Data.SpeedSuffix or Data.speed_suffix or "",
+
+				Callback = Data.Callback or Data.callback or function() end,
+				Disabled = false,
+				Items = {},
+			}
+
+			local EntryItems = Entry.Items
+
+			EntryItems["Block"] = Instances:Create("Frame", {
+				Parent = Items["SubSliderRow"].Instance,
+				Name = "\0",
+				Size = UDim2New(0, 120, 0, 0),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.Y,
+				ZIndex = 2,
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = EntryItems["Block"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, 4),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Vertical,
+			})
+
+			if Entry.Name and Entry.Name ~= "" then
+				EntryItems["BlockName"] = Instances:Create("TextLabel", {
+					Parent = EntryItems["Block"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, 14),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Text = Entry.Name,
+					TextColor3 = Library.Theme["Text"],
+					TextSize = 12,
+					FontFace = Library.Font,
+					TextTransparency = 0.35,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					ZIndex = 4,
+					LayoutOrder = 0,
+				}):AddToTheme({TextColor3 = "Text"})
+			end
+
+			local SpeedTrack = CreateTrack(EntryItems["Block"].Instance, 1, 2, UDim2New(1, 0, 0, TRACK_HEIGHT))
+			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
+			EntryItems["SpeedLabel"] = SpeedTrack["Label"]
+			EntryItems["SpeedButton"] = SpeedTrack["Track"]
+
+			EntryItems["RangeRow"] = Instances:Create("Frame", {
+				Parent = EntryItems["Block"].Instance,
+				Name = "\0",
+				Size = UDim2New(1, 0, 0, TRACK_HEIGHT),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 2,
+				LayoutOrder = 2,
+			})
+
+			Instances:Create("UIListLayout", {
+				Parent = EntryItems["RangeRow"].Instance,
+				Name = "\0",
+				Padding = UDimNew(0, RANGE_GAP),
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				FillDirection = Enum.FillDirection.Horizontal,
+				HorizontalFlex = Enum.UIFlexAlignment.Fill,
+				VerticalFlex = Enum.UIFlexAlignment.Fill,
+			})
+
+			local StartTrack = CreateTrack(EntryItems["RangeRow"].Instance, 0, 2, UDim2New(1, 0, 1, 0))
+			EntryItems["StartAccent"] = StartTrack["Accent"]
+			EntryItems["StartLabel"] = StartTrack["Label"]
+			EntryItems["StartButton"] = StartTrack["Track"]
+
+			local EndTrack = CreateTrack(EntryItems["RangeRow"].Instance, 1, 2, UDim2New(1, 0, 1, 0))
+			EntryItems["EndAccent"] = EndTrack["Accent"]
+			EntryItems["EndLabel"] = EndTrack["Label"]
+			EntryItems["EndButton"] = EndTrack["Track"]
+
+			function Entry:Set(Value)
+				EntrySet(Entry, Value)
+			end
+
+			function Entry:Get()
+				return Entry.Speed, Entry.Start, Entry["End"]
+			end
+
+			function Entry:SetDisabled(Bool)
+				Entry.Disabled = Bool
+				local Transparency = Bool and 0.6 or 0
+
+				for _, Key in {"SpeedButton", "StartButton", "EndButton"} do
+					EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+				end
+
+				for _, Key in {"SpeedAccent", "StartAccent", "EndAccent"} do
+					EntryItems[Key]:Tween(nil, {BackgroundTransparency = Transparency})
+				end
+
+				for _, Key in {"SpeedLabel", "StartLabel", "EndLabel"} do
+					EntryItems[Key]:Tween(nil, {TextTransparency = Transparency})
 				end
 			end
 
-			if SubSlider.Start > SubSlider["End"] then
-				SubSlider["End"] = SubSlider.Start
+			local function BindTrack(TrackItem, Kind)
+				TrackItem:Connect("InputBegan", function(Input)
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+						if Entry.Disabled or not Library:CheckLifetime(Entry) then
+							return
+						end
+
+						SubSlider.SlidingEntry = Entry
+						SubSlider.SlidingKind = Kind
+						UpdateEntryFromInput(Entry, Kind)
+
+						Entry.InputChangedConnection = Input.Changed:Connect(function()
+							if Input.UserInputState == Enum.UserInputState.End then
+								SubSlider.SlidingEntry = nil
+								SubSlider.SlidingKind = nil
+
+								if Entry.InputChangedConnection then
+									Entry.InputChangedConnection:Disconnect()
+									Entry.InputChangedConnection = nil
+								end
+
+								Library:SaveAutoloadIfEnabled()
+							end
+						end)
+					end
+				end)
 			end
 
-			UpdateFlags()
-			RefreshSpeedVisual()
-			RefreshStartVisual()
-			RefreshEndVisual()
-			FireCallback()
-			Library:SaveAutoloadIfEnabled()
-		end
+			BindTrack(EntryItems["SpeedButton"], "Speed")
+			BindTrack(EntryItems["StartButton"], "Start")
+			BindTrack(EntryItems["EndButton"], "End")
 
-		function SubSlider:Get()
-			return SubSlider.Speed, SubSlider.Start, SubSlider["End"]
-		end
+			Entry:Set({
+				Speed = Entry.Speed,
+				Start = Entry.Start,
+				["End"] = Entry["End"],
+			})
 
-		function SubSlider:SetDisabled(Bool)
-			SubSlider.Disabled = Bool
-			local Transparency = Bool and 0.6 or 0
-
-			for _, Key in {"SpeedButton", "StartButton", "EndButton"} do
-				Items[Key]:Tween(nil, {BackgroundTransparency = Transparency})
-			end
-
-			for _, Key in {"SpeedAccent", "StartAccent", "EndAccent"} do
-				Items[Key]:Tween(nil, {BackgroundTransparency = Transparency})
-			end
-
-			for _, Key in {"SpeedLabel", "StartLabel", "EndLabel"} do
-				Items[Key]:Tween(nil, {TextTransparency = Transparency})
-			end
-		end
-
-		local function BindTrack(TrackKey, Kind)
-			local function UpdateFromInput()
-				if SubSlider.Disabled or SubSlider.Sliding ~= Kind then
+			Library.SetFlags[Entry.Flag] = function(Value)
+				if Entry.Disabled then
 					return
 				end
 
-				local TrackButton = Items[TrackKey].Instance
-				local MouseLocation = GetMouseLocation()
-				local TrackAbs = TrackButton.AbsolutePosition
-				local TrackSize = TrackButton.AbsoluteSize
-				local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
-
-				if Kind == "Speed" then
-					SubSlider.Speed = ClampSpeed(SubSlider.SpeedMin + (SubSlider.SpeedMax - SubSlider.SpeedMin) * SizeX)
-					RefreshSpeedVisual()
-				elseif Kind == "Start" then
-					SubSlider.Start = ClampRange(SubSlider.StartMin + (SubSlider.StartMax - SubSlider.StartMin) * SizeX, SubSlider.StartMin, SubSlider.StartMax)
-					if SubSlider.Start > SubSlider["End"] then
-						SubSlider["End"] = SubSlider.Start
-						RefreshEndVisual()
-					end
-					RefreshStartVisual()
-				else
-					SubSlider["End"] = ClampRange(SubSlider.EndMin + (SubSlider.EndMax - SubSlider.EndMin) * SizeX, SubSlider.EndMin, SubSlider.EndMax)
-					if SubSlider["End"] < SubSlider.Start then
-						SubSlider.Start = SubSlider["End"]
-						RefreshStartVisual()
-					end
-					RefreshEndVisual()
-				end
-
-				UpdateFlags()
-				FireCallback()
+				Entry:Set(Value)
 			end
 
-			Items[TrackKey]:Connect("InputBegan", function(Input)
-				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-					if SubSlider.Disabled or not Library:CheckLifetime(SubSlider) then
-						return
-					end
+			local PageSearchData = Library.SearchItems[SubSlider.Page]
 
-					SubSlider.Sliding = Kind
-					UpdateFromInput()
+			if PageSearchData then
+				TableInsert(PageSearchData, {
+					Element = EntryItems["Block"],
+					Name = Entry.Name,
+				})
+			end
 
-					SubSlider.InputChangedConnection = Input.Changed:Connect(function()
-						if Input.UserInputState == Enum.UserInputState.End then
-							SubSlider.Sliding = nil
-							if SubSlider.InputChangedConnection then
-								SubSlider.InputChangedConnection:Disconnect()
-								SubSlider.InputChangedConnection = nil
-							end
-							Library:SaveAutoloadIfEnabled()
-						end
-					end)
-				end
-			end)
+			TableInsert(SubSlider.Entries, Entry)
+
+			return SubSlider, Entry
 		end
 
-		BindTrack("SpeedButton", "Speed")
-		BindTrack("StartButton", "Start")
-		BindTrack("EndButton", "End")
+		if Data.Flag or Data.SpeedDefault or Data.speed_default or Data.DefaultSpeed or Data.Callback or Data.callback then
+			SubSlider:Add(Data)
+		end
 
 		SubSlider.InputChangedConnection = Library:Connect(UserInputService.InputChanged, function(Input)
-			if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
-				if SubSlider.Sliding == "Speed" then
-					local TrackButton = Items["SpeedButton"].Instance
-					local MouseLocation = GetMouseLocation()
-					local TrackAbs = TrackButton.AbsolutePosition
-					local TrackSize = TrackButton.AbsoluteSize
-					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
-					SubSlider.Speed = ClampSpeed(SubSlider.SpeedMin + (SubSlider.SpeedMax - SubSlider.SpeedMin) * SizeX)
-					UpdateFlags()
-					RefreshSpeedVisual()
-					FireCallback()
-				elseif SubSlider.Sliding == "Start" then
-					local TrackButton = Items["StartButton"].Instance
-					local MouseLocation = GetMouseLocation()
-					local TrackAbs = TrackButton.AbsolutePosition
-					local TrackSize = TrackButton.AbsoluteSize
-					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
-					SubSlider.Start = ClampRange(SubSlider.StartMin + (SubSlider.StartMax - SubSlider.StartMin) * SizeX, SubSlider.StartMin, SubSlider.StartMax)
-					if SubSlider.Start > SubSlider["End"] then
-						SubSlider["End"] = SubSlider.Start
-						RefreshEndVisual()
-					end
-					UpdateFlags()
-					RefreshStartVisual()
-					FireCallback()
-				elseif SubSlider.Sliding == "End" then
-					local TrackButton = Items["EndButton"].Instance
-					local MouseLocation = GetMouseLocation()
-					local TrackAbs = TrackButton.AbsolutePosition
-					local TrackSize = TrackButton.AbsoluteSize
-					local SizeX = MathClamp((MouseLocation.X - TrackAbs.X) / TrackSize.X, 0, 1)
-					SubSlider["End"] = ClampRange(SubSlider.EndMin + (SubSlider.EndMax - SubSlider.EndMin) * SizeX, SubSlider.EndMin, SubSlider.EndMax)
-					if SubSlider["End"] < SubSlider.Start then
-						SubSlider.Start = SubSlider["End"]
-						RefreshStartVisual()
-					end
-					UpdateFlags()
-					RefreshEndVisual()
-					FireCallback()
-				end
-			end
-		end)
-
-		SubSlider:Set({
-			Speed = SubSlider.Speed,
-			Start = SubSlider.Start,
-			["End"] = SubSlider["End"],
-		})
-
-		Library.SetFlags[SubSlider.Flag] = function(Value)
-			if SubSlider.Disabled then
+			if Input.UserInputType ~= Enum.UserInputType.MouseMovement and Input.UserInputType ~= Enum.UserInputType.Touch then
 				return
 			end
 
-			SubSlider:Set(Value)
-		end
-
-		local PageSearchData = Library.SearchItems[SubSlider.Page]
-
-		if PageSearchData then
-			TableInsert(PageSearchData, {
-				Element = Items["SubSliderContainer"],
-				Name = SubSlider.Name,
-			})
-		end
+			if SubSlider.SlidingEntry and SubSlider.SlidingKind then
+				UpdateEntryFromInput(SubSlider.SlidingEntry, SubSlider.SlidingKind)
+			end
+		end)
 
 		function SubSlider:Destroy()
 			if SubSlider.InputChangedConnection then
@@ -9653,15 +9732,20 @@ local Library do
 				SubSlider.InputChangedConnection = nil
 			end
 
-			if Library.SetFlags[SubSlider.Flag] then
-				Library.SetFlags[SubSlider.Flag] = nil
+			for _, Entry in SubSlider.Entries do
+				if Library.SetFlags[Entry.Flag] then
+					Library.SetFlags[Entry.Flag] = nil
+				end
+
+				if Entry.InputChangedConnection then
+					Entry.InputChangedConnection:Disconnect()
+					Entry.InputChangedConnection = nil
+				end
 			end
 
-			for _, Item in Items do
-				if type(Item) == "table" and Item.Instance then
-					Item.Instance:Destroy()
-					Item.Instance = nil
-				end
+			if Items["SubSliderContainer"] and Items["SubSliderContainer"].Instance then
+				Items["SubSliderContainer"].Instance:Destroy()
+				Items["SubSliderContainer"].Instance = nil
 			end
 
 			return SubSlider
