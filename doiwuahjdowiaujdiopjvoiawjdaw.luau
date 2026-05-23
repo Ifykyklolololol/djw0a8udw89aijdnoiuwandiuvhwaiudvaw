@@ -1,4 +1,4 @@
-warn('man')
+warn('pls')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -162,6 +162,203 @@ local Library do
 
 	local LocalPlayer = cloneref(Players.LocalPlayer)
 	local Mouse = cloneref(LocalPlayer:GetMouse())
+
+	local Localization do
+		Localization = {
+			SourceLanguageCode = "en",
+			PlayerTranslator = nil,
+			FallbackTranslator = nil,
+			HasPlayerTranslator = false,
+			HasFallbackTranslator = false,
+			Applying = false,
+			Registry = {},
+		}
+
+		function Localization:ShouldSkipTranslate(Text)
+			if type(Text) ~= "string" or Text == "" then
+				return true
+			end
+
+			if Text:match("^rbxassetid://") or Text:match("^%d+$") or Text:match("^%d+,%s*%d+,%s*%d+$") then
+				return true
+			end
+
+			return false
+		end
+
+		function Localization:Translate(Text, Context)
+			if self:ShouldSkipTranslate(Text) then
+				return Text
+			end
+
+			Context = Context or game
+
+			if self.HasPlayerTranslator and self.PlayerTranslator then
+				local Success, Result = pcall(function()
+					return self.PlayerTranslator:Translate(Context, Text)
+				end)
+
+				if Success and type(Result) == "string" then
+					return Result
+				end
+			end
+
+			if self.HasFallbackTranslator and self.FallbackTranslator then
+				local Success, Result = pcall(function()
+					return self.FallbackTranslator:Translate(Context, Text)
+				end)
+
+				if Success and type(Result) == "string" then
+					return Result
+				end
+			end
+
+			return Text
+		end
+
+		function Localization:FormatByKey(Key, Arguments)
+			if type(Key) ~= "string" or Key == "" then
+				return Key
+			end
+
+			local Translation = nil
+			local FoundTranslation = false
+
+			if self.HasPlayerTranslator and self.PlayerTranslator then
+				FoundTranslation = pcall(function()
+					Translation = self.PlayerTranslator:FormatByKey(Key, Arguments)
+				end)
+			end
+
+			if not FoundTranslation and self.HasFallbackTranslator and self.FallbackTranslator then
+				FoundTranslation = pcall(function()
+					Translation = self.FallbackTranslator:FormatByKey(Key, Arguments)
+				end)
+			end
+
+			if FoundTranslation and type(Translation) == "string" then
+				return Translation
+			end
+
+			return Key
+		end
+
+		function Localization:Register(Instance, Property)
+			if not Instance then
+				return
+			end
+
+			local RegistryKey = tostring(Instance) .. "_" .. Property
+
+			if not self.Registry[RegistryKey] then
+				self.Registry[RegistryKey] = {
+					Instance = Instance,
+					Property = Property,
+				}
+			end
+		end
+
+		function Localization:ApplyText(Instance, SourceText, Property)
+			if not Instance or not Instance.Parent then
+				return
+			end
+
+			Property = Property or "Text"
+
+			if Property ~= "Text" and Property ~= "PlaceholderText" then
+				return
+			end
+
+			if type(SourceText) ~= "string" then
+				SourceText = tostring(SourceText or "")
+			end
+
+			Instance:SetAttribute("SolixSource_" .. Property, SourceText)
+
+			self.Applying = true
+			Instance[Property] = self:Translate(SourceText, Instance)
+			self.Applying = false
+
+			self:Register(Instance, Property)
+		end
+
+		function Localization:RefreshAll()
+			for _, Entry in pairs(self.Registry) do
+				local Instance = Entry.Instance
+
+				if Instance and Instance.Parent then
+					local SourceText = Instance:GetAttribute("SolixSource_" .. Entry.Property)
+
+					if SourceText ~= nil then
+						self.Applying = true
+						Instance[Entry.Property] = self:Translate(SourceText, Instance)
+						self.Applying = false
+					end
+				end
+			end
+		end
+
+		function Localization:HookTextInstance(Instance, Properties)
+			if not Instance then
+				return
+			end
+
+			for _, Property in ipairs(Properties) do
+				if Property == "PlaceholderText" and not Instance:IsA("TextBox") then
+					-- skip
+				else
+					Instance:GetPropertyChangedSignal(Property):Connect(function()
+						if self.Applying then
+							return
+						end
+
+						local SourceText = Instance:GetAttribute("SolixSource_" .. Property)
+						local CurrentText = Instance[Property]
+
+						if SourceText == CurrentText then
+							return
+						end
+
+						self:ApplyText(Instance, CurrentText, Property)
+					end)
+				end
+			end
+		end
+
+		function Localization:Init()
+			local SuccessPlayer, PlayerTranslator = pcall(function()
+				return LocalizationService:GetTranslatorForPlayerAsync(LocalPlayer)
+			end)
+
+			if SuccessPlayer and PlayerTranslator then
+				self.PlayerTranslator = PlayerTranslator
+				self.HasPlayerTranslator = true
+
+				self.PlayerTranslator:GetPropertyChangedSignal("LocaleId"):Connect(function()
+					self:RefreshAll()
+				end)
+			end
+
+			local SuccessFallback, FallbackTranslator = pcall(function()
+				return LocalizationService:GetTranslatorForLocaleAsync(self.SourceLanguageCode)
+			end)
+
+			if SuccessFallback and FallbackTranslator then
+				self.FallbackTranslator = FallbackTranslator
+				self.HasFallbackTranslator = true
+			end
+
+			self:RefreshAll()
+		end
+
+		function Localization:Clear()
+			table.clear(self.Registry)
+			self.PlayerTranslator = nil
+			self.FallbackTranslator = nil
+			self.HasPlayerTranslator = false
+			self.HasFallbackTranslator = false
+		end
+	end
 
 	local function GetMouseLocation()
 		return cloneref(UserInputService):GetMouseLocation()
@@ -423,6 +620,20 @@ local Library do
 
 	Library["Folders"] = Folder_Configs
 	Library.Folders_Path = Folder_Configs
+
+	Library.Localization = Localization
+
+	Library.Translate = function(Text, Context)
+		return Localization:Translate(Text, Context)
+	end
+
+	Library.FormatByKey = function(Key, Arguments)
+		return Localization:FormatByKey(Key, Arguments)
+	end
+
+	task.spawn(function()
+		Localization:Init()
+	end)
 
 	local Keys = {
 		["Unknown"]           = "Unknown",
@@ -732,7 +943,10 @@ local Library do
 				end
 
 				if Class == "TextLabel" or Class == "TextButton" or Class == "TextBox" then
-					if not pcall(function() NewItem.Instance.AutoLocalize = true end) then warn("shucks,", Class) end
+					pcall(function()
+						NewItem.Instance.AutoLocalize = false
+					end)
+
 					local TextSize = NewItem.Instance.TextSize
 
 					if TextSize and TextSize > 0 then
@@ -742,6 +956,22 @@ local Library do
 							NewItem.Instance:SetAttribute("SolixUIFontBucket", "Title")
 						else
 							NewItem.Instance:SetAttribute("SolixUIFontBucket", "Main")
+						end
+					end
+
+					local TextInstance = NewItem.Instance
+
+					if Class == "TextBox" then
+						Localization:HookTextInstance(TextInstance, {"PlaceholderText"})
+
+						if TextInstance.PlaceholderText ~= "" then
+							Localization:ApplyText(TextInstance, TextInstance.PlaceholderText, "PlaceholderText")
+						end
+					else
+						Localization:HookTextInstance(TextInstance, {"Text"})
+
+						if TextInstance.Text ~= "" then
+							Localization:ApplyText(TextInstance, TextInstance.Text, "Text")
 						end
 					end
 				end
@@ -802,7 +1032,16 @@ local Library do
 				return
 			end
 
-			self.Instance[Property] = Value
+			if Property == "Text" or Property == "PlaceholderText" then
+				if self.Class == "TextBox" and Property == "Text" then
+					self.Instance[Property] = Value
+				else
+					Localization:ApplyText(self.Instance, Value, Property)
+				end
+			else
+				self.Instance[Property] = Value
+			end
+
 			return self
 		end
 
@@ -1855,6 +2094,10 @@ local Library do
 	end
 
 	Library.Unload = function(self)
+		if self.Localization then
+			self.Localization:Clear()
+		end
+
 		for Index, Value in self.Connections do 
 			Value.Connection:Disconnect()
 		end
