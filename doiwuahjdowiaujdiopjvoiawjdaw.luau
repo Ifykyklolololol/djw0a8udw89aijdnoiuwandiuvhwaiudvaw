@@ -1,4 +1,4 @@
-warn('boyyyy')
+warn('fpp')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -72,7 +72,7 @@ local function GetLocalSettingsPath()
 	return Folder_Configs.Datas .. "/" .. GameId .. "/settings.json"
 end
 
-for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/fonts", "solixhub/Configurations", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configurations .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
+for _, folder in ipairs({"solixhub", "solixhub/Datas", "solixhub/Assets", "solixhub/Assets/Audio", "solixhub/Assets/fonts", "solixhub/Configurations", "solixhub/Images", "solixhub/Themes", Folder_Configs.Configurations .. "/" .. GameId, Folder_Configs.Datas .. "/" .. GameId}) do
 	if not isfolder(folder) then
 		makefolder(folder)
 	end
@@ -425,6 +425,12 @@ local Library do
 			return true
 		end
 
+		function Localization:ClearCustomStrings()
+			for locale_code, _ in pairs(self.CustomStrings) do
+				self.CustomStrings[locale_code] = {}
+			end
+		end
+
 		function Localization:LoadRemoteTranslations(Url)
 			Url = Url or self.TranslationsUrl
 
@@ -432,8 +438,16 @@ local Library do
 				return false
 			end
 
+			local fetch_url = Url
+			local cache_buster = tostring(os.time()) .. tostring(math.random(100000, 999999))
+			if fetch_url:find("?", 1, true) then
+				fetch_url = fetch_url .. "&solix_ts=" .. cache_buster
+			else
+				fetch_url = fetch_url .. "?solix_ts=" .. cache_buster
+			end
+
 			local Success = pcall(function()
-				local Source = game:HttpGet(Url)
+				local Source = game:HttpGet(fetch_url)
 
 				if type(Source) ~= "string" or Source == "" then
 					return
@@ -448,6 +462,68 @@ local Library do
 
 			self.TranslationsLoaded = Success == true
 			return self.TranslationsLoaded
+		end
+
+		function Localization:ReloadRemoteTranslations(Url)
+			self:ClearCustomStrings()
+			local loaded = self:LoadRemoteTranslations(Url)
+			self:RefreshAll()
+			return loaded
+		end
+
+		function Localization:RefreshNamedElements()
+			if type(Library) ~= "table" then
+				return
+			end
+
+			local visited_windows = {}
+
+			local function refresh_page_tree(sidebar_page)
+				if type(sidebar_page) ~= "table" then
+					return
+				end
+
+				local page_items = sidebar_page.Items
+				if type(page_items) == "table" and page_items["Text"] and page_items["Text"].Instance then
+					self:ApplyText(page_items["Text"].Instance, sidebar_page.Name, "Text")
+				end
+
+				if type(sidebar_page.SubPages) == "table" then
+					for _, sub_page in ipairs(sidebar_page.SubPages) do
+						local sub_page_items = sub_page.Items
+						if type(sub_page_items) == "table" then
+							if sub_page_items["TabText"] and sub_page_items["TabText"].Instance then
+								self:ApplyText(sub_page_items["TabText"].Instance, sub_page.Name, "Text")
+							end
+							if sub_page_items["TabSizer"] and sub_page_items["TabSizer"].Instance then
+								self:ApplyText(sub_page_items["TabSizer"].Instance, sub_page.Name, "Text")
+							end
+						end
+					end
+				end
+			end
+
+			for _, section in ipairs(Library.AllSections or {}) do
+				if type(section) ~= "table" then
+					continue
+				end
+
+				local section_items = section.Items
+				if type(section_items) == "table" and section_items["Text"] and section_items["Text"].Instance then
+					self:ApplyText(section_items["Text"].Instance, section.Name, "Text")
+				end
+
+				local page = section.Page
+				local window = page and page.Window or nil
+				if window and not visited_windows[window] then
+					visited_windows[window] = true
+					if type(window.Pages) == "table" then
+						for _, sidebar_page in ipairs(window.Pages) do
+							refresh_page_tree(sidebar_page)
+						end
+					end
+				end
+			end
 		end
 
 		function Localization:GetLanguage()
@@ -883,6 +959,7 @@ local Library do
 				self:ApplyStoredText(Entry.Instance, Entry.Property)
 			end
 
+			self:RefreshNamedElements()
 			self:RefreshDropdowns()
 			self:RefreshSliders()
 
@@ -1272,8 +1349,8 @@ local Library do
 		self.LanguagePreset = PresetName
 
 		local LocaleCode = self.LanguageToCode[PresetName] or "auto"
+		Localization:ReloadRemoteTranslations()
 		Localization:SetLanguage(LocaleCode)
-		Localization:RefreshAll()
 
 		task.defer(function()
 			if Library and Library.Localization then
@@ -1285,7 +1362,7 @@ local Library do
 	end
 
 	Library.LoadTranslations = function(Url)
-		return Localization:LoadRemoteTranslations(Url)
+		return Localization:ReloadRemoteTranslations(Url)
 	end
 
 	local Keys = {
@@ -8256,7 +8333,9 @@ local Library do
 				TextTransparency = 0.4000000059604645,
 				AutomaticSize = Enum.AutomaticSize.X,
 				ZIndex = 2
-			}):AddToTheme({TextColor3 = 'Text'})           
+			}):AddToTheme({TextColor3 = 'Text'})
+
+			Localization:ApplyText(Items["Text"].Instance, Page.Name, "Text")
 
 			Items["Page"] = Instances:Create("Frame", {
 				Parent = Library.UnusedHolder.Instance,
@@ -8331,7 +8410,8 @@ local Library do
 						CanvasSize = UDim2New(0, 0, 0, 0),
 						MidImage = "rbxassetid://128693616966482",
 						ScrollBarImageColor3 = FromRGB(0, 0, 0),
-						ScrollBarThickness = 4,
+						ScrollBarThickness = 3,
+						ScrollBarInset = Enum.ScrollBarInset.Always,
 						TopImage = "rbxassetid://128693616966482"
 					})  NewColumn:AddToTheme({ScrollBarImageColor3 = "Accent"})
 
@@ -8345,7 +8425,7 @@ local Library do
 					Instances:Create("UIPadding", {
 						Parent = NewColumn.Instance,
 						Name = "\0",
-						PaddingRight = UDimNew(0, 4),
+						PaddingRight = UDimNew(0, 10),
 						PaddingBottom = UDimNew(0, 24)
 					})
 
@@ -8668,7 +8748,8 @@ local Library do
 					CanvasSize = UDim2New(0, 0, 0, 0),
 					MidImage = "rbxassetid://128693616966482",
 					ScrollBarImageColor3 = FromRGB(0, 0, 0),
-					ScrollBarThickness = 4,
+					ScrollBarThickness = 3,
+					ScrollBarInset = Enum.ScrollBarInset.Always,
 					TopImage = "rbxassetid://128693616966482",
 				}):AddToTheme({ScrollBarImageColor3 = "Accent"})
 
@@ -8682,7 +8763,7 @@ local Library do
 				Instances:Create("UIPadding", {
 					Parent = NewColumn.Instance,
 					Name = "\0",
-					PaddingRight = UDimNew(0, 4),
+					PaddingRight = UDimNew(0, 10),
 					PaddingBottom = UDimNew(0, 24),
 				})
 
@@ -8853,6 +8934,8 @@ local Library do
 			AutomaticSize = Enum.AutomaticSize.X,
 			ZIndex = 2
 		}):AddToTheme({TextColor3 = 'Text'})
+
+		Localization:ApplyText(Items["Text"].Instance, Section.Name, "Text")
 
 		Items["Indicator"] = Instances:Create("ImageLabel", {
 			Parent = Items["Header"].Instance,
@@ -9124,6 +9207,8 @@ local Library do
 			AutomaticSize = Enum.AutomaticSize.X,
 			ZIndex = 2
 		}):AddToTheme({TextColor3 = "Text"})
+
+		Localization:ApplyText(Items["Text"].Instance, Section.Name, "Text")
 
 		Items["Line"] = Instances:Create("Frame", {
 			Parent = Items["Section"].Instance,
@@ -10493,7 +10578,17 @@ local Library do
 
 			Library.Flags[Slider.Flag] = Slider.Value
 
-			Items["Accent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0)})
+			local slider_range = Slider.Max - Slider.Min
+			local slider_ratio = slider_range > 0 and (Slider.Value - Slider.Min) / slider_range or 0
+			slider_ratio = MathClamp(slider_ratio, 0, 1)
+
+			if slider_ratio <= 0.001 then
+				Items["Accent"].Instance.Visible = false
+				Items["Accent"].Instance.Size = UDim2New(0, 0, 1, 0)
+			else
+				Items["Accent"].Instance.Visible = true
+				Items["Accent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New(slider_ratio, 0, 1, 0)})
+			end
 
 			if not SkipTextUpdate and Items["Value"] and Items["Value"].Instance then
 				local DisplayValue = string.format("%g", Slider.Value)
@@ -13311,7 +13406,7 @@ end
 getgenv().Library = Library
 
 pcall(function()
-	Library.Localization:LoadRemoteTranslations()
+	Library.Localization:ReloadRemoteTranslations()
 end)
 
 pcall(function()
