@@ -1,4 +1,4 @@
-warn('test2')
+warn('boyyyy')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -184,6 +184,8 @@ local Library do
 			HasFallbackTranslator = false,
 			Applying = false,
 			Registry = {},
+			DropdownRegistry = {},
+			SliderRegistry = {},
 			CustomStrings = {
 				zh = {},
 				ko = {},
@@ -611,6 +613,67 @@ local Library do
 			return Key
 		end
 
+		function Localization:FindEnglishKey(Text)
+			if type(Text) ~= "string" or Text == "" then
+				return Text
+			end
+
+			if self.BuiltInStrings[Text] then
+				return Text
+			end
+
+			for _, StringsTable in pairs(self.CustomStrings) do
+				if StringsTable[Text] then
+					return Text
+				end
+
+				for SourceKey, Translation in pairs(StringsTable) do
+					if Translation == Text then
+						return SourceKey
+					end
+				end
+			end
+
+			for SourceKey, Translations in pairs(self.BuiltInStrings) do
+				for _, Locale in ipairs(self.SupportedLocales) do
+					if Translations[Locale] == Text then
+						return SourceKey
+					end
+				end
+			end
+
+			return Text
+		end
+
+		function Localization:GetOriginalText(Instance, Property)
+			if not Instance then
+				return nil
+			end
+
+			local OriginalText = Instance:GetAttribute("SolixOriginal_" .. Property)
+			if type(OriginalText) == "string" and OriginalText ~= "" then
+				return OriginalText
+			end
+
+			local SourceText = Instance:GetAttribute("SolixSource_" .. Property)
+			if type(SourceText) ~= "string" or SourceText == "" then
+				return nil
+			end
+
+			local EnglishKey = self:FindEnglishKey(SourceText)
+			Instance:SetAttribute("SolixOriginal_" .. Property, EnglishKey)
+
+			return EnglishKey
+		end
+
+		function Localization:IsTranslatedDisplay(SourceText, CurrentText, Instance)
+			if SourceText == CurrentText then
+				return true
+			end
+
+			return CurrentText == self:Translate(SourceText, Instance)
+		end
+
 		function Localization:Register(Instance, Property)
 			if not Instance then
 				return
@@ -641,6 +704,7 @@ local Library do
 				SourceText = tostring(SourceText or "")
 			end
 
+			Instance:SetAttribute("SolixOriginal_" .. Property, SourceText)
 			Instance:SetAttribute("SolixSource_" .. Property, SourceText)
 
 			self.Applying = true
@@ -648,6 +712,96 @@ local Library do
 			self.Applying = false
 
 			self:Register(Instance, Property)
+		end
+
+		function Localization:RegisterDropdown(Dropdown, ValueInstance)
+			if not Dropdown or not ValueInstance then
+				return
+			end
+
+			self.DropdownRegistry[Dropdown] = ValueInstance
+		end
+
+		function Localization:SetDropdownDisplay(Dropdown, ValueInstance)
+			if not Dropdown or not ValueInstance then
+				return
+			end
+
+			if Dropdown.Multi then
+				ValueInstance:SetAttribute("SolixDropdownMulti", true)
+
+				local TranslatedParts = {}
+
+				if type(Dropdown.Value) == "table" then
+					for _, OptionName in ipairs(Dropdown.Value) do
+						TranslatedParts[#TranslatedParts + 1] = self:Translate(tostring(OptionName), ValueInstance)
+					end
+				end
+
+				self.Applying = true
+				ValueInstance.Text = #TranslatedParts > 0 and table.concat(TranslatedParts, ", ") or self:Translate("...", ValueInstance)
+				self.Applying = false
+				self:Register(ValueInstance, "Text")
+			elseif Dropdown.Value ~= nil and Dropdown.Value ~= "" then
+				ValueInstance:SetAttribute("SolixDropdownMulti", nil)
+				self:ApplyText(ValueInstance, tostring(Dropdown.Value), "Text")
+			else
+				ValueInstance:SetAttribute("SolixDropdownMulti", nil)
+				self:ApplyText(ValueInstance, "...", "Text")
+			end
+		end
+
+		function Localization:RefreshDropdowns()
+			for Dropdown, ValueInstance in pairs(self.DropdownRegistry) do
+				if not ValueInstance or not ValueInstance.Parent then
+					continue
+				end
+
+				self:SetDropdownDisplay(Dropdown, ValueInstance)
+
+				if type(Dropdown.Options) == "table" then
+					for OptionName, OptionData in pairs(Dropdown.Options) do
+						if OptionData.Text and OptionData.Text.Instance then
+							self:ApplyText(OptionData.Text.Instance, tostring(OptionName), "Text")
+						end
+					end
+				end
+			end
+		end
+
+		function Localization:RegisterSlider(Slider, TrackLabelInstance, Name, Suffix)
+			if not Slider or not TrackLabelInstance then
+				return
+			end
+
+			self.SliderRegistry[Slider] = {
+				TrackLabel = TrackLabelInstance,
+				Name = Name or "",
+				Suffix = Suffix or "",
+			}
+		end
+
+		function Localization:UpdateSliderTrackLabel(Slider, TrackLabel, Name, Suffix)
+			if not TrackLabel or not TrackLabel.Parent or type(Slider.Value) ~= "number" then
+				return
+			end
+
+			TrackLabel:SetAttribute("SolixSliderLabel", true)
+
+			local DisplayValue = string.format("%g", Slider.Value)
+			local TranslatedName = string.lower(self:Translate(Name, TrackLabel))
+			local LabelText = TranslatedName .. ": " .. DisplayValue .. Suffix
+
+			self.Applying = true
+			TrackLabel.Text = LabelText
+			self.Applying = false
+			self:Register(TrackLabel, "Text")
+		end
+
+		function Localization:RefreshSliders()
+			for Slider, Entry in pairs(self.SliderRegistry) do
+				self:UpdateSliderTrackLabel(Slider, Entry.TrackLabel, Entry.Name, Entry.Suffix)
+			end
 		end
 
 		function Localization:GetRefreshRoots()
@@ -693,10 +847,16 @@ local Library do
 				return
 			end
 
-			local SourceText = Instance:GetAttribute("SolixSource_" .. Property)
+			if Instance:GetAttribute("SolixDropdownMulti") or Instance:GetAttribute("SolixSliderLabel") then
+				return
+			end
+
+			local SourceText = self:GetOriginalText(Instance, Property)
 			if SourceText == nil then
 				return
 			end
+
+			Instance:SetAttribute("SolixSource_" .. Property, SourceText)
 
 			self.Applying = true
 			Instance[Property] = self:Translate(SourceText, Instance)
@@ -723,6 +883,9 @@ local Library do
 				self:ApplyStoredText(Entry.Instance, Entry.Property)
 			end
 
+			self:RefreshDropdowns()
+			self:RefreshSliders()
+
 			for _, Root in ipairs(self:GetRefreshRoots()) do
 				self:RefreshInstanceTree(Root)
 			end
@@ -742,14 +905,22 @@ local Library do
 							return
 						end
 
-						local SourceText = Instance:GetAttribute("SolixSource_" .. Property)
+						local OriginalText = self:GetOriginalText(Instance, Property)
 						local CurrentText = Instance[Property]
 
-						if SourceText == CurrentText then
+						if OriginalText == nil then
 							return
 						end
 
-						self:ApplyText(Instance, CurrentText, Property)
+						if self:IsTranslatedDisplay(OriginalText, CurrentText, Instance) then
+							return
+						end
+
+						if OriginalText == CurrentText then
+							return
+						end
+
+						self:ApplyText(Instance, self:FindEnglishKey(CurrentText), Property)
 					end)
 				end
 			end
@@ -10285,6 +10456,10 @@ local Library do
 			Drag = Items["Drag"]
 		}
 
+		if Slider.Compact and Items["TrackLabel"] and Items["TrackLabel"].Instance then
+			Library.Localization:RegisterSlider(Slider, Items["TrackLabel"].Instance, Slider.Name, Slider.Suffix or "")
+		end
+
 		function Slider:Get()
 			return Slider.Value
 		end
@@ -10326,8 +10501,7 @@ local Library do
 			end
 
 			if Slider.Compact and Items["TrackLabel"] and Items["TrackLabel"].Instance then
-				local DisplayValue = string.format("%g", Slider.Value)
-				Items["TrackLabel"].Instance.Text = string.lower(Slider.Name) .. ": " .. DisplayValue .. Slider.Suffix
+				Library.Localization:UpdateSliderTrackLabel(Slider, Items["TrackLabel"].Instance, Slider.Name, Slider.Suffix)
 			end
 
 			if Slider.Callback then
@@ -11523,7 +11697,7 @@ local Library do
 					end
 				end
 
-				Items["Value"].Instance.Text = TableConcat(Option, ", ")
+				Library.Localization:SetDropdownDisplay(Dropdown, Items["Value"].Instance)
 			else
 				local String = tostring(Option)
 				if String == "" or String == "nil" then
@@ -11542,7 +11716,7 @@ local Library do
 					Value:Toggle(Value == OptionData and "Active" or "Inactive")
 				end
 
-				Items["Value"].Instance.Text = String
+				Library.Localization:ApplyText(Items["Value"].Instance, String, "Text")
 			end
 
 			if Dropdown.Callback then
@@ -11631,7 +11805,7 @@ local Library do
 					OptionData:Toggle(Index and "Inactive" or "Active")
 					Flags[Flag] = Dropdown.Value
 
-					Items["Value"].Instance.Text = #Dropdown.Value > 0 and TableConcat(Dropdown.Value, ", ") or "..."
+					Library.Localization:SetDropdownDisplay(Dropdown, Items["Value"].Instance)
 				else
 					if OptionData.Selected then
 						Dropdown.Value = OptionData.Name
@@ -11645,13 +11819,13 @@ local Library do
 						end
 
 						OptionData:Toggle("Active")
-						Items["Value"].Instance.Text = OptionData.Name
+						Library.Localization:ApplyText(Items["Value"].Instance, OptionData.Name, "Text")
 					else
 						Dropdown.Value = nil
 						Flags[Flag] = nil
 
 						OptionData:Toggle("Inactive")
-						Items["Value"].Instance.Text = "..."
+						Library.Localization:ApplyText(Items["Value"].Instance, "...", "Text")
 					end
 				end
 
@@ -11795,6 +11969,7 @@ local Library do
 		end
 
 		Dropdown.Items = Items
+		Library.Localization:RegisterDropdown(Dropdown, Items["Value"].Instance)
 		return Dropdown
 	end
 
