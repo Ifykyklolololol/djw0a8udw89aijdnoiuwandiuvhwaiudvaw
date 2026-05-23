@@ -100,6 +100,7 @@ local Library do
 	local Workspace = cloneref(game:GetService("Workspace"))
 	local GuiService = cloneref(game:GetService("GuiService"))
 	local ContextActionService = cloneref(game:GetService("ContextActionService"))
+	local LocalizationService = cloneref(game:GetService("LocalizationService"))
 
 	local BlockedWindowInputs = {
 		Enum.KeyCode.W,
@@ -733,6 +734,7 @@ local Library do
 				end
 
 				if Class == "TextLabel" or Class == "TextButton" or Class == "TextBox" then
+					pcall(function() NewItem.Instance.AutoLocalize = true end) or warn("shucks, ", Class)
 					local TextSize = NewItem.Instance.TextSize
 
 					if TextSize and TextSize > 0 then
