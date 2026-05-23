@@ -1,4 +1,4 @@
-warn('test1')
+warn('test2')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -286,8 +286,83 @@ local Library do
 				["Korean"] = make_entry("韩语", "한국어", "Coreano", "Корейский"),
 				["Spanish"] = make_entry("西班牙语", "스페인어", "Español", "Испанский"),
 				["Russian"] = make_entry("俄语", "러시아어", "Ruso", "Русский"),
+				["Settings"] = make_entry("设置", "설정", "Ajustes", "Настройки"),
+				["Account"] = make_entry("账户", "계정", "Cuenta", "Аккаунт"),
+				["Themes"] = make_entry("主题", "테마", "Temas", "Темы"),
+				["Menu"] = make_entry("菜单", "메뉴", "Menú", "Меню"),
+				["Configurations"] = make_entry("配置", "설정", "Configuraciones", "Конфигурации"),
+				["Player Info"] = make_entry("玩家信息", "플레이어 정보", "Info del jugador", "Информация игрока"),
+				["Theme Setting"] = make_entry("主题设置", "테마 설정", "Ajuste de tema", "Настройка темы"),
+				["Theme Config"] = make_entry("主题配置", "테마 구성", "Config de tema", "Конфиг темы"),
+				["Border"] = make_entry("边框", "테두리", "Borde", "Граница"),
+				["Inline"] = make_entry("内联", "인라인", "Inline", "Inline"),
+				["Inactive Text"] = make_entry("非激活文字", "비활성 텍스트", "Texto inactivo", "Неактивный текст"),
+				["Background"] = make_entry("背景", "배경", "Fondo", "Фон"),
+				["Element"] = make_entry("元素", "요소", "Elemento", "Элемент"),
+				["Accent"] = make_entry("强调色", "강조색", "Acento", "Акцент"),
+				["Shadow"] = make_entry("阴影", "그림자", "Sombra", "Тень"),
+				["Gradient"] = make_entry("渐变", "그라데이션", "Degradado", "Градиент"),
+				["border"] = make_entry("边框", "테두리", "borde", "граница"),
+				["inline"] = make_entry("内联", "인라인", "inline", "inline"),
+				["background"] = make_entry("背景", "배경", "fondo", "фон"),
+				["element"] = make_entry("元素", "요소", "elemento", "элемент"),
+				["accent"] = make_entry("强调色", "강조색", "acento", "акцент"),
+				["shadow"] = make_entry("阴影", "그림자", "sombra", "тень"),
+				["gradient"] = make_entry("渐变", "그라데이션", "degradado", "градиент"),
+				["inactive text"] = make_entry("非激活文字", "비활성 텍스트", "texto inactivo", "неактивный текст"),
+				["Themes Select"] = make_entry("选择主题", "테마 선택", "Seleccionar tema", "Выбор темы"),
+				["Select a theme preset"] = make_entry("选择主题预设", "테마 프리셋 선택", "Seleccionar preset de tema", "Выберите пресет темы"),
+				["Autoload Theme"] = make_entry("自动加载主题", "테마 자동 로드", "Autocargar tema", "Автозагрузка темы"),
+				["Autoloads the selected theme on next load"] = make_entry("下次加载时自动加载所选主题", "다음 로드 시 선택한 테마 자동 로드", "Autocarga el tema al iniciar", "Автозагрузка темы при запуске"),
+				["Theme Name"] = make_entry("主题名称", "테마 이름", "Nombre del tema", "Имя темы"),
+				["Enter a name for your theme"] = make_entry("输入主题名称", "테마 이름 입력", "Introduce un nombre", "Введите имя темы"),
+				["Theme name..."] = make_entry("主题名称...", "테마 이름...", "Nombre del tema...", "Имя темы..."),
+				["Themes Preset"] = make_entry("主题预设", "테마 프리셋", "Preset de temas", "Пресет тем"),
+				["Select a theme"] = make_entry("选择主题", "테마 선택", "Seleccionar tema", "Выберите тему"),
+				["Create"] = make_entry("创建", "생성", "Crear", "Создать"),
+				["Delete"] = make_entry("删除", "삭제", "Eliminar", "Удалить"),
+				["Load"] = make_entry("加载", "로드", "Cargar", "Загрузить"),
+				["Save"] = make_entry("保存", "저장", "Guardar", "Сохранить"),
+				["Refresh"] = make_entry("刷新", "새로고침", "Actualizar", "Обновить"),
+				["Success"] = make_entry("成功", "성공", "Éxito", "Успех"),
+				["Error"] = make_entry("错误", "오류", "Error", "Ошибка"),
+				["Font Error"] = make_entry("字体错误", "글꼴 오류", "Error de fuente", "Ошибка шрифта"),
+				["List of fonts to use on the Solix Hub UI"] = make_entry("Solix Hub UI 可用字体列表", "Solix Hub UI 글꼴 목록", "Fuentes disponibles en Solix Hub", "Шрифты для Solix Hub UI"),
+				["Safe Mode"] = make_entry("安全模式", "안전 모드", "Modo seguro", "Безопасный режим"),
+				["Auto Hides Ui On Execute"] = make_entry("执行时自动隐藏UI", "실행 시 UI 자동 숨김", "Oculta UI al ejecutar", "Скрывает UI при запуске"),
+				["Auto Execute"] = make_entry("自动执行", "자동 실행", "Auto ejecutar", "Автозапуск"),
+				["Auto execute script after teleport"] = make_entry("传送后自动执行脚本", "텔레포트 후 자동 실행", "Auto ejecutar tras teletransporte", "Автозапуск после телепорта"),
+				["Server"] = make_entry("服务器", "서버", "Servidor", "Сервер"),
+				["Rejoin"] = make_entry("重新加入", "재접속", "Reunirse", "Перезайти"),
+				["Server Hop"] = make_entry("切换服务器", "서버 이동", "Cambiar servidor", "Сменить сервер"),
+				["Copy Place ID"] = make_entry("复制 Place ID", "Place ID 복사", "Copiar Place ID", "Копировать Place ID"),
+				["Copy Game ID"] = make_entry("复制 Game ID", "Game ID 복사", "Copiar Game ID", "Копировать Game ID"),
+				["Copy Job ID"] = make_entry("复制 Job ID", "Job ID 복사", "Copiar Job ID", "Копировать Job ID"),
+				["Copy Join Code"] = make_entry("复制加入码", "참가 코드 복사", "Copiar código", "Копировать код"),
+				["Script Config"] = make_entry("脚本配置", "스크립트 설정", "Config del script", "Конфиг скрипта"),
+				["Config Select"] = make_entry("选择配置", "설정 선택", "Seleccionar config", "Выбор конфига"),
+				["List of the Configurations"] = make_entry("配置列表", "설정 목록", "Lista de configuraciones", "Список конфигов"),
+				["Autoload Configuration"] = make_entry("自动加载配置", "설정 자동 로드", "Autocargar config", "Автозагрузка конфига"),
+				["Autoloads the selected configuration on next load"] = make_entry("下次加载时自动加载所选配置", "다음 로드 시 선택한 설정 자동 로드", "Autocarga config al iniciar", "Автозагрузка конфига при запуске"),
+				["Config Name"] = make_entry("配置名称", "설정 이름", "Nombre del config", "Имя конфига"),
+				["Name of the config"] = make_entry("配置的名称", "설정 이름", "Nombre de la config", "Название конфига"),
+				["Set Autoload"] = make_entry("设为自动加载", "자동 로드 설정", "Establecer autoload", "Установить автозагрузку"),
+				["Remove Autoload"] = make_entry("移除自动加载", "자동 로드 제거", "Quitar autoload", "Убрать автозагрузку"),
+				["Paste Shared Config"] = make_entry("粘贴分享的配置", "공유 설정 붙여넣기", "Pegar config compartida", "Вставить общий конфиг"),
+				["Please select a theme first"] = make_entry("请先选择主题", "먼저 테마를 선택하세요", "Selecciona un tema primero", "Сначала выберите тему"),
+				["Please select a config first"] = make_entry("请先选择配置", "먼저 설정을 선택하세요", "Selecciona un config primero", "Сначала выберите конфиг"),
+				["Solix"] = make_entry("Solix", "Solix", "Solix", "Solix"),
+				["Fatality"] = make_entry("Fatality", "Fatality", "Fatality", "Fatality"),
+				["Primordial"] = make_entry("Primordial", "Primordial", "Primordial", "Primordial"),
+				["Pandora"] = make_entry("Pandora", "Pandora", "Pandora", "Pandora"),
+				["Skeet"] = make_entry("Skeet", "Skeet", "Skeet", "Skeet"),
+				["Rifk"] = make_entry("Rifk", "Rifk", "Rifk", "Rifk"),
+				["Rainbow"] = make_entry("彩虹", "무지개", "Arcoíris", "Радуга"),
+				["Breathing"] = make_entry("呼吸", "브리딩", "Respiración", "Дыхание"),
+				["Font Setting"] = make_entry("字体设置", "글꼴 설정", "Ajuste de fuente", "Настройка шрифта"),
 			},
 			PrefixStrings = {
+				[" theme color"] = make_entry(" 主题色", " 테마 색상", " color de tema", " цвет темы"),
 				["Note: "] = make_entry("备注: ", "메모: ", "Nota: ", "Примечание: "),
 				["Expires: "] = make_entry("过期: ", "만료: ", "Expira: ", "Истекает: "),
 				["Executions: "] = make_entry("执行次数: ", "실행 횟수: ", "Ejecuciones: ", "Запусков: "),
@@ -401,9 +476,12 @@ local Library do
 			return true
 		end
 
-		function Localization:TranslateBuiltIn(Text)
-			local ActiveLocale = self:GetActiveLocale()
+		function Localization:LookupTranslation(Text)
+			if type(Text) ~= "string" or Text == "" then
+				return nil
+			end
 
+			local ActiveLocale = self:GetActiveLocale()
 			if ActiveLocale == "en" then
 				return nil
 			end
@@ -416,6 +494,35 @@ local Library do
 			local BuiltIn = self.BuiltInStrings[Text]
 			if BuiltIn and BuiltIn[ActiveLocale] then
 				return BuiltIn[ActiveLocale]
+			end
+
+			return nil
+		end
+
+		function Localization:TranslateBuiltIn(Text)
+			local ActiveLocale = self:GetActiveLocale()
+
+			if ActiveLocale == "en" then
+				return nil
+			end
+
+			local Direct = self:LookupTranslation(Text)
+			if Direct then
+				return Direct
+			end
+
+			local ThemeColorSuffix = " theme color"
+			if Text:sub(-#ThemeColorSuffix) == ThemeColorSuffix then
+				local Prefix = Text:sub(1, #Text - #ThemeColorSuffix)
+				local TranslatedPrefix = self:LookupTranslation(Prefix)
+					or self:LookupTranslation(Prefix:sub(1, 1):upper() .. Prefix:sub(2))
+					or self:LookupTranslation(Prefix:gsub("^%l", string.upper))
+
+				if TranslatedPrefix then
+					local SuffixEntry = self.PrefixStrings[ThemeColorSuffix]
+					local TranslatedSuffix = SuffixEntry and SuffixEntry[ActiveLocale] or ThemeColorSuffix
+					return TranslatedPrefix .. TranslatedSuffix
+				end
 			end
 
 			for Prefix, Translations in pairs(self.PrefixStrings) do
@@ -543,19 +650,81 @@ local Library do
 			self:Register(Instance, Property)
 		end
 
+		function Localization:GetRefreshRoots()
+			local Roots = {}
+
+			local function add_root(RootInstance)
+				if typeof(RootInstance) == "Instance" then
+					Roots[#Roots + 1] = RootInstance
+				end
+			end
+
+			if Library then
+				if Library.Holder and Library.Holder.Instance then
+					add_root(Library.Holder.Instance)
+				end
+
+				if Library.OtherHolder and Library.OtherHolder.Instance then
+					add_root(Library.OtherHolder.Instance)
+				end
+
+				if Library.FloatingButtonHolder and Library.FloatingButtonHolder.Instance then
+					add_root(Library.FloatingButtonHolder.Instance)
+				end
+
+				if Library.WatermarkGui and Library.WatermarkGui.Instance then
+					add_root(Library.WatermarkGui.Instance)
+				end
+
+				if Library.InputBlockGui and Library.InputBlockGui.Instance then
+					add_root(Library.InputBlockGui.Instance)
+				end
+
+				if Library.CursorGui and Library.CursorGui.Instance then
+					add_root(Library.CursorGui.Instance)
+				end
+			end
+
+			return Roots
+		end
+
+		function Localization:ApplyStoredText(Instance, Property)
+			if not Instance or not Instance.Parent then
+				return
+			end
+
+			local SourceText = Instance:GetAttribute("SolixSource_" .. Property)
+			if SourceText == nil then
+				return
+			end
+
+			self.Applying = true
+			Instance[Property] = self:Translate(SourceText, Instance)
+			self.Applying = false
+			self:Register(Instance, Property)
+		end
+
+		function Localization:RefreshInstanceTree(Root)
+			if not Root then
+				return
+			end
+
+			for _, Descendant in ipairs(Root:GetDescendants()) do
+				if Descendant:IsA("TextLabel") or Descendant:IsA("TextButton") then
+					self:ApplyStoredText(Descendant, "Text")
+				elseif Descendant:IsA("TextBox") then
+					self:ApplyStoredText(Descendant, "PlaceholderText")
+				end
+			end
+		end
+
 		function Localization:RefreshAll()
 			for _, Entry in pairs(self.Registry) do
-				local Instance = Entry.Instance
+				self:ApplyStoredText(Entry.Instance, Entry.Property)
+			end
 
-				if Instance and Instance.Parent then
-					local SourceText = Instance:GetAttribute("SolixSource_" .. Entry.Property)
-
-					if SourceText ~= nil then
-						self.Applying = true
-						Instance[Entry.Property] = self:Translate(SourceText, Instance)
-						self.Applying = false
-					end
-				end
+			for _, Root in ipairs(self:GetRefreshRoots()) do
+				self:RefreshInstanceTree(Root)
 			end
 		end
 
@@ -933,6 +1102,13 @@ local Library do
 
 		local LocaleCode = self.LanguageToCode[PresetName] or "auto"
 		Localization:SetLanguage(LocaleCode)
+		Localization:RefreshAll()
+
+		task.defer(function()
+			if Library and Library.Localization then
+				Library.Localization:RefreshAll()
+			end
+		end)
 
 		return true
 	end
@@ -7304,7 +7480,7 @@ local Library do
 				TextSize = 14,
 				FontFace = Library.Font,
 				AutomaticSize = Enum.AutomaticSize.X,
-				ZIndex = 2
+				ZIndex = 4
 			}):AddToTheme({TextColor3 = 'Text'})  
 
 			Items["Pages"] = Instances:Create("ScrollingFrame", {
@@ -7433,8 +7609,8 @@ local Library do
 			Instances:Create("Frame", {
 				Parent = Items["MainFrame"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 1, 1, 0),
-				Position = UDim2New(0, 152, 0, 0),
+				Size = UDim2New(0, 1, 1, -30),
+				Position = UDim2New(0, 152, 0, 30),
 				BackgroundColor3 = Library.Theme["Border"],
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
@@ -8281,6 +8457,9 @@ local Library do
 				AutoButtonColor = false,
 				ZIndex = SUBTAB_TEXT_Z + 1,
 			})
+
+			Localization:ApplyText(Items["TabText"].Instance, SubPage.Name, "Text")
+			Localization:ApplyText(Items["TabSizer"].Instance, SubPage.Name, "Text")
 
 			Instances:Create("UIPadding", {
 				Parent = Items["Tab"].Instance,
