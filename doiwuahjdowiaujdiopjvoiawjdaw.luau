@@ -164,15 +164,230 @@ local Library do
 	local Mouse = cloneref(LocalPlayer:GetMouse())
 
 	local Localization do
+		local string_lower = string.lower
+		local string_sub = string.sub
+
+		local function make_entry(zh, ko, es, ru)
+			return { zh = zh, ko = ko, es = es, ru = ru }
+		end
+
 		Localization = {
 			SourceLanguageCode = "en",
+			Locale = "en",
+			ForcedLocale = nil,
+			SupportedLocales = { "en", "zh", "ko", "es", "ru" },
 			PlayerTranslator = nil,
 			FallbackTranslator = nil,
 			HasPlayerTranslator = false,
 			HasFallbackTranslator = false,
 			Applying = false,
 			Registry = {},
+			CustomStrings = {
+				zh = {},
+				ko = {},
+				es = {},
+				ru = {},
+			},
+			BuiltInStrings = {
+				["Toggle"] = make_entry("切换", "토글", "Alternar", "Переключить"),
+				["Hold"] = make_entry("按住", "홀드", "Mantener", "Удержание"),
+				["Always"] = make_entry("始终", "항상", "Siempre", "Всегда"),
+				["None"] = make_entry("无", "없음", "Ninguno", "Нет"),
+				["Search.."] = make_entry("搜索..", "검색..", "Buscar..", "Поиск.."),
+				["Animations"] = make_entry("动画", "애니메이션", "Animaciones", "Анимации"),
+				["Keybinds"] = make_entry("按键绑定", "키 바인드", "Atajos", "Горячие клавиши"),
+				["Keybind"] = make_entry("按键绑定", "키 바인드", "Atajo", "Гор. клавиша"),
+				["press a key"] = make_entry("按一个键", "키를 누르세요", "pulsa una tecla", "нажмите клавишу"),
+				["No target"] = make_entry("无目标", "대상 없음", "Sin objetivo", "Нет цели"),
+				["Target"] = make_entry("目标", "대상", "Objetivo", "Цель"),
+				["Placeholder"] = make_entry("占位符", "플레이스홀더", "Marcador", "Заполнитель"),
+				["Enter RGB.."] = make_entry("输入 RGB..", "RGB 입력..", "Introducir RGB..", "Введите RGB.."),
+				["Unload"] = make_entry("卸载", "언로드", "Descargar", "Выгрузить"),
+				["Menu Setting"] = make_entry("菜单设置", "메뉴 설정", "Ajustes del menú", "Настройки меню"),
+				["Menu keybind"] = make_entry("菜单快捷键", "메뉴 키", "Tecla del menú", "Клавиша меню"),
+				["open/close menu keybind"] = make_entry("打开/关闭菜单快捷键", "메뉴 열기/닫기 키", "tecla abrir/cerrar menú", "клавиша открыть/закрыть"),
+				["Menu Keybind"] = make_entry("菜单快捷键", "메뉴 키", "Tecla del menú", "Клавиша меню"),
+				["Background Transparency"] = make_entry("背景透明度", "배경 투명도", "Transparencia del fondo", "Прозрачность фона"),
+				["Menu background transparency"] = make_entry("菜单背景透明度", "메뉴 배경 투명도", "Transparencia del fondo del menú", "Прозрачность фона меню"),
+				["Menu Tween Time"] = make_entry("菜单动画时间", "메뉴 트윈 시간", "Tiempo de animación", "Время анимации"),
+				["Menu animation tween time"] = make_entry("菜单动画缓动时间", "메뉴 애니메이션 시간", "Tiempo de animación del menú", "Время анимации меню"),
+				["Menu Fade Time"] = make_entry("菜单淡入淡出时间", "메뉴 페이드 시간", "Tiempo de desvanecimiento", "Время затухания"),
+				["Menu fade animation time"] = make_entry("菜单淡入淡出动画时间", "메뉴 페이드 애니메이션 시간", "Tiempo de fade del menú", "Время fade-анимации"),
+				["Menu Scale Preset"] = make_entry("菜单缩放预设", "메뉴 크기 프리셋", "Escala del menú", "Масштаб меню"),
+				["Select Menu scale preset"] = make_entry("选择菜单缩放预设", "메뉴 크기 프리셋 선택", "Seleccionar escala del menú", "Выберите масштаб меню"),
+				["Menu Tween Style"] = make_entry("菜单缓动样式", "메뉴 트윈 스타일", "Estilo de animación", "Стиль анимации"),
+				["Menu animation easing style"] = make_entry("菜单动画缓动样式", "메뉴 애니메이션 이징", "Estilo de easing del menú", "Стиль easing меню"),
+				["Menu Tween Direction"] = make_entry("菜单缓动方向", "메뉴 트윈 방향", "Dirección de animación", "Направление анимации"),
+				["Menu animation easing direction"] = make_entry("菜单动画缓动方向", "메뉴 애니메이션 방향", "Dirección de easing del menú", "Направление easing меню"),
+				["Show Watermark"] = make_entry("显示水印", "워터마크 표시", "Mostrar marca de agua", "Показать водяной знак"),
+				["Show/hide the Watermark"] = make_entry("显示/隐藏水印", "워터마크 표시/숨기기", "Mostrar/ocultar marca de agua", "Показать/скрыть водяной знак"),
+				["Show Keybind List"] = make_entry("显示按键列表", "키 목록 표시", "Mostrar lista de atajos", "Показать список клавиш"),
+				["Show/hide list of all keybinds"] = make_entry("显示/隐藏所有按键绑定", "모든 키 바인드 표시/숨기기", "Mostrar/ocultar atajos", "Показать/скрыть все клавиши"),
+				["Show Menu Button"] = make_entry("显示菜单按钮", "메뉴 버튼 표시", "Mostrar botón del menú", "Показать кнопку меню"),
+				["Show/hide the menu open button"] = make_entry("显示/隐藏菜单打开按钮", "메뉴 열기 버튼 표시/숨기기", "Mostrar/ocultar botón del menú", "Показать/скрыть кнопку меню"),
+				["Background Darken"] = make_entry("背景变暗", "배경 어둡게", "Oscurecer fondo", "Затемнение фона"),
+				["Dark overlay/blur while menu is open"] = make_entry("菜单打开时背景变暗/模糊", "메뉴 열릴 때 배경 어둡게", "Oscurecer al abrir menú", "Затемнение при открытии меню"),
+				["Background Effect"] = make_entry("背景效果", "배경 효과", "Efecto de fondo", "Эффект фона"),
+				["Particle effect behind the menu"] = make_entry("菜单后方粒子效果", "메뉴 뒤 파티클 효과", "Efecto de partículas", "Эффект частиц за меню"),
+				["Auto Save Config"] = make_entry("自动保存配置", "자동 저장", "Guardar automáticamente", "Автосохранение"),
+				["Automatically save your config"] = make_entry("自动保存你的配置", "설정 자동 저장", "Guardar config automáticamente", "Автосохранение конфига"),
+				["Snow"] = make_entry("雪花", "눈", "Nieve", "Снег"),
+				["Rain"] = make_entry("雨", "비", "Lluvia", "Дождь"),
+				["Lifetime"] = make_entry("永久", "평생", "De por vida", "Навсегда"),
+				["No Key"] = make_entry("无密钥", "키 없음", "Sin clave", "Нет ключа"),
+				["Very Small"] = make_entry("非常小", "아주 작게", "Muy pequeño", "Очень мало"),
+				["Small"] = make_entry("小", "작게", "Pequeño", "Мало"),
+				["Medium"] = make_entry("中", "보통", "Mediano", "Средне"),
+				["Large"] = make_entry("大", "크게", "Grande", "Большой"),
+				["Bigger"] = make_entry("更大", "더 크게", "Más grande", "Больше"),
+				["Massive"] = make_entry("巨大", "매우 크게", "Enorme", "Огромный"),
+				["Linear"] = make_entry("线性", "선형", "Lineal", "Линейный"),
+				["Sine"] = make_entry("正弦", "사인", "Seno", "Синус"),
+				["Quad"] = make_entry("二次", "쿼드", "Cuadrático", "Квадрат"),
+				["Cubic"] = make_entry("三次", "큐빅", "Cúbico", "Кубический"),
+				["Quart"] = make_entry("四次", "쿼트", "Cuártico", "Четвёртый"),
+				["Quint"] = make_entry("五次", "퀸트", "Quíntico", "Пятый"),
+				["Exponential"] = make_entry("指数", "지수", "Exponencial", "Экспоненциальный"),
+				["Circular"] = make_entry("圆形", "원형", "Circular", "Круговой"),
+				["Back"] = make_entry("回弹", "백", "Retroceso", "Откат"),
+				["Elastic"] = make_entry("弹性", "탄성", "Elástico", "Упругий"),
+				["Bounce"] = make_entry("弹跳", "바운스", "Rebote", "Отскок"),
+				["In"] = make_entry("入", "인", "Entrada", "Вход"),
+				["Out"] = make_entry("出", "아웃", "Salida", "Выход"),
+				["InOut"] = make_entry("入出", "인아웃", "Entrada/Salida", "Вход/Выход"),
+				["Active"] = make_entry("启用", "활성", "Activo", "Активно"),
+				["Inactive"] = make_entry("禁用", "비활성", "Inactivo", "Неактивно"),
+				["Window"] = make_entry("窗口", "창", "Ventana", "Окно"),
+				["Page"] = make_entry("页面", "페이지", "Página", "Страница"),
+				["Tab"] = make_entry("标签", "탭", "Pestaña", "Вкладка"),
+				["Section"] = make_entry("分区", "섹션", "Sección", "Секция"),
+				["Label"] = make_entry("标签", "라벨", "Etiqueta", "Метка"),
+				["Checkbox"] = make_entry("复选框", "체크박스", "Casilla", "Флажок"),
+				["Slider"] = make_entry("滑块", "슬라이더", "Deslizador", "Ползунок"),
+				["Dropdown"] = make_entry("下拉框", "드롭다운", "Desplegable", "Выпадающий"),
+				["Textbox"] = make_entry("文本框", "텍스트박스", "Cuadro de texto", "Текстовое поле"),
+				["Button"] = make_entry("按钮", "버튼", "Botón", "Кнопка"),
+				["Model Viewer"] = make_entry("模型查看器", "모델 뷰어", "Visor de modelos", "Просмотр модели"),
+				["Font Setting"] = make_entry("字体设置", "글꼴 설정", "Ajuste de fuente", "Настройка шрифта"),
+				["Settings"] = make_entry("设置", "설정", "Ajustes", "Настройки"),
+				["Config"] = make_entry("配置", "설정", "Configuración", "Конфиг"),
+				["Theme"] = make_entry("主题", "테마", "Tema", "Тема"),
+				["Share Config"] = make_entry("分享配置", "설정 공유", "Compartir config", "Поделиться конфигом"),
+				["Import Pasted"] = make_entry("导入粘贴", "붙여넣기 가져오기", "Importar pegado", "Импорт из буфера"),
+				["Paste config here..."] = make_entry("在此粘贴配置...", "설정 붙여넣기...", "Pegar config aquí...", "Вставьте конфиг..."),
+				["Press Enter after pasting!"] = make_entry("粘贴后按 Enter！", "붙여넣은 후 Enter!", "¡Pulsa Enter tras pegar!", "Нажмите Enter после вставки!"),
+			},
+			PrefixStrings = {
+				["Note: "] = make_entry("备注: ", "메모: ", "Nota: ", "Примечание: "),
+				["Expires: "] = make_entry("过期: ", "만료: ", "Expira: ", "Истекает: "),
+				["Executions: "] = make_entry("执行次数: ", "실행 횟수: ", "Ejecuciones: ", "Запусков: "),
+				["Username: "] = make_entry("用户名: ", "사용자: ", "Usuario: ", "Имя: "),
+				["UserId: "] = make_entry("用户ID: ", "유저 ID: ", "ID de usuario: ", "ID: "),
+				["Account Age: "] = make_entry("账号年龄: ", "계정 나이: ", "Antigüedad: ", "Возраст аккаунта: "),
+				["PlaceId: "] = make_entry("PlaceId: ", "PlaceId: ", "PlaceId: ", "PlaceId: "),
+			},
 		}
+
+		function Localization:NormalizeLocaleId(LocaleId)
+			if type(LocaleId) ~= "string" or LocaleId == "" then
+				return "en"
+			end
+
+			LocaleId = string_lower(LocaleId)
+
+			if string_sub(LocaleId, 1, 2) == "zh" then
+				return "zh"
+			elseif string_sub(LocaleId, 1, 2) == "ko" then
+				return "ko"
+			elseif string_sub(LocaleId, 1, 2) == "es" then
+				return "es"
+			elseif string_sub(LocaleId, 1, 2) == "ru" then
+				return "ru"
+			end
+
+			return "en"
+		end
+
+		function Localization:GetActiveLocale()
+			if self.ForcedLocale then
+				return self.ForcedLocale
+			end
+
+			return self.Locale or "en"
+		end
+
+		function Localization:SetLanguage(LocaleCode)
+			if type(LocaleCode) ~= "string" or LocaleCode == "" then
+				return false
+			end
+
+			local Normalized = self:NormalizeLocaleId(LocaleCode)
+
+			if Normalized == "en" and string_lower(LocaleCode) ~= "en" and string_lower(LocaleCode) ~= "en-us" then
+				return false
+			end
+
+			self.ForcedLocale = Normalized
+			self:RefreshAll()
+			return true
+		end
+
+		function Localization:GetLanguage()
+			return self:GetActiveLocale()
+		end
+
+		function Localization:AddStrings(LocaleCode, StringsTable)
+			if type(LocaleCode) ~= "string" or type(StringsTable) ~= "table" then
+				return false
+			end
+
+			local Normalized = self:NormalizeLocaleId(LocaleCode)
+
+			if not self.CustomStrings[Normalized] then
+				self.CustomStrings[Normalized] = {}
+			end
+
+			for SourceText, Translation in pairs(StringsTable) do
+				if type(SourceText) == "string" and type(Translation) == "string" then
+					self.CustomStrings[Normalized][SourceText] = Translation
+				end
+			end
+
+			if Normalized == self:GetActiveLocale() then
+				self:RefreshAll()
+			end
+
+			return true
+		end
+
+		function Localization:TranslateBuiltIn(Text)
+			local ActiveLocale = self:GetActiveLocale()
+
+			if ActiveLocale == "en" then
+				return nil
+			end
+
+			local Custom = self.CustomStrings[ActiveLocale] and self.CustomStrings[ActiveLocale][Text]
+			if Custom then
+				return Custom
+			end
+
+			local BuiltIn = self.BuiltInStrings[Text]
+			if BuiltIn and BuiltIn[ActiveLocale] then
+				return BuiltIn[ActiveLocale]
+			end
+
+			for Prefix, Translations in pairs(self.PrefixStrings) do
+				if Text:sub(1, #Prefix) == Prefix then
+					local TranslatedPrefix = Translations[ActiveLocale]
+					if TranslatedPrefix then
+						return TranslatedPrefix .. Text:sub(#Prefix + 1)
+					end
+				end
+			end
+
+			return nil
+		end
 
 		function Localization:ShouldSkipTranslate(Text)
 			if type(Text) ~= "string" or Text == "" then
@@ -189,6 +404,11 @@ local Library do
 		function Localization:Translate(Text, Context)
 			if self:ShouldSkipTranslate(Text) then
 				return Text
+			end
+
+			local BuiltInTranslation = self:TranslateBuiltIn(Text)
+			if BuiltInTranslation then
+				return BuiltInTranslation
 			end
 
 			Context = Context or game
@@ -326,6 +546,16 @@ local Library do
 		end
 
 		function Localization:Init()
+			self.Locale = "en"
+
+			local SuccessRobloxLocale, RobloxLocaleId = pcall(function()
+				return LocalizationService.RobloxLocaleId
+			end)
+
+			if SuccessRobloxLocale and type(RobloxLocaleId) == "string" then
+				self.Locale = self:NormalizeLocaleId(RobloxLocaleId)
+			end
+
 			local SuccessPlayer, PlayerTranslator = pcall(function()
 				return LocalizationService:GetTranslatorForPlayerAsync(LocalPlayer)
 			end)
@@ -333,8 +563,12 @@ local Library do
 			if SuccessPlayer and PlayerTranslator then
 				self.PlayerTranslator = PlayerTranslator
 				self.HasPlayerTranslator = true
+				self.Locale = self:NormalizeLocaleId(PlayerTranslator.LocaleId)
 
 				self.PlayerTranslator:GetPropertyChangedSignal("LocaleId"):Connect(function()
+					if not self.ForcedLocale then
+						self.Locale = self:NormalizeLocaleId(self.PlayerTranslator.LocaleId)
+					end
 					self:RefreshAll()
 				end)
 			end
@@ -629,6 +863,14 @@ local Library do
 
 	Library.FormatByKey = function(Key, Arguments)
 		return Localization:FormatByKey(Key, Arguments)
+	end
+
+	Library.SetLanguage = function(LocaleCode)
+		return Localization:SetLanguage(LocaleCode)
+	end
+
+	Library.GetLanguage = function()
+		return Localization:GetLanguage()
 	end
 
 	task.spawn(function()
