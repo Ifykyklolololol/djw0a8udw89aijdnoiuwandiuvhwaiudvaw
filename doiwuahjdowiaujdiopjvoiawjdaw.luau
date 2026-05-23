@@ -1,6 +1,4 @@
-warn(
-'son'
-)
+warn('man')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -734,7 +732,7 @@ local Library do
 				end
 
 				if Class == "TextLabel" or Class == "TextButton" or Class == "TextBox" then
-					pcall(function() NewItem.Instance.AutoLocalize = true end) or warn("shucks, ", Class)
+					if not pcall(function() NewItem.Instance.AutoLocalize = true end) then warn("shucks,", Class) end
 					local TextSize = NewItem.Instance.TextSize
 
 					if TextSize and TextSize > 0 then
