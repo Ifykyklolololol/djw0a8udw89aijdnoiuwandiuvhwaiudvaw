@@ -1,4 +1,4 @@
-warn('fpp')
+warn('tpfs')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -3283,6 +3283,35 @@ local Library do
 		end
 
 		return Item
+	end
+
+	Library.BindRowTextInset = function(self, TextItem, DescriptionItem, ControlsFrame, FixedRightReserve, Gap)
+		local text_instance = TextItem and TextItem.Instance
+		local description_instance = DescriptionItem and DescriptionItem.Instance
+		local controls_instance = ControlsFrame and ControlsFrame.Instance
+		if not text_instance then
+			return
+		end
+
+		FixedRightReserve = FixedRightReserve or 40
+		Gap = Gap or 8
+
+		local function refresh()
+			local reserve = FixedRightReserve + Gap
+			if controls_instance and controls_instance.Parent then
+				reserve = reserve + controls_instance.AbsoluteSize.X
+			end
+			text_instance.Size = UDim2New(1, -reserve, 0, 0)
+			if description_instance and description_instance.Parent then
+				description_instance.Size = UDim2New(1, -reserve, 0, 0)
+			end
+		end
+
+		if controls_instance then
+			controls_instance:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh)
+		end
+
+		refresh()
 	end
 
 	Library.ApplyMouseForMenu = function(self, IsOpen)
@@ -9468,6 +9497,7 @@ local Library do
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Center,
 				TextWrapped = true,
+				TextTruncate = Enum.TextTruncate.AtEnd,
 				AutomaticSize = Enum.AutomaticSize.Y,
 				ZIndex = 2
 			}):AddToTheme({TextColor3 = 'Text'})
@@ -9521,8 +9551,8 @@ local Library do
 				Parent = Items["Toggle"].Instance,
 				Name = "\0",
 				Size = UDim2New(0, 0, 0, 0),
-				Position = UDim2New(1, -48, 0, 0),
-				AnchorPoint = Vector2New(1, 0),
+				Position = UDim2New(1, -40, 0.5, 0),
+				AnchorPoint = Vector2New(1, 0.5),
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
@@ -9575,6 +9605,8 @@ local Library do
 
 				Library:BindDescriptionColor(Items["Description"], Toggle.DescriptionColor)
 			end
+
+			Library:BindRowTextInset(Items["Text"], Items["Description"], Items["SubElements"], 40, 8)
 		end
 
 		function Toggle:Get()
@@ -9853,12 +9885,13 @@ local Library do
 			Items["SubElements"] = Instances:Create("Frame", {
 				Parent = Items["Checkbox"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 1, 0),
-				Position = UDim2New(1, -28, 0, 0),
-				AnchorPoint = Vector2New(1, 0),
+				Size = UDim2New(0, 0, 0, 0),
+				Position = UDim2New(1, -20, 0.5, 0),
+				AnchorPoint = Vector2New(1, 0.5),
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
 				LayoutOrder = 1
 			})
 
@@ -9871,6 +9904,8 @@ local Library do
 				HorizontalAlignment = Enum.HorizontalAlignment.Right,
 				VerticalAlignment = Enum.VerticalAlignment.Center
 			})
+
+			Library:BindRowTextInset(Items["Text"], Items["Description"], Items["SubElements"], 20, 8)
 		end
 
 		function Checkbox:Get()
@@ -10268,6 +10303,8 @@ local Library do
 			TextSize = 14,
 			FontFace = Library.Font,
 			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextWrapped = true,
 			ZIndex = 4,
 			LayoutOrder = 0
 		}):AddToTheme({TextColor3 = 'Text'})
@@ -10381,6 +10418,12 @@ local Library do
 			LayoutOrder = 0
 		}):AddToTheme({BackgroundColor3 = 'Element'})
 
+		Instances:Create("UIFlexItem", {
+			Parent = Items["RealSlider"].Instance,
+			Name = "\0",
+			FlexMode = Enum.UIFlexMode.Fill,
+		})
+
 		Instances:Create("UICorner", {
 			Parent = Items["RealSlider"].Instance,
 			Name = "\0",
@@ -10393,10 +10436,6 @@ local Library do
 			Rotation = 90,
 			Color = RGBSequence{RGBSequenceKeypoint(0, FromRGB(255, 255, 255)), RGBSequenceKeypoint(1, FromRGB(216, 216, 216))}
 		})
-
-		if Slider.Compact then
-			Items["RealSlider"].Instance.ClipsDescendants = false
-		end
 
 		Items["Accent"] = Instances:Create("Frame", {
 			Parent = Items["RealSlider"].Instance,
@@ -10424,16 +10463,25 @@ local Library do
 			Items["TrackLabel"] = Instances:Create("TextLabel", {
 				Parent = Items["RealSlider"].Instance,
 				Name = "\0",
-				Size = UDim2New(1, 0, 1, 0),
+				Size = UDim2New(1, -12, 1, 0),
+				Position = UDim2New(0, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
 				Text = "",
 				TextColor3 = Library.Theme["Text"],
 				TextSize = 13,
 				FontFace = Library.Font,
-				TextXAlignment = Enum.TextXAlignment.Center,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
 				ZIndex = 8,
 			}):AddToTheme({TextColor3 = "Text"})
+
+			Instances:Create("UIPadding", {
+				Parent = Items["TrackLabel"].Instance,
+				Name = "\0",
+				PaddingLeft = UDimNew(0, 8),
+				PaddingRight = UDimNew(0, 10),
+			})
 
 			Instances:Create("UIStroke", {
 				Parent = Items["TrackLabel"].Instance,
@@ -12126,7 +12174,7 @@ local Library do
 			Instances:Create("UIListLayout", {
 				Parent = Items["MainRow"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 0),
+				Padding = UDimNew(0, 8),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -12139,9 +12187,16 @@ local Library do
 				Size = UDim2New(1, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
+				ClipsDescendants = true,
 				AutomaticSize = Enum.AutomaticSize.Y,
 				ZIndex = 2,
 				LayoutOrder = 0
+			})
+
+			Instances:Create("UIFlexItem", {
+				Parent = Items["TextContainer"].Instance,
+				Name = "\0",
+				FlexMode = Enum.UIFlexMode.Fill,
 			})
 
 			Instances:Create("UIListLayout", {
@@ -12204,19 +12259,18 @@ local Library do
 			Items["SubElements"] = Instances:Create("Frame", {
 				Parent = Items["MainRow"].Instance,
 				Name = "\0",
-				Size = UDim2New(0, 0, 1, 0),
-				Position = UDim2New(1, 0, 0, 0),
-				AnchorPoint = Vector2New(1, 0),
+				Size = UDim2New(0, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
 				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
 				LayoutOrder = 1
 			})
 
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubElements"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 0),
+				Padding = UDimNew(0, 8),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Right,
