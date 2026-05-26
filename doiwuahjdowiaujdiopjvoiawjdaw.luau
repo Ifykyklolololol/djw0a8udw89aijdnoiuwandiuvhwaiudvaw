@@ -1,4 +1,4 @@
-warn('sity bo')
+warn('sity LOLLLL')
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -1309,6 +1309,7 @@ local Library do
 		end,
 
 		SetFlags = {},
+		ConfigFlagCallbacks = {},
 		ConfigLoadedCallbacks = {},
 		Themes = {},
 
@@ -3184,13 +3185,45 @@ local Library do
 		return Flag
 	end
 
-	Library.BindElementFlag = function(self, Flag, Setter)
+	Library.BindElementFlag = function(self, Flag, Setter, Element)
 		if type(Flag) ~= "string" or Flag == "" or type(Setter) ~= "function" then
 			return
 		end
 
 		self:RegisterConfigFlag(Flag)
 		self.SetFlags[Flag] = Setter
+
+		if type(Element) == "table" and type(Element.Callback) == "function" then
+			local element = Element
+			self.ConfigFlagCallbacks[Flag] = function()
+				if element.Disabled == true then
+					return
+				end
+				self:SafeCall(element.Callback, element.Value)
+			end
+		end
+	end
+
+	Library.RegisterConfigFlagCallback = function(self, Flag, Callback)
+		if type(Flag) ~= "string" or Flag == "" or type(Callback) ~= "function" then
+			return
+		end
+		self.ConfigFlagCallbacks[Flag] = Callback
+	end
+
+	Library.FireConfigFlagCallbacks = function(self, Decoded)
+		if type(Decoded) ~= "table" then
+			return
+		end
+		for Index, _ in Decoded do
+			if self:IsScriptConfigFlag(Index) ~= true then
+				continue
+			end
+			local callback = self.ConfigFlagCallbacks[Index]
+			if type(callback) == "function" then
+				pcall(callback)
+			end
+		end
 	end
 
 	Library.IsLifetime = function(self)
@@ -3308,19 +3341,7 @@ local Library do
 		self.LoadingConfig = false
 		self:EndSilent()
 
-		for Index, Value in Decoded do
-			if Library:IsScriptConfigFlag(Index) ~= true then
-				continue
-			end
-
-			if type(Library.SetFlags[Index]) ~= "function" then
-				continue
-			end
-
-			pcall(function()
-				self:ApplyConfigEntry(Index, Value)
-			end)
-		end
+		self:FireConfigFlagCallbacks(Decoded)
 
 		for _, Callback in self.ConfigLoadedCallbacks do
 			Library:SafeCall(Callback, #FailedEntries == 0, FailedEntries)
@@ -4692,7 +4713,7 @@ local Library do
 				return 
 			end
 			Toggle:Set(Value, Library.LoadingConfig == true)
-		end)
+		end, Toggle)
 
 		function Toggle:Destroy()
 			for _, Item in Items do
@@ -5874,6 +5895,15 @@ local Library do
 
 			Colorpicker:Set(Value, Alpha)
 		end)
+
+		if type(Colorpicker.Flag) == "string" and Colorpicker.Flag ~= "" and type(Data.Callback) == "function" then
+			Library:RegisterConfigFlagCallback(Colorpicker.Flag, function()
+				if Colorpicker.Disabled == true then
+					return
+				end
+				Library:SafeCall(Data.Callback, Colorpicker.Color, Colorpicker.Alpha)
+			end)
+		end
 
 		if type(AnimDropdown.Flag) == "string" and AnimDropdown.Flag ~= "" then
 			Library.SetFlags[AnimDropdown.Flag] = function(Value)
@@ -9985,7 +10015,7 @@ local Library do
 			end
 
 			Toggle:Set(Value, Library.LoadingConfig == true)
-		end)
+		end, Toggle)
 
 		function Toggle:Destroy()
 			for _, Item in Items do
@@ -10280,7 +10310,7 @@ local Library do
 
 		Library:BindElementFlag(Checkbox.Flag, function(Value)
 			Checkbox:Set(Value, Library.LoadingConfig == true)
-		end)
+		end, Checkbox)
 
 		function Checkbox:Destroy()
 			for _, Item in Items do
@@ -10999,7 +11029,7 @@ local Library do
 				return
 			end
 			Slider:Set(Value, false, Library.LoadingConfig == true)
-		end)
+		end, Slider)
 
 		function Slider:Destroy()
 			if Slider.InputChangedConnection then
@@ -11496,6 +11526,19 @@ local Library do
 
 				Entry:Set(Value, Library.LoadingConfig == true)
 			end)
+
+			if type(Entry.Flag) == "string" and Entry.Flag ~= "" and type(Entry.Callback) == "function" then
+				Library:RegisterConfigFlagCallback(Entry.Flag, function()
+					if Entry.Disabled == true then
+						return
+					end
+					Library:SafeCall(Entry.Callback, {
+						Speed = Entry.Speed,
+						Start = Entry.Start,
+						["End"] = Entry["End"],
+					})
+				end)
+			end
 
 			local PageSearchData = Library.SearchItems[SubSlider.Page]
 
@@ -12379,7 +12422,7 @@ local Library do
 			end
 
 			Dropdown:Set(Value, Library.LoadingConfig == true)
-		end)
+		end, Dropdown)
 
 		function Dropdown:Destroy()
 			for _, Item in Items do
@@ -12903,7 +12946,7 @@ local Library do
 			end
 
 			Textbox:Set(Value, Library.LoadingConfig == true)
-		end)
+		end, Textbox)
 
 		function Textbox:Destroy()
 			for _, Item in Items do
