@@ -1,4 +1,4 @@
-warn('sity bo')
+warn('sity bii')
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -5008,11 +5008,13 @@ local Library do
 			}):AddToTheme({TextColor3 = 'Text'})                
 		end
 
+		local AnimationFlag = type(Colorpicker.Flag) == "string" and Colorpicker.Flag ~= "" and (Colorpicker.Flag .. " Animation") or nil
+
 		local AnimDropdown = {
 			Value = {},
 			Multi = true,
 			Callback = function() end,
-			Flag = Colorpicker.Flag .. " Animation",
+			Flag = AnimationFlag,
 			Options = {},
 			MaxSize = 280,
 		}
@@ -5360,14 +5362,18 @@ local Library do
 
 					OptionData:Toggle(Index and "Inactive" or "Active")
 
-					Library.Flags[AnimDropdown.Flag] = AnimDropdown.Value
+					if type(AnimDropdown.Flag) == "string" and AnimDropdown.Flag ~= "" then
+						Library.Flags[AnimDropdown.Flag] = AnimDropdown.Value
+					end
 
 					local TextFormat = #AnimDropdown.Value > 0 and TableConcat(AnimDropdown.Value, ", ") or "..."
 					Items["Value"].Instance.Text = TextFormat
 				else
 					if OptionData.Selected then 
 						AnimDropdown.Value = OptionData.Name
-						Library.Flags[AnimDropdown.Flag] = OptionData.Name
+						if type(AnimDropdown.Flag) == "string" and AnimDropdown.Flag ~= "" then
+							Library.Flags[AnimDropdown.Flag] = OptionData.Name
+						end
 
 						OptionData.Selected = true
 						OptionData:Toggle("Active")
@@ -5382,7 +5388,9 @@ local Library do
 						Items["Value"].Instance.Text = OptionData.Name
 					else
 						AnimDropdown.Value = nil
-						Library.Flags[AnimDropdown.Flag] = nil
+						if type(AnimDropdown.Flag) == "string" and AnimDropdown.Flag ~= "" then
+							Library.Flags[AnimDropdown.Flag] = nil
+						end
 
 						OptionData.Selected = false
 						OptionData:Toggle("Inactive")
@@ -5544,13 +5552,15 @@ local Library do
 			Colorpicker.Color = FromHSV(Hue, Saturation, Value)
 			Colorpicker.HexValue = Colorpicker.Color:ToHex()
 
-			Library.Flags[Colorpicker.Flag] = {
-				Alpha = Colorpicker.Alpha,
-				Color = Colorpicker.Color,
-				HexValue = Colorpicker.HexValue,
-				Flag = Colorpicker.Flag,
-				Transparency = 1 - Colorpicker.Alpha
-			}
+			if type(Colorpicker.Flag) == "string" and Colorpicker.Flag ~= "" then
+				Library.Flags[Colorpicker.Flag] = {
+					Alpha = Colorpicker.Alpha,
+					Color = Colorpicker.Color,
+					HexValue = Colorpicker.HexValue,
+					Flag = Colorpicker.Flag,
+					Transparency = 1 - Colorpicker.Alpha
+				}
+			end
 
 			local Color = Colorpicker.Color
 			local R, G, B = MathFloor(Color.R * 255), MathFloor(Color.G * 255), MathFloor(Color.B * 255)
@@ -5851,30 +5861,32 @@ local Library do
 			Colorpicker:Set(Value, Alpha)
 		end)
 
-		Library.SetFlags[AnimDropdown.Flag] = function(Value)
-			if type(Value) == "string" then
-				Value = { Value }
-			end
+		if type(AnimDropdown.Flag) == "string" and AnimDropdown.Flag ~= "" then
+			Library.SetFlags[AnimDropdown.Flag] = function(Value)
+				if type(Value) == "string" then
+					Value = { Value }
+				end
 
-			if type(Value) ~= "table" then
-				Value = {}
-			end
+				if type(Value) ~= "table" then
+					Value = {}
+				end
 
-			AnimDropdown.Value = Value
-			Library.Flags[AnimDropdown.Flag] = AnimDropdown.Value
+				AnimDropdown.Value = Value
+				Library.Flags[AnimDropdown.Flag] = AnimDropdown.Value
 
-			local TextFormat = #AnimDropdown.Value > 0 and TableConcat(AnimDropdown.Value, ", ") or "..."
-			Items["Value"].Instance.Text = TextFormat
+				local TextFormat = #AnimDropdown.Value > 0 and TableConcat(AnimDropdown.Value, ", ") or "..."
+				Items["Value"].Instance.Text = TextFormat
 
-			for OptName, OptionData in AnimDropdown.Options do
-				local Selected = TableFind(AnimDropdown.Value, OptName)
+				for OptName, OptionData in AnimDropdown.Options do
+					local Selected = TableFind(AnimDropdown.Value, OptName)
 
-				OptionData.Selected = Selected ~= nil
-				OptionData:Toggle(Selected and "Active" or "Inactive")
-			end
+					OptionData.Selected = Selected ~= nil
+					OptionData:Toggle(Selected and "Active" or "Inactive")
+				end
 
-			if AnimDropdown.Callback then
-				Library:SafeCall(AnimDropdown.Callback, AnimDropdown.Value)
+				if AnimDropdown.Callback then
+					Library:SafeCall(AnimDropdown.Callback, AnimDropdown.Value)
+				end
 			end
 		end
 
