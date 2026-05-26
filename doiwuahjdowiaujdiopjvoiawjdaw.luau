@@ -1,4 +1,4 @@
-warn('tpfs')
+warn('pls speeed')
 repeat task.wait() until game:IsLoaded()
 
 getgenv().lilix = getgenv().lilix or nil
@@ -1304,6 +1304,7 @@ local Library do
 		end,
 
 		SetFlags = {},
+		ConfigLoadedCallbacks = {},
 		Themes = {},
 
 		UnnamedConnections = 0,
@@ -2912,10 +2913,121 @@ local Library do
 
 		if not Success then
 			warn(Result)
-			return false
+			return false, Result
 		end
 
-		return Success
+		return true, Result
+	end
+
+	Library.OnConfigLoaded = function(self, Callback)
+		if type(Callback) == "function" then
+			TableInsert(self.ConfigLoadedCallbacks, Callback)
+		end
+	end
+
+	Library.ApplyConfigEntry = function(self, Index, Value)
+		if Index == "FloatingButtonPosition" then
+			if Library.FloatingButton and Library.FloatingButton.Instance and type(Value) == "table" then
+				local PositionX = Value.X
+				local PositionY = Value.Y
+				if type(PositionX) == "table" and type(PositionY) == "table" then
+					Library.FloatingButton.Instance.Position = UDim2New(
+						PositionX.Scale,
+						PositionX.Offset,
+						PositionY.Scale,
+						PositionY.Offset
+					)
+				end
+			end
+			return true
+		end
+
+		if Index == "Auto Save Config" and type(Value) == "boolean" then
+			Library.AutoSave = Value
+			return true
+		end
+
+		if Index == "Safe Mode" and type(Value) == "boolean" then
+			Library.SafeMode = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Autoloads the selected configuration on next load" and type(Value) == "boolean" then
+			Library.AutoloadConfigEnabled = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Autoload Theme On Execute" and type(Value) == "boolean" then
+			Library.AutoloadThemeEnabled = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Background Snow" and type(Value) == "boolean" then
+			Library:SetBackgroundEffect(Value and "Snow" or "None")
+			return true
+		end
+
+		if Index == "Background Effect" and type(Value) == "string" then
+			Library:SetBackgroundEffect(Value)
+			return true
+		end
+
+		if Index == "Show Watermark" and type(Value) == "boolean" then
+			Library.ShowWatermark = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Show Menu Button" and type(Value) == "boolean" then
+			Library.ShowMenuButton = Value
+			Library:SaveLocalSettings()
+			return true
+		elseif Index == "Show Floating Button" and type(Value) == "boolean" then
+			Library.ShowMenuButton = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Show Keybind List" and type(Value) == "boolean" then
+			Library.ShowKeybindList = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "Background Darken" and type(Value) == "boolean" then
+			Library:SetBackgroundDarkenEnabled(Value)
+			return true
+		end
+
+		if Index == "Auto Execute" and type(Value) == "boolean" then
+			Library.AutoExecute = Value
+			Library:SaveLocalSettings()
+			return true
+		end
+
+		if Index == "UI Font" and type(Value) == "string" then
+			Library:SetFont(Value)
+			return true
+		end
+
+		local SetFunction = Library.SetFlags[Index]
+
+		if not SetFunction then
+			return true
+		end
+
+		if type(Value) == "table" and Value.Key then
+			SetFunction(Value)
+		elseif type(Value) == "table" and Value.Color then
+			SetFunction(Value.Color, Value.Alpha)
+		else
+			SetFunction(Value)
+		end
+
+		return true
 	end
 
 	Library.Connect = function(self, Event, Callback, Name)
@@ -3060,95 +3172,37 @@ local Library do
 	end
 
 	Library.LoadConfig = function(self, Config)
-		local Decoded = HttpService:JSONDecode(Config)
+		local DecodeSuccess, Decoded = pcall(HttpService.JSONDecode, HttpService, Config)
+
+		if not DecodeSuccess or type(Decoded) ~= "table" then
+			return false, tostring(Decoded)
+		end
 
 		self.LoadingConfig = true
 
-		local Success, Result = Library:SafeCall(function()
-			for Index, Value in Decoded do 
-				if Index == "FloatingButtonPosition" then
-					if Library.FloatingButton and Library.FloatingButton.Instance then
-						Library.FloatingButton.Instance.Position = UDim2New(Value.X.Scale, Value.X.Offset, Value.Y.Scale, Value.Y.Offset)
-					end
-					continue
-				end
+		local FailedEntries = {}
 
-				if Index == "Auto Save Config" and type(Value) == "boolean" then
-					Library.AutoSave = Value
-				end
+		for Index, Value in Decoded do
+			local ApplySuccess, ApplyError = pcall(function()
+				return self:ApplyConfigEntry(Index, Value)
+			end)
 
-				if Index == "Safe Mode" and type(Value) == "boolean" then
-					Library.SafeMode = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Autoloads the selected configuration on next load" and type(Value) == "boolean" then
-					Library.AutoloadConfigEnabled = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Autoload Theme On Execute" and type(Value) == "boolean" then
-					Library.AutoloadThemeEnabled = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Background Snow" and type(Value) == "boolean" then
-					Library:SetBackgroundEffect(Value and "Snow" or "None")
-				end
-
-				if Index == "Background Effect" and type(Value) == "string" then
-					Library:SetBackgroundEffect(Value)
-				end
-
-				if Index == "Show Watermark" and type(Value) == "boolean" then
-					Library.ShowWatermark = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Show Menu Button" and type(Value) == "boolean" then
-					Library.ShowMenuButton = Value
-					Library:SaveLocalSettings()
-				elseif Index == "Show Floating Button" and type(Value) == "boolean" then
-					Library.ShowMenuButton = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Show Keybind List" and type(Value) == "boolean" then
-					Library.ShowKeybindList = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "Background Darken" and type(Value) == "boolean" then
-					Library:SetBackgroundDarkenEnabled(Value)
-				end
-
-				if Index == "Auto Execute" and type(Value) == "boolean" then
-					Library.AutoExecute = Value
-					Library:SaveLocalSettings()
-				end
-
-				if Index == "UI Font" and type(Value) == "string" then
-					Library:SetFont(Value)
-				end
-
-				local SetFunction = Library.SetFlags[Index]
-
-				if not SetFunction then
-					continue
-				end
-
-				if type(Value) == "table" and Value.Key then 
-					SetFunction(Value)
-				elseif type(Value) == "table" and Value.Color then
-					SetFunction(Value.Color, Value.Alpha)
-				else
-					SetFunction(Value)
-				end
+			if not ApplySuccess then
+				TableInsert(FailedEntries, tostring(Index) .. ": " .. tostring(ApplyError))
 			end
-		end)
+		end
 
 		self.LoadingConfig = false
-		return Success, Result
+
+		for _, Callback in self.ConfigLoadedCallbacks do
+			Library:SafeCall(Callback, #FailedEntries == 0, FailedEntries)
+		end
+
+		if #FailedEntries > 0 then
+			return false, FailedEntries[1]
+		end
+
+		return true
 	end
 
 	Library.RefreshConfigsList = function(self, Element)
@@ -12562,7 +12616,7 @@ local Library do
 
 			Library.Flags[Textbox.Flag] = Value
 
-			if Textbox.Callback then
+			if Textbox.Callback and not Library.LoadingConfig then
 				Library:SafeCall(Textbox.Callback, Value)
 			end
 
