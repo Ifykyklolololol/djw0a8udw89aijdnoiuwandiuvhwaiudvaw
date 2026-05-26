@@ -1,5 +1,7 @@
-warn('pls speeed')
-repeat task.wait() until game:IsLoaded()
+warn('sity bo')
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
 
 getgenv().lilix = getgenv().lilix or nil
 getgenv().relix = getgenv().relix or nil
@@ -818,6 +820,9 @@ local Library do
 				ValueInstance.Text = #TranslatedParts > 0 and table.concat(TranslatedParts, ", ") or self:Translate("...", ValueInstance)
 				self.Applying = false
 				self:Register(ValueInstance, "Text")
+			elseif type(Dropdown.Value) == "table" then
+				ValueInstance:SetAttribute("SolixDropdownMulti", nil)
+				self:ApplyText(ValueInstance, "...", "Text")
 			elseif Dropdown.Value ~= nil and Dropdown.Value ~= "" then
 				ValueInstance:SetAttribute("SolixDropdownMulti", nil)
 				self:ApplyText(ValueInstance, tostring(Dropdown.Value), "Text")
@@ -1308,7 +1313,28 @@ local Library do
 		Themes = {},
 
 		UnnamedConnections = 0,
-		UnnamedFlags = 0,
+
+		ScriptConfigFlags = {},
+		SettingsConfigFlags = {
+			["FloatingButtonPosition"] = true,
+			["Auto Save Config"] = true,
+			["Safe Mode"] = true,
+			["Autoloads the selected configuration on next load"] = true,
+			["Autoload Theme On Execute"] = true,
+			["Background Snow"] = true,
+			["Background Effect"] = true,
+			["Show Watermark"] = true,
+			["Show Menu Button"] = true,
+			["Show Floating Button"] = true,
+			["Show Keybind List"] = true,
+			["Background Darken"] = true,
+			["Auto Execute"] = true,
+			["UI Font"] = true,
+			["Theme Name"] = true,
+			["Config Name"] = true,
+			["Pasted Config"] = true,
+			["Menu Keybind"] = true,
+		},
 
 		Holder = nil,
 		NotifHolder = nil,
@@ -2919,6 +2945,54 @@ local Library do
 		return true, Result
 	end
 
+	Library.ShouldFireElementCallback = function(self, Silent)
+		if self.LoadingConfig == true then
+			return false
+		end
+
+		if Silent == true then
+			return false
+		end
+
+		if type(Silent) == "table" and (Silent.Silent == true or Silent.silent == true) then
+			return false
+		end
+
+		if (self.SilentDepth or 0) > 0 then
+			return false
+		end
+
+		return true
+	end
+
+	Library.BeginSilent = function(self)
+		self.SilentDepth = (self.SilentDepth or 0) + 1
+	end
+
+	Library.EndSilent = function(self)
+		self.SilentDepth = math.max(0, (self.SilentDepth or 0) - 1)
+	end
+
+	Library.ShouldSaveAutoload = function(self, Silent)
+		if self.LoadingConfig == true then
+			return false
+		end
+
+		if Silent == true then
+			return false
+		end
+
+		if type(Silent) == "table" and (Silent.Silent == true or Silent.silent == true) then
+			return false
+		end
+
+		if (self.SilentDepth or 0) > 0 then
+			return false
+		end
+
+		return true
+	end
+
 	Library.OnConfigLoaded = function(self, Callback)
 		if type(Callback) == "function" then
 			TableInsert(self.ConfigLoadedCallbacks, Callback)
@@ -3073,10 +3147,50 @@ local Library do
 		end
 	end
 
-	Library.NextFlag = function(self)
-		local FlagNumber = self.UnnamedFlags + 1
+	Library.RegisterConfigFlag = function(self, Flag)
+		if type(Flag) ~= "string" or Flag == "" then
+			return
+		end
 
-		return StringFormat("flag_number_%s_%s", FlagNumber, HttpService:GenerateGUID(false))
+		self.ScriptConfigFlags[Flag] = true
+	end
+
+	Library.IsScriptConfigFlag = function(self, Flag)
+		if type(Flag) ~= "string" or Flag == "" then
+			return false
+		end
+
+		if self.SettingsConfigFlags[Flag] == true then
+			return false
+		end
+
+		if StringFind(Flag, "ThemingThing", 1, true) then
+			return false
+		end
+
+		return self.ScriptConfigFlags[Flag] == true
+	end
+
+	Library.ResolveElementFlag = function(self, Data)
+		if type(Data) ~= "table" then
+			return nil
+		end
+
+		local Flag = Data.Flag or Data.flag
+		if type(Flag) ~= "string" or Flag == "" then
+			return nil
+		end
+
+		return Flag
+	end
+
+	Library.BindElementFlag = function(self, Flag, Setter)
+		if type(Flag) ~= "string" or Flag == "" or type(Setter) ~= "function" then
+			return
+		end
+
+		self:RegisterConfigFlag(Flag)
+		self.SetFlags[Flag] = Setter
 	end
 
 	Library.IsLifetime = function(self)
@@ -3148,6 +3262,10 @@ local Library do
 
 		local Success, Result = Library:SafeCall(function()
 			for Index, Value in Library.Flags do 
+				if Library:IsScriptConfigFlag(Index) ~= true then
+					continue
+				end
+
 				if type(Value) == "table" and Value.Key then
 					Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode}
 				elseif type(Value) == "table" and Value.Color then
@@ -3156,16 +3274,6 @@ local Library do
 					Config[Index] = Value
 				end
 			end
-
-			if Library.FloatingButton and Library.FloatingButton.Instance then
-				local Pos = Library.FloatingButton.Instance.Position
-
-				Config["FloatingButtonPosition"] = {
-					X = {Scale = Pos.X.Scale, Offset = Pos.X.Offset},
-					Y = {Scale = Pos.Y.Scale, Offset = Pos.Y.Offset}
-				}
-			end
-
 		end)
 
 		return HttpService:JSONEncode(Config)
@@ -3178,11 +3286,16 @@ local Library do
 			return false, tostring(Decoded)
 		end
 
+		self:BeginSilent()
 		self.LoadingConfig = true
 
 		local FailedEntries = {}
 
 		for Index, Value in Decoded do
+			if Library:IsScriptConfigFlag(Index) ~= true then
+				continue
+			end
+
 			local ApplySuccess, ApplyError = pcall(function()
 				return self:ApplyConfigEntry(Index, Value)
 			end)
@@ -3193,6 +3306,7 @@ local Library do
 		end
 
 		self.LoadingConfig = false
+		self:EndSilent()
 
 		for _, Callback in self.ConfigLoadedCallbacks do
 			Library:SafeCall(Callback, #FailedEntries == 0, FailedEntries)
@@ -3874,11 +3988,11 @@ local Library do
 		end
 	end
 
-	Library.SetBackgroundDarkenEnabled = function(self, Bool)
+	Library.SetBackgroundDarkenEnabled = function(self, Bool, SkipSave)
 		self.BackgroundDarkenEnabled = Bool and true or false
 		self:SetBackgroundEffectsVisible(self.WindowOpenState, true)
 
-		if not self.LoadingConfig then
+		if not self.LoadingConfig and SkipSave ~= true then
 			self:SaveLocalSettings()
 		end
 	end
@@ -3975,16 +4089,16 @@ local Library do
 			return
 		end
 
-		if Decoded.SafeMode == true then
-			self.SafeMode = true
+		if type(Decoded.SafeMode) == "boolean" then
+			self.SafeMode = Decoded.SafeMode
 		end
 
-		if Decoded.AutoloadConfigEnabled == true then
-			self.AutoloadConfigEnabled = true
+		if type(Decoded.AutoloadConfigEnabled) == "boolean" then
+			self.AutoloadConfigEnabled = Decoded.AutoloadConfigEnabled
 		end
 
-		if Decoded.AutoloadThemeEnabled == true then
-			self.AutoloadThemeEnabled = true
+		if type(Decoded.AutoloadThemeEnabled) == "boolean" then
+			self.AutoloadThemeEnabled = Decoded.AutoloadThemeEnabled
 		end
 
 		if type(Decoded.BackgroundEffect) == "string" then
@@ -4102,13 +4216,14 @@ local Library do
 
 	Library.ApplyMenuSettingsFromLocal = function(self, Watermark, KeybindList, Window)
 		local ActiveWatermark = Watermark or self.WatermarkInstance
+		local ActiveKeybindList = KeybindList or self.KeyList
 
 		if ActiveWatermark and ActiveWatermark.SetVisibility then
 			ActiveWatermark:SetVisibility(self.ShowWatermark == true)
 		end
 
-		if KeybindList and KeybindList.SetVisibility then
-			KeybindList:SetVisibility(self.ShowKeybindList == true)
+		if ActiveKeybindList and ActiveKeybindList.SetVisibility then
+			ActiveKeybindList:SetVisibility(self.ShowKeybindList == true)
 		end
 
 		if self.FloatingButtonHolder and self.FloatingButtonHolder.Instance then
@@ -4119,11 +4234,50 @@ local Library do
 			Window:SetTransparency(self.BackgroundTransparency)
 		end
 
-		if KeybindList and KeybindList.SetTransparency and type(self.BackgroundTransparency) == "number" then
-			KeybindList:SetTransparency(self.BackgroundTransparency)
+		if ActiveKeybindList and ActiveKeybindList.SetTransparency and type(self.BackgroundTransparency) == "number" then
+			ActiveKeybindList:SetTransparency(self.BackgroundTransparency)
 		end
 
-		self:SetBackgroundDarkenEnabled(self.BackgroundDarkenEnabled)
+		self:SetBackgroundDarkenEnabled(self.BackgroundDarkenEnabled, true)
+	end
+
+	Library.SyncMenuSettingsToUI = function(self, Silent)
+		local MenuSettingFlags = {
+			["Show Watermark"] = function()
+				return self.ShowWatermark == true
+			end,
+			["Show Keybind List"] = function()
+				return self.ShowKeybindList == true
+			end,
+			["Show Menu Button"] = function()
+				return self.ShowMenuButton ~= false
+			end,
+			["Background Darken"] = function()
+				return self.BackgroundDarkenEnabled ~= false
+			end,
+		}
+
+		if Silent == true then
+			self:BeginSilent()
+		end
+
+		for Flag, GetValue in MenuSettingFlags do
+			local Setter = self.SetFlags[Flag]
+			if type(Setter) == "function" then
+				Setter(GetValue())
+			end
+		end
+
+		if Silent == true then
+			self:EndSilent()
+		end
+	end
+
+	Library.FinalizeMenuSettings = function(self, Watermark, KeybindList, Window)
+		self:CheckForAutoLoad()
+		self:LoadLocalSettings()
+		self:SyncMenuSettingsToUI(true)
+		self:ApplyMenuSettingsFromLocal(Watermark, KeybindList, Window)
 	end
 
 	Library.CheckForThemeAutoLoad = function(self)
@@ -4246,7 +4400,7 @@ local Library do
 			Name = Data.Name or Data.name or "Toggle",
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Default = Data.Default or Data.default or false,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Callback = Data.Callback or Data.callback or function() end,
@@ -4386,7 +4540,7 @@ local Library do
 			return Toggle.Value 
 		end
 
-		function Toggle:Set(Value)
+		function Toggle:Set(Value, Silent)
 			if Toggle.Disabled then
 				return
 			end
@@ -4396,7 +4550,9 @@ local Library do
 			end
 
 			Toggle.Value = Value
-			Library.Flags[Toggle.Flag] = Value
+			if Toggle.Flag then
+				Library.Flags[Toggle.Flag] = Value
+			end
 
 			local ThemeKey = Value and "Accent" or "Element"
 			local TextTrans = Value and 0 or 0.4
@@ -4413,11 +4569,13 @@ local Library do
 			Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = ThemeKey})
 			Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme[ThemeKey]})
 
-			if Toggle.Callback then
+			if Toggle.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Toggle.Callback, Toggle.Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		function Toggle:SetDisabled(Bool)
@@ -4444,7 +4602,7 @@ local Library do
 				Page = Toggle.Page,
 				Section = Toggle.Section,
 
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or Color3.fromRGB(255, 255, 255),
 				Callback = Data.Callback or Data.callback or function() end,
 				Alpha = Data.Alpha or Data.alpha or false
@@ -4472,7 +4630,7 @@ local Library do
 				Section = Toggle.Section,
 
 				Name = Data.Name or Data.name or Toggle.Name,
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
@@ -4513,14 +4671,14 @@ local Library do
 			Toggle:Set(not Toggle.Value)
 		end)
 
-		Toggle:Set(Toggle.Default)
+		Toggle:Set(Toggle.Default, true)
 
-		Library.SetFlags[Toggle.Flag] = function(Value)
+		Library:BindElementFlag(Toggle.Flag, function(Value)
 			if Toggle.Disabled then 
 				return 
 			end
-			Toggle:Set(Value)
-		end
+			Toggle:Set(Value, Library.LoadingConfig == true)
+		end)
 
 		function Toggle:Destroy()
 			for _, Item in Items do
@@ -5685,13 +5843,13 @@ local Library do
 			Colorpicker:Set(Data.Default, Data.Alpha)
 		end
 
-		Library.SetFlags[Colorpicker.Flag] = function(Value, Alpha)
+		Library:BindElementFlag(Colorpicker.Flag, function(Value, Alpha)
 			if Colorpicker.Disabled then
 				return
 			end
 
 			Colorpicker:Set(Value, Alpha)
-		end
+		end)
 
 		Library.SetFlags[AnimDropdown.Flag] = function(Value)
 			if type(Value) == "string" then
@@ -6313,12 +6471,12 @@ local Library do
 			Key = Data.Default or KEYBIND_NONE_KEY,
 		})
 
-		Library.SetFlags[Keybind.Flag] = function(Value)
+		Library:BindElementFlag(Keybind.Flag, function(Value)
 			if Keybind.Disabled then
 				return
 			end
 			Keybind:Set(Value)
-		end
+		end)
 
 		function Keybind:Destroy()
 			for Index, Entry in Library.KeybindEntries do
@@ -6665,7 +6823,7 @@ local Library do
 		LoadPosition()
 		RefreshLabel()
 		Watermark:SetCenter()
-		Watermark:SetVisibility(false)
+		Watermark:SetVisibility(self.ShowWatermark == true)
 
 		Library:Connect(RunService.RenderStepped, function(DeltaTime)
 			if not Items["Frame"].Instance.Visible then
@@ -6873,6 +7031,7 @@ local Library do
 		KeybindList:SetText(Name)
 		KeybindList:SetCenter()
 		KeybindList:SyncEntries()
+		KeybindList:SetVisibility(self.ShowKeybindList == true)
 
 		return KeybindList
 	end
@@ -9512,7 +9671,7 @@ local Library do
 			Name = Data.Name or Data.name or "Toggle",
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Default = Data.Default or Data.default or false,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Callback = Data.Callback or Data.callback or function() end,
@@ -9667,7 +9826,7 @@ local Library do
 			return Toggle.Value 
 		end
 
-		function Toggle:Set(Value)
+		function Toggle:Set(Value, Silent)
 			if Toggle.Disabled then
 				return
 			end
@@ -9677,7 +9836,9 @@ local Library do
 			end
 
 			Toggle.Value = Value
-			Library.Flags[Toggle.Flag] = Value
+			if Toggle.Flag then
+				Library.Flags[Toggle.Flag] = Value
+			end
 
 			local ThemeKey = Value and "Accent" or "Element"
 			local TextTrans = Value and 0 or 0.4
@@ -9694,11 +9855,13 @@ local Library do
 			Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = ThemeKey})
 			Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme[ThemeKey]})
 
-			if Toggle.Callback then
+			if Toggle.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Toggle.Callback, Toggle.Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		function Toggle:SetDisabled(Bool)
@@ -9725,7 +9888,7 @@ local Library do
 				Page = Toggle.Page,
 				Section = Toggle.Section,
 
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or Color3.fromRGB(255, 255, 255),
 				Callback = Data.Callback or Data.callback or function() end,
 				Alpha = Data.Alpha or Data.alpha or false
@@ -9753,7 +9916,7 @@ local Library do
 				Section = Toggle.Section,
 
 				Name = Data.Name or Data.name or Toggle.Name,
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
@@ -9788,15 +9951,15 @@ local Library do
 			Toggle:Set(not Toggle.Value)
 		end)
 
-		Toggle:Set(Toggle.Default)
+		Toggle:Set(Toggle.Default, true)
 
-		Library.SetFlags[Toggle.Flag] = function(Value)
+		Library:BindElementFlag(Toggle.Flag, function(Value)
 			if Toggle.Disabled then
 				return
 			end
 
-			Toggle:Set(Value)
-		end
+			Toggle:Set(Value, Library.LoadingConfig == true)
+		end)
 
 		function Toggle:Destroy()
 			for _, Item in Items do
@@ -9824,7 +9987,7 @@ local Library do
 			Name = Data.Name or Data.name or "Checkbox",
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Default = Data.Default or Data.default or false,
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Callback = Data.Callback or Data.callback or function() end,
@@ -9966,7 +10129,7 @@ local Library do
 			return Checkbox.Value
 		end
 
-		function Checkbox:Set(Value)
+		function Checkbox:Set(Value, Silent)
 			if Checkbox.Disabled then
 				return
 			end
@@ -9976,7 +10139,9 @@ local Library do
 			end
 
 			Checkbox.Value = Value
-			Library.Flags[Checkbox.Flag] = Checkbox.Value
+			if Checkbox.Flag then
+				Library.Flags[Checkbox.Flag] = Checkbox.Value
+			end
 
 			local ThemeKey = Value and "Accent" or "Element"
 			local TextTrans = Value and 0 or 0.4
@@ -9987,11 +10152,13 @@ local Library do
 			Items["Check"]:Tween(nil, {ImageTransparency = CheckTrans})
 			Items["Text"]:Tween(nil, {TextTransparency = TextTrans})
 
-			if Checkbox.Callback then
+			if Checkbox.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Checkbox.Callback, Checkbox.Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		function Checkbox:SetDisabled(Bool)
@@ -10018,7 +10185,7 @@ local Library do
 				Page = Checkbox.Page,
 				Section = Checkbox.Section,
 
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or Color3.fromRGB(255, 255, 255),
 				Callback = Data.Callback or Data.callback or function() end,
 				Alpha = Data.Alpha or Data.alpha or false
@@ -10046,7 +10213,7 @@ local Library do
 				Section = Checkbox.Section,
 
 				Name = Data.Name or Data.name or Checkbox.Name,
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Callback = Data.Callback or Data.callback or function() end,
 				Mode = Data.Mode or Data.mode or "Toggle"
@@ -10083,11 +10250,11 @@ local Library do
 			end
 		end)
 
-		Checkbox:Set(Checkbox.Default)
+		Checkbox:Set(Checkbox.Default, true)
 
-		Library.SetFlags[Checkbox.Flag] = function(Value)
-			Checkbox:Set(Value)
-		end
+		Library:BindElementFlag(Checkbox.Flag, function(Value)
+			Checkbox:Set(Value, Library.LoadingConfig == true)
+		end)
 
 		function Checkbox:Destroy()
 			for _, Item in Items do
@@ -10303,7 +10470,7 @@ local Library do
 			Compact = Compact,
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Min = Min,
 			Default = Data.Default or Data.default or Min,
 			Max = Max,
@@ -10655,7 +10822,7 @@ local Library do
 			Items["SliderContainer"].Instance.Visible = Bool
 		end
 
-		function Slider:Set(Value, SkipTextUpdate)
+		function Slider:Set(Value, SkipTextUpdate, Silent)
 			if Slider.Disabled then
 				return
 			end
@@ -10678,34 +10845,44 @@ local Library do
 				Slider.Value = MathClamp(Slider.Value, Slider.Min, Slider.Max)
 			end
 
-			Library.Flags[Slider.Flag] = Slider.Value
+			if Slider.Flag then
+				Library.Flags[Slider.Flag] = Slider.Value
+			end
 
 			local slider_range = Slider.Max - Slider.Min
 			local slider_ratio = slider_range > 0 and (Slider.Value - Slider.Min) / slider_range or 0
 			slider_ratio = MathClamp(slider_ratio, 0, 1)
 
 			if slider_ratio <= 0.001 then
-				Items["Accent"].Instance.Visible = false
-				Items["Accent"].Instance.Size = UDim2New(0, 0, 1, 0)
+				pcall(function()
+					Items["Accent"].Instance.Visible = false
+					Items["Accent"].Instance.Size = UDim2New(0, 0, 1, 0)
+				end)
 			else
-				Items["Accent"].Instance.Visible = true
+				pcall(function()
+					Items["Accent"].Instance.Visible = true
+				end)
 				Items["Accent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New(slider_ratio, 0, 1, 0)})
 			end
 
 			if not SkipTextUpdate and Items["Value"] and Items["Value"].Instance then
-				local DisplayValue = string.format("%g", Slider.Value)
-				Items["Value"].Instance.Text = StringFormat("%s%s", DisplayValue, Slider.Suffix)
+				pcall(function()
+					local DisplayValue = string.format("%g", Slider.Value)
+					Items["Value"].Instance.Text = StringFormat("%s%s", DisplayValue, Slider.Suffix)
+				end)
 			end
 
 			if Slider.Compact and Items["TrackLabel"] and Items["TrackLabel"].Instance then
 				Library.Localization:UpdateSliderTrackLabel(Slider, Items["TrackLabel"].Instance, Slider.Name, Slider.Suffix)
 			end
 
-			if Slider.Callback then
+			if Slider.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Slider.Callback, Slider.Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		function Slider:SetDisabled(Bool)
@@ -10788,15 +10965,15 @@ local Library do
 		end)
 
 		if Slider.Default then
-			Slider:Set(Slider.Default)
+			Slider:Set(Slider.Default, false, true)
 		end
 
-		Library.SetFlags[Slider.Flag] = function(Value)
+		Library:BindElementFlag(Slider.Flag, function(Value)
 			if Slider.Disabled then
 				return
 			end
-			Slider:Set(Value)
-		end
+			Slider:Set(Value, false, Library.LoadingConfig == true)
+		end)
 
 		function Slider:Destroy()
 			if Slider.InputChangedConnection then
@@ -10978,13 +11155,13 @@ local Library do
 			EntryItems["EndLabel"].Instance.Text = FormatRangeLabel("end", Entry["End"], Entry.EndSuffix)
 		end
 
-		local function FireEntryCallback(Entry)
-			if Entry.Callback then
+		local function FireEntryCallback(Entry, Silent)
+			if Entry.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Entry.Callback, Entry.Speed, Entry.Start, Entry["End"])
 			end
 		end
 
-		local function EntrySet(Entry, Value)
+		local function EntrySet(Entry, Value, Silent)
 			if Entry.Disabled then
 				return
 			end
@@ -11013,8 +11190,10 @@ local Library do
 				RefreshStartVisual(Entry)
 				RefreshEndVisual(Entry)
 			end
-			FireEntryCallback(Entry)
-			Library:SaveAutoloadIfEnabled()
+			FireEntryCallback(Entry, Silent)
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		local function CreateTrack(Parent, LayoutOrder, ZIndex, Size)
@@ -11122,7 +11301,7 @@ local Library do
 				Section = SubSlider.Section,
 
 				Name = Data.Name or Data.name or "value",
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Lifetime = Data.Lifetime or Data.lifetime or false,
 				HideRange = Data.HideRange == true or Data.hide_range == true,
 
@@ -11213,8 +11392,8 @@ local Library do
 				EntryItems["EndButton"] = EndTrack["Track"]
 			end
 
-			function Entry:Set(Value)
-				EntrySet(Entry, Value)
+			function Entry:Set(Value, Silent)
+				EntrySet(Entry, Value, Silent)
 			end
 
 			function Entry:Get()
@@ -11282,15 +11461,15 @@ local Library do
 				Speed = Entry.Speed,
 				Start = Entry.Start,
 				["End"] = Entry["End"],
-			})
+			}, true)
 
-			Library.SetFlags[Entry.Flag] = function(Value)
+			Library:BindElementFlag(Entry.Flag, function(Value)
 				if Entry.Disabled then
 					return
 				end
 
-				Entry:Set(Value)
-			end
+				Entry:Set(Value, Library.LoadingConfig == true)
+			end)
 
 			local PageSearchData = Library.SearchItems[SubSlider.Page]
 
@@ -11364,7 +11543,7 @@ local Library do
 			Name = Data.Name or Data.name or "Dropdown",
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Items = Data.Items or Data.items or { "One", "Two", "Three" },
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Default = Data.Default or Data.default or nil,
@@ -11372,11 +11551,15 @@ local Library do
 			Multi = Data.Multi or Data.multi or false,
 			Lifetime = Data.Lifetime or Data.lifetime or false,
 
-			Value = {},
+			Value = (Data.Multi or Data.multi) and {} or nil,
 			Options = {},
 			IsOpen = false,
 			Disabled = false,
 		}
+
+		if not Dropdown.Multi and type(Dropdown.Default) == "table" then
+			Dropdown.Default = Dropdown.Default[1]
+		end
 
 		local Items = {}
 
@@ -11869,7 +12052,7 @@ local Library do
 			end)
 		end
 
-		function Dropdown:Set(Option)
+		function Dropdown:Set(Option, Silent)
 			if Option == nil then
 				return
 			end
@@ -11896,7 +12079,17 @@ local Library do
 
 				Library.Localization:SetDropdownDisplay(Dropdown, Items["Value"].Instance)
 			else
-				local String = tostring(Option)
+				local String = Option
+
+				if type(String) == "table" then
+					String = String[1]
+				end
+
+				if type(String) ~= "string" and type(String) ~= "number" then
+					return
+				end
+
+				String = tostring(String)
 				if String == "" or String == "nil" then
 					return
 				end
@@ -11916,11 +12109,13 @@ local Library do
 				Library.Localization:ApplyText(Items["Value"].Instance, String, "Text")
 			end
 
-			if Dropdown.Callback then
+			if Dropdown.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Dropdown.Callback, Dropdown.Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		function Dropdown:Add(Option)
@@ -12140,19 +12335,25 @@ local Library do
 
 		UpdateListLayout()
 
-		if Dropdown.Default then
-			Dropdown:Set(Dropdown.Default)
+		if Dropdown.Default ~= nil then
+			Dropdown:Set(Dropdown.Default, true)
+		else
+			Library.Localization:SetDropdownDisplay(Dropdown, Items["Value"].Instance)
 		end
 
-		Items["Icon"].Instance.Rotation = 0
+		if Items["Icon"] and Items["Icon"].Instance then
+			pcall(function()
+				Items["Icon"].Instance.Rotation = 0
+			end)
+		end
 
-		Library.SetFlags[Dropdown.Flag] = function(Value)
+		Library:BindElementFlag(Dropdown.Flag, function(Value)
 			if Dropdown.Disabled then
 				return
 			end
 
-			Dropdown:Set(Value)
-		end
+			Dropdown:Set(Value, Library.LoadingConfig == true)
+		end)
 
 		function Dropdown:Destroy()
 			for _, Item in Items do
@@ -12341,7 +12542,7 @@ local Library do
 				Parent = Items["SubElements"],
 				Page = Label.Page,
 				Section = Label.Section,
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or Color3.fromRGB(255, 255, 255),
 				Callback = Data.Callback or Data.callback or function() end,
 				Alpha = Data.Alpha or Data.alpha or false
@@ -12360,7 +12561,7 @@ local Library do
 				Name = Data.Name or Data.name or Label.Name,
 				Page = Label.Page,
 				Section = Label.Section,
-				Flag = Data.Flag or Data.flag or Library:NextFlag(),
+				Flag = Library:ResolveElementFlag(Data),
 				Default = Data.Default or Data.default or KEYBIND_NONE_KEY,
 				Mode = Data.Mode or Data.mode or "Toggle",
 				Callback = Data.Callback or Data.callback or function() end
@@ -12420,7 +12621,7 @@ local Library do
 			Name = Data.Name or Data.name or "Textbox",
 			Description = Data.Description or Data.description or nil,
 			DescriptionColor = Data.DescriptionColor or Data.description_color or nil,
-			Flag = Data.Flag or Data.flag or Library:NextFlag(),
+			Flag = Library:ResolveElementFlag(Data),
 			Default = Data.Default or Data.default or "",
 			Tooltip = Data.Tooltip or Data.tooltip or nil,
 			Callback = Data.Callback or Data.callback or function() end,
@@ -12591,7 +12792,7 @@ local Library do
 			Items["TextboxContainer"].Instance.Visible = Bool
 		end
 
-		function Textbox:Set(Value)
+		function Textbox:Set(Value, Silent)
 			if Textbox.Disabled then
 				return
 			end
@@ -12614,13 +12815,17 @@ local Library do
 				InputInstance.Text = String
 			end
 
-			Library.Flags[Textbox.Flag] = Value
+			if Textbox.Flag then
+				Library.Flags[Textbox.Flag] = Value
+			end
 
-			if Textbox.Callback and not Library.LoadingConfig then
+			if Textbox.Callback and Library:ShouldFireElementCallback(Silent) then
 				Library:SafeCall(Textbox.Callback, Value)
 			end
 
-			Library:SaveAutoloadIfEnabled()
+			if Library:ShouldSaveAutoload(Silent) then
+				Library:SaveAutoloadIfEnabled()
+			end
 		end
 
 		local PageSearchData = Library.SearchItems[Textbox.Page]
@@ -12663,16 +12868,16 @@ local Library do
 		end
 
 		if Textbox.Default then
-			Textbox:Set(Textbox.Default)
+			Textbox:Set(Textbox.Default, true)
 		end
 
-		Library.SetFlags[Textbox.Flag] = function(Value)
+		Library:BindElementFlag(Textbox.Flag, function(Value)
 			if Textbox.Disabled then
 				return
 			end
 
-			Textbox:Set(Value)
-		end
+			Textbox:Set(Value, Library.LoadingConfig == true)
+		end)
 
 		function Textbox:Destroy()
 			for _, Item in Items do
@@ -13507,18 +13712,22 @@ local Library do
 			end
 		end
 
+		Library:FinalizeMenuSettings(Watermark, KeybindList, Window)
+
 		return Settings
 	end
 end
 
 getgenv().Library = Library
 
-pcall(function()
-	Library.Localization:ReloadRemoteTranslations()
-end)
+task.defer(function()
+	pcall(function()
+		Library.Localization:ReloadRemoteTranslations()
+	end)
 
-pcall(function()
-	Library.Localization:Init()
+	pcall(function()
+		Library.Localization:Init()
+	end)
 end)
 
 return Library
