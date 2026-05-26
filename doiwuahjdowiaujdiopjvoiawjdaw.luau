@@ -1,4 +1,4 @@
-warn('sity bii')
+warn('sity bo')
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -3307,6 +3307,20 @@ local Library do
 
 		self.LoadingConfig = false
 		self:EndSilent()
+
+		for Index, Value in Decoded do
+			if Library:IsScriptConfigFlag(Index) ~= true then
+				continue
+			end
+
+			if type(Library.SetFlags[Index]) ~= "function" then
+				continue
+			end
+
+			pcall(function()
+				self:ApplyConfigEntry(Index, Value)
+			end)
+		end
 
 		for _, Callback in self.ConfigLoadedCallbacks do
 			Library:SafeCall(Callback, #FailedEntries == 0, FailedEntries)
