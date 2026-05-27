@@ -1,4 +1,4 @@
-warn('sity LOLLLL')
+warn('plsss optimizeeeee')
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -1200,6 +1200,8 @@ local Library do
 		MouseCursorSize = 64,
 		MouseCursorHotspot = Vector2New(31, 32),
 		SafeMode = false,
+		UILoading = false,
+		LoadingConfig = false,
 		KeybindEntries = {},
 		BackgroundEffects = nil,
 		ExternalGuiStates = {},
@@ -1593,6 +1595,17 @@ local Library do
 			Item = IsRawItem and Item or Item.Instance
 			Info = Info or TweenInfo.new(Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction)
 
+			if Library:ShouldSkipVisualTween() and type(Goal) == "table" then
+				Library:ApplyTweenGoals(Item, Goal)
+
+				return {
+					Tween = nil,
+					Info = Info,
+					Goal = Goal,
+					Item = Item,
+				}
+			end
+
 			local NewTween = {
 				Tween = TweenService:Create(Item, Info, Goal),
 				Info = Info,
@@ -1628,6 +1641,18 @@ local Library do
 		Tween.FadeItem = function(self, Item, Property, Visibility, Speed)
 			local Item = Item or self.Item 
 			local OldTransparency = Item[Property]
+
+			if Library:ShouldSkipVisualTween() then
+				Item[Property] = Visibility and OldTransparency or 1
+
+				return {
+					Tween = nil,
+					Goal = {
+						[Property] = Visibility and OldTransparency or 1,
+					},
+					Item = Item,
+				}
+			end
 
 			Item[Property] = Visibility and 1 or OldTransparency
 
@@ -1809,6 +1834,11 @@ local Library do
 			end
 
 			if not Library then
+				return
+			end
+
+			if Library:ShouldSkipVisualTween() and type(Goal) == "table" then
+				Library:ApplyTweenGoals(self.Instance, Goal)
 				return
 			end
 
@@ -2964,6 +2994,42 @@ local Library do
 		end
 
 		return true
+	end
+
+	Library.ShouldSkipVisualTween = function(self)
+		if self.UILoading == true then
+			return true
+		end
+
+		if self.LoadingConfig == true then
+			return true
+		end
+
+		if (self.SilentDepth or 0) > 0 then
+			return true
+		end
+
+		return false
+	end
+
+	Library.BeginUILoading = function(self)
+		self.UILoading = true
+	end
+
+	Library.EndUILoading = function(self)
+		self.UILoading = false
+	end
+
+	Library.ApplyTweenGoals = function(self, InstanceObject, Goal)
+		if not InstanceObject or type(Goal) ~= "table" then
+			return
+		end
+
+		for Property, Value in Goal do
+			pcall(function()
+				InstanceObject[Property] = Value
+			end)
+		end
 	end
 
 	Library.BeginSilent = function(self)
@@ -4313,6 +4379,7 @@ local Library do
 		self:LoadLocalSettings()
 		self:SyncMenuSettingsToUI(true)
 		self:ApplyMenuSettingsFromLocal(Watermark, KeybindList, Window)
+		self:EndUILoading()
 	end
 
 	Library.CheckForThemeAutoLoad = function(self)
@@ -7956,6 +8023,8 @@ local Library do
 
 	Library.Window = function(self, Data)
 		Data = Data or {}
+
+		self:BeginUILoading()
 
 		local Window = {
 			Name = Data.Name or Data.name or "Window",
