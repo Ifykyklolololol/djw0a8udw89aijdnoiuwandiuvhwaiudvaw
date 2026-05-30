@@ -1,4 +1,4 @@
-warn('plsss optimizeeeee')
+warn('cant be')
 if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
@@ -3584,21 +3584,8 @@ local Library do
 	end
 
 	Library.ApplyMouseForMenu = function(self, IsOpen)
-		if IsOpen then
-			self.MouseStateBeforeOpen = {
-				MouseBehavior = UserInputService.MouseBehavior,
-				MouseIconEnabled = UserInputService.MouseIconEnabled,
-			}
-
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-			UserInputService.MouseIconEnabled = false
-		elseif self.MouseStateBeforeOpen then
-			UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
-			UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
-			self.MouseStateBeforeOpen = nil
-		else
-			UserInputService.MouseIconEnabled = true
-		end
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
 
 		if self.CursorGui and self.CursorGui.Instance then
 			self.CursorGui.Instance.Enabled = self.WindowOpenState
@@ -3742,14 +3729,6 @@ local Library do
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
-		if self.InputBlockGui and self.InputBlockGui.Instance then
-			self.InputBlockGui.Instance.Enabled = Bool and true or false
-		end
-
-		if self.InputBlocker and self.InputBlocker.Instance then
-			self.InputBlocker.Instance.Visible = Bool and true or false
-		end
-
 		if self.Holder and self.Holder.Instance then
 			self.Holder.Instance.DisplayOrder = Bool and self.DisplayOrders.HolderOpen or self.DisplayOrders.Holder
 		end
@@ -3763,70 +3742,6 @@ local Library do
 		end
 
 		self:SetExternalGuisBlocked(Bool)
-
-		if Bool then
-			ContextActionService:BindActionAtPriority(self.InputBlockAction, function(_, State, Input)
-				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
-					return Enum.ContextActionResult.Pass
-				end
-
-				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
-					return Enum.ContextActionResult.Pass
-				end
-
-				if Input and (tostring(Input.KeyCode) == self.MenuKeybind or tostring(Input.UserInputType) == self.MenuKeybind) then
-					return Enum.ContextActionResult.Pass
-				end
-
-				return Enum.ContextActionResult.Sink
-			end, false, 5000,
-				Enum.UserInputType.Gamepad1,
-				Enum.UserInputType.Gamepad2,
-				Enum.UserInputType.Gamepad3,
-				Enum.UserInputType.Gamepad4,
-				Enum.UserInputType.Gamepad5,
-				Enum.UserInputType.Gamepad6,
-				Enum.UserInputType.Gamepad7,
-				Enum.UserInputType.Gamepad8,
-				Enum.UserInputType.MouseWheel,
-				Enum.UserInputType.MouseButton2,
-				Enum.UserInputType.MouseButton3
-			)
-
-			ContextActionService:BindActionAtPriority(self.InputBlockAction .. "_KEYS", function(_, State)
-				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
-					return Enum.ContextActionResult.Pass
-				end
-
-				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
-					return Enum.ContextActionResult.Pass
-				end
-
-				return Enum.ContextActionResult.Sink
-			end, false, 5000, table.unpack(BlockedWindowInputs))
-
-			ContextActionService:BindActionAtPriority(self.InputBlockAction .. "_MOUSE", function(_, State, Input)
-				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
-					return Enum.ContextActionResult.Pass
-				end
-
-				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
-					return Enum.ContextActionResult.Pass
-				end
-
-				if self:IsPointerOverSolixGui() then
-					return Enum.ContextActionResult.Pass
-				end
-
-				return Enum.ContextActionResult.Sink
-			end, false, 5000, Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch)
-
-			return
-		end
-
-		ContextActionService:UnbindAction(self.InputBlockAction)
-		ContextActionService:UnbindAction(self.InputBlockAction .. "_KEYS")
-		ContextActionService:UnbindAction(self.InputBlockAction .. "_MOUSE")
 	end
 
 	Library.SetupBackgroundEffects = function(self)
@@ -4620,17 +4535,18 @@ local Library do
 				Parent = Items["Toggle"].Instance,
 				Name = "\0",
 				Size = UDim2New(0, 0, 1, 0),
-				Position = UDim2New(1, -48, 0, 0),
-				AnchorPoint = Vector2New(1, 0),
+				Position = UDim2New(1, -44, 0.5, 0),
+				AnchorPoint = Vector2New(1, 0.5),
 				BackgroundTransparency = 1,
 				BorderColor3 = FromRGB(0, 0, 0),
-				BorderSizePixel = 0
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.X,
 			})
 
 			Instances:Create("UIListLayout", {
 				Parent = Items["SubElements"].Instance,
 				Name = "\0",
-				Padding = UDimNew(0, 8),
+				Padding = UDimNew(0, 2),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Right,
@@ -11149,7 +11065,8 @@ local Library do
 
 		local Items = {}
 		local TRACK_HEIGHT = 22
-		local COMPACT_TRACK_WIDTH = 80
+		local COMPACT_TRACK_WIDTH = 96
+		local COMPACT_LABEL_HEIGHT = 14
 		local RANGE_GAP = 6
 		local BLOCK_GAP = 8
 
@@ -11174,10 +11091,10 @@ local Library do
 		Items["SubSliderRow"] = Instances:Create("Frame", {
 			Parent = Items["SubSliderContainer"].Instance,
 			Name = "\0",
-			Size = SubSlider.Compact and UDim2New(0, 0, 0, 0) or UDim2New(1, 0, 0, 0),
+			Size = UDim2New(1, 0, 0, 0),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			AutomaticSize = SubSlider.Compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y,
+			AutomaticSize = Enum.AutomaticSize.Y,
 			ZIndex = 2,
 			LayoutOrder = 0,
 		})
@@ -11185,13 +11102,13 @@ local Library do
 		Instances:Create("UIListLayout", {
 			Parent = Items["SubSliderRow"].Instance,
 			Name = "\0",
-			Padding = UDimNew(0, BLOCK_GAP),
+			Padding = UDimNew(0, 4),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = SubSlider.Compact and Enum.HorizontalAlignment.Left or Enum.HorizontalAlignment.Left,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
-			HorizontalFlex = SubSlider.Compact and Enum.UIFlexAlignment.None or Enum.UIFlexAlignment.Fill,
-			VerticalFlex = SubSlider.Compact and Enum.UIFlexAlignment.None or Enum.UIFlexAlignment.Fill,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
 		})
 
 		local function FormatSpeed(Entry, Value)
@@ -11253,11 +11170,16 @@ local Library do
 		local function RefreshSpeedVisual(Entry)
 			local EntryItems = Entry.Items
 			local Alpha = (Entry.Speed - Entry.SpeedMin) / (Entry.SpeedMax - Entry.SpeedMin)
+			local SpeedLabelText = FormatSpeedLabel(Entry, Entry.Speed)
 
 			EntryItems["SpeedAccent"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 				Size = UDim2New(MathClamp(Alpha, 0, 1), 0, 1, 0),
 			})
-			EntryItems["SpeedLabel"].Instance.Text = FormatSpeedLabel(Entry, Entry.Speed)
+			if EntryItems["SpeedHeader"] then
+				EntryItems["SpeedHeader"].Instance.Text = SpeedLabelText
+			elseif EntryItems["SpeedLabel"] then
+				EntryItems["SpeedLabel"].Instance.Text = SpeedLabelText
+			end
 		end
 
 		local function RefreshStartVisual(Entry)
@@ -11321,7 +11243,7 @@ local Library do
 			end
 		end
 
-		local function CreateTrack(Parent, LayoutOrder, ZIndex, Size)
+		local function CreateTrack(Parent, LayoutOrder, ZIndex, Size, HideLabel)
 			local TrackItems = {}
 
 			TrackItems["Track"] = Instances:Create("TextButton", {
@@ -11331,7 +11253,7 @@ local Library do
 				BackgroundColor3 = Library.Theme["Element"],
 				BorderSizePixel = 0,
 				Text = "",
-				ClipsDescendants = false,
+				ClipsDescendants = HideLabel == true,
 				AutoButtonColor = false,
 				ZIndex = ZIndex,
 				LayoutOrder = LayoutOrder,
@@ -11367,16 +11289,20 @@ local Library do
 				TextSize = 13,
 				FontFace = Library.Font,
 				TextXAlignment = Enum.TextXAlignment.Center,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Visible = HideLabel ~= true,
 				ZIndex = ZIndex + 3,
 			}):AddToTheme({TextColor3 = "Text"})
 
-			Instances:Create("UIStroke", {
-				Parent = TrackItems["Label"].Instance,
-				Name = "\0",
-				Thickness = 1,
-				Color = FromRGB(0, 0, 0),
-				Transparency = 0.35,
-			})
+			if HideLabel ~= true then
+				Instances:Create("UIStroke", {
+					Parent = TrackItems["Label"].Instance,
+					Name = "\0",
+					Thickness = 1,
+					Color = FromRGB(0, 0, 0),
+					Transparency = 0.35,
+				})
+			end
 
 			return TrackItems
 		end
@@ -11419,6 +11345,9 @@ local Library do
 
 		function SubSlider:Add(Data)
 			Data = Data or {}
+			if #SubSlider.Entries >= 4 then
+				return SubSlider
+			end
 
 			local Entry = {
 				Window = SubSlider.Window,
@@ -11457,10 +11386,10 @@ local Library do
 			EntryItems["Block"] = Instances:Create("Frame", {
 				Parent = Items["SubSliderRow"].Instance,
 				Name = "\0",
-				Size = SubSlider.Compact and UDim2New(0, 0, 0, 0) or UDim2New(0, 120, 0, 0),
+				Size = UDim2New(1, 0, 0, 0),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				AutomaticSize = SubSlider.Compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y,
+				AutomaticSize = Enum.AutomaticSize.Y,
 				ZIndex = 2,
 			})
 
@@ -11472,17 +11401,36 @@ local Library do
 				FillDirection = Enum.FillDirection.Vertical,
 			})
 
+			local use_compact_header = SubSlider.Compact and Entry.HideRange
 			local SpeedTrackParent = EntryItems["Block"].Instance
 			local SpeedTrackSize
-			if SubSlider.Compact and Entry.HideRange then
-				SpeedTrackSize = UDim2New(0, COMPACT_TRACK_WIDTH, 0, TRACK_HEIGHT)
+			if use_compact_header then
+				SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
+				EntryItems["SpeedHeader"] = Instances:Create("TextLabel", {
+					Parent = EntryItems["Block"].Instance,
+					Name = "\0",
+					Size = UDim2New(1, 0, 0, COMPACT_LABEL_HEIGHT),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Text = FormatSpeedLabel(Entry, Entry.Speed),
+					TextColor3 = Library.Theme["Text"],
+					TextSize = 12,
+					FontFace = Library.Font,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					ZIndex = 2,
+					LayoutOrder = 0,
+				}):AddToTheme({TextColor3 = "Text"})
 			else
 				SpeedTrackSize = UDim2New(1, 0, 0, TRACK_HEIGHT)
 			end
 
-			local SpeedTrack = CreateTrack(SpeedTrackParent, 0, 2, SpeedTrackSize)
+			local SpeedTrack = CreateTrack(SpeedTrackParent, use_compact_header and 1 or 0, 2, SpeedTrackSize, use_compact_header)
 			EntryItems["SpeedAccent"] = SpeedTrack["Accent"]
-			EntryItems["SpeedLabel"] = SpeedTrack["Label"]
+			if not use_compact_header then
+				EntryItems["SpeedLabel"] = SpeedTrack["Label"]
+			end
 			EntryItems["SpeedButton"] = SpeedTrack["Track"]
 
 			if not Entry.HideRange then
