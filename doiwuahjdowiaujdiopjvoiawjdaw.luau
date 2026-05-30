@@ -3584,8 +3584,21 @@ local Library do
 	end
 
 	Library.ApplyMouseForMenu = function(self, IsOpen)
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
+		if IsOpen then
+			self.MouseStateBeforeOpen = {
+				MouseBehavior = UserInputService.MouseBehavior,
+				MouseIconEnabled = UserInputService.MouseIconEnabled,
+			}
+
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = false
+		elseif self.MouseStateBeforeOpen then
+			UserInputService.MouseBehavior = self.MouseStateBeforeOpen.MouseBehavior or Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = self.MouseStateBeforeOpen.MouseIconEnabled ~= false
+			self.MouseStateBeforeOpen = nil
+		else
+			UserInputService.MouseIconEnabled = true
+		end
 
 		if self.CursorGui and self.CursorGui.Instance then
 			self.CursorGui.Instance.Enabled = self.WindowOpenState
@@ -3729,6 +3742,14 @@ local Library do
 	end
 
 	Library.ApplyWindowInputState = function(self, Bool)
+		if self.InputBlockGui and self.InputBlockGui.Instance then
+			self.InputBlockGui.Instance.Enabled = Bool and true or false
+		end
+
+		if self.InputBlocker and self.InputBlocker.Instance then
+			self.InputBlocker.Instance.Visible = Bool and true or false
+		end
+
 		if self.Holder and self.Holder.Instance then
 			self.Holder.Instance.DisplayOrder = Bool and self.DisplayOrders.HolderOpen or self.DisplayOrders.Holder
 		end
@@ -3742,6 +3763,57 @@ local Library do
 		end
 
 		self:SetExternalGuisBlocked(Bool)
+
+		if Bool then
+			ContextActionService:BindActionAtPriority(self.InputBlockAction, function(_, State, Input)
+				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if Input and (tostring(Input.KeyCode) == self.MenuKeybind or tostring(Input.UserInputType) == self.MenuKeybind) then
+					return Enum.ContextActionResult.Pass
+				end
+
+				return Enum.ContextActionResult.Sink
+			end, false, 5000,
+				Enum.UserInputType.Gamepad1,
+				Enum.UserInputType.Gamepad2,
+				Enum.UserInputType.Gamepad3,
+				Enum.UserInputType.Gamepad4,
+				Enum.UserInputType.Gamepad5,
+				Enum.UserInputType.Gamepad6,
+				Enum.UserInputType.Gamepad7,
+				Enum.UserInputType.Gamepad8,
+				Enum.UserInputType.MouseWheel,
+				Enum.UserInputType.MouseButton2,
+				Enum.UserInputType.MouseButton3
+			)
+
+			ContextActionService:BindActionAtPriority(self.InputBlockAction .. "_MOUSE", function(_, State)
+				if State ~= Enum.UserInputState.Begin and State ~= Enum.UserInputState.Change then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if not self.WindowOpenState or UserInputService:GetFocusedTextBox() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				if self:IsPointerOverSolixGui() then
+					return Enum.ContextActionResult.Pass
+				end
+
+				return Enum.ContextActionResult.Sink
+			end, false, 5000, Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch)
+
+			return
+		end
+
+		ContextActionService:UnbindAction(self.InputBlockAction)
+		ContextActionService:UnbindAction(self.InputBlockAction .. "_MOUSE")
 	end
 
 	Library.SetupBackgroundEffects = function(self)
@@ -11106,9 +11178,9 @@ local Library do
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Left,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
 			HorizontalFlex = Enum.UIFlexAlignment.Fill,
-			VerticalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.None,
 		})
 
 		local function FormatSpeed(Entry, Value)
