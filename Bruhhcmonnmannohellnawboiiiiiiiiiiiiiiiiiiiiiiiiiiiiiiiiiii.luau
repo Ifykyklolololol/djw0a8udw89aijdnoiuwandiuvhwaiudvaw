@@ -400,6 +400,7 @@ do
 					shadowLabel.Text = value or "";
 				end,
 				SetColor = function(_, color)
+					if typeof(color) ~= "Color3" then return end
 					mainLabel.TextColor3 = color;
 				end,
 				SetTransparency = function(_, transparency)
@@ -455,7 +456,7 @@ do
 				FontFace = enumToFont[0],
 				Parent = container,
 				Text = "",
-				TextColor3 = _color3new(),
+				TextColor3 = _color3new(1, 1, 1),
 				TextSize = 12,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,
@@ -477,7 +478,7 @@ do
 				__OBJECT_EXISTS = true,
 				_properties = {
 					Center = false,
-					Color = _color3new(),
+					Color = _color3new(1, 1, 1),
 					Font = 0,
 					Outline = true,
 					OutlineColor = _color3new(),
@@ -518,6 +519,7 @@ do
 					self._main.TextXAlignment = v and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left;
 					self._shadow.TextXAlignment = self._main.TextXAlignment;
 				elseif k == "Color" then
+					if typeof(v) ~= "Color3" then return end
 					self._main.TextColor3 = v;
 				elseif k == "Font" then
 					self._main.FontFace = enumToFont[v];
@@ -697,7 +699,7 @@ do
 				_imageId = 0,
 				__OBJECT_EXISTS = true,
 				_properties = {
-					Color = _color3new(1, 1, 1),
+					Color = _color3new(),
 					Data = "",
 					Position = _vector2new(),
 					Rounding = 0,
