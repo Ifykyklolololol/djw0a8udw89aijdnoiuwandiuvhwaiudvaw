@@ -311,11 +311,166 @@ do
 			[drawing.Fonts.Monospace] = Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
 		};
 
+		local function applyStyledTextTransparency(mainLabel, shadowLabel, stroke, transparency)
+			local textTransparency = _mathclamp(1 - transparency, 0, 1);
+			mainLabel.TextTransparency = textTransparency;
+			if shadowLabel then
+				shadowLabel.TextTransparency = _mathclamp(textTransparency + 0.35, 0, 1);
+			end
+			if stroke then
+				stroke.Transparency = _mathclamp(textTransparency + 0.2, 0, 1);
+			end
+		end
+
+		drawing.createStyledTextLabel = function(properties)
+			properties = type(properties) == "table" and properties or {};
+			local parent = properties.Parent;
+			local textSize = properties.TextSize or properties.Size or 12;
+			local fontFace = properties.FontFace or enumToFont[properties.Font or 0] or enumToFont[0];
+			local textColor = properties.TextColor3 or properties.Color or _color3new(1, 1, 1);
+			local textTransparency = properties.TextTransparency;
+			if textTransparency == nil and properties.Transparency ~= nil then
+				textTransparency = 1 - properties.Transparency;
+			end
+			textTransparency = _mathclamp(textTransparency or 0, 0, 1);
+
+			local container = create("Frame", {
+				Name = properties.Name or "StyledText",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				AnchorPoint = properties.AnchorPoint,
+				Position = properties.Position or _udim2new(),
+				Size = properties.Size or _udim2new(),
+				Visible = properties.Visible ~= false,
+				ZIndex = properties.ZIndex or 0,
+				LayoutOrder = properties.LayoutOrder,
+				Parent = parent,
+			});
+
+			local shadowLabel = create("TextLabel", {
+				Name = "Shadow",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				FontFace = fontFace,
+				Text = properties.Text or "",
+				TextColor3 = properties.ShadowColor3 or _color3new(),
+				TextSize = textSize,
+				TextTransparency = _mathclamp(textTransparency + 0.35, 0, 1),
+				Position = _udim2fromoffset(1, 1),
+				ZIndex = (properties.ZIndex or 0),
+				Parent = container,
+			});
+
+			local mainLabel = create("TextLabel", {
+				Name = "Main",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				FontFace = fontFace,
+				Text = properties.Text or "",
+				TextColor3 = textColor,
+				TextSize = textSize,
+				TextTransparency = textTransparency,
+				TextXAlignment = properties.TextXAlignment or Enum.TextXAlignment.Left,
+				TextYAlignment = properties.TextYAlignment or Enum.TextYAlignment.Top,
+				ZIndex = (properties.ZIndex or 0) + 1,
+				Parent = container,
+			});
+
+			local stroke = create("UIStroke", {
+				Name = "Stroke",
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+				Color = properties.OutlineColor or properties.StrokeColor3 or _color3new(),
+				Enabled = properties.Outline ~= false,
+				LineJoinMode = Enum.LineJoinMode.Round,
+				Thickness = properties.StrokeThickness or 1,
+				Transparency = _mathclamp(textTransparency + 0.2, 0, 1),
+				Parent = mainLabel,
+			});
+
+			return {
+				Frame = container,
+				Main = mainLabel,
+				Shadow = shadowLabel,
+				Stroke = stroke,
+				SetText = function(_, value)
+					mainLabel.Text = value or "";
+					shadowLabel.Text = value or "";
+				end,
+				SetColor = function(_, color)
+					mainLabel.TextColor3 = color;
+				end,
+				SetTransparency = function(_, transparency)
+					applyStyledTextTransparency(mainLabel, shadowLabel, stroke, transparency);
+				end,
+				Destroy = function()
+					_destroy(container);
+				end,
+			};
+		end;
+
 		local text = {};
 
 		function text.new()
 			itemCounter = itemCounter + 1;
 			local id = itemCounter;
+
+			local container = create("Frame", {
+				Name = id,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				Parent = drawingDirectory,
+				Position = _udim2new(),
+				Size = _udim2new(),
+				Visible = false,
+				ZIndex = 0
+			});
+
+			local shadowLabel = create("TextLabel", {
+				Name = "Shadow",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				FontFace = enumToFont[0],
+				Parent = container,
+				Position = _udim2fromoffset(1, 1),
+				Text = "",
+				TextColor3 = _color3new(),
+				TextSize = 12,
+				TextTransparency = 0.35,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Top,
+				Visible = true,
+				ZIndex = 0
+			});
+
+			local mainLabel = create("TextLabel", {
+				Name = "Main",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				FontFace = enumToFont[0],
+				Parent = container,
+				Text = "",
+				TextColor3 = _color3new(),
+				TextSize = 12,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Top,
+				Visible = true,
+				ZIndex = 1
+			}, {
+				create("UIStroke", {
+					Name = "_stroke",
+					Color = _color3new(),
+					Enabled = true,
+					LineJoinMode = Enum.LineJoinMode.Round,
+					Thickness = 1,
+					Transparency = 0.35
+				})
+			});
 
 			local newText = _setmetatable({
 				_id = id,
@@ -324,7 +479,7 @@ do
 					Center = false,
 					Color = _color3new(),
 					Font = 0,
-					Outline = false,
+					Outline = true,
 					OutlineColor = _color3new(),
 					Position = _vector2new(),
 					Size = 12,
@@ -334,28 +489,10 @@ do
 					Visible = false,
 					ZIndex = 0
 				},
-				_frame = create("TextLabel", {
-					Name = id,
-					BackgroundTransparency = 1,
-					FontFace = enumToFont[0],
-					Parent = drawingDirectory,
-					Position = _udim2new(),
-					Size = _udim2new(),
-					Text = "",
-					TextColor3 = _color3new(),
-					TextSize = 12,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					TextYAlignment = Enum.TextYAlignment.Top,
-					Visible = false,
-					ZIndex = 0
-				}, {
-					create("UIStroke", {
-						Name = "_stroke",
-						Color = _color3new(),
-						Enabled = false,
-						Thickness = 1
-					})
-				})
+				_frame = container,
+				_main = mainLabel,
+				_shadow = shadowLabel,
+				_stroke = mainLabel._stroke
 			}, text);
 
 			cache[id] = newText;
@@ -378,31 +515,36 @@ do
 				end
 				props[k] = v;
 				if k == "Center" then
-					self._frame.TextXAlignment = v and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left;
+					self._main.TextXAlignment = v and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left;
+					self._shadow.TextXAlignment = self._main.TextXAlignment;
 				elseif k == "Color" then
-					self._frame.TextColor3 = v;
+					self._main.TextColor3 = v;
 				elseif k == "Font" then
-					self._frame.FontFace = enumToFont[v];
+					self._main.FontFace = enumToFont[v];
+					self._shadow.FontFace = enumToFont[v];
 					self:_updateTextBounds();
 				elseif k == "Outline" then
-					self._frame._stroke.Enabled = v;
+					self._stroke.Enabled = v == true;
 				elseif k == "OutlineColor" then
-					self._frame._stroke.Color = v;
+					self._stroke.Color = v;
 				elseif k == "Position" then
 					self._frame.Position = _udim2fromoffset(v.X, v.Y);
 				elseif k == "Size" then
-					self._frame.TextSize = v;
+					self._main.TextSize = v;
+					self._shadow.TextSize = v;
 					self:_updateTextBounds();
 				elseif k == "Text" then
-					self._frame.Text = v;
+					self._main.Text = v;
+					self._shadow.Text = v;
 					self:_updateTextBounds();
 				elseif k == "Transparency" then
-					self._frame.TextTransparency = 1 - v;
-					self._frame._stroke.Transparency = 1 - v;
+					applyStyledTextTransparency(self._main, self._shadow, self._stroke, v);
 				elseif k == "Visible" then
 					self._frame.Visible = v;
 				elseif k == "ZIndex" then
 					self._frame.ZIndex = v;
+					self._main.ZIndex = v + 1;
+					self._shadow.ZIndex = v;
 				end
 			end
 		end
@@ -1036,3 +1178,5 @@ genv.setrenderproperty = newcclosure(function(x, y, z)
 end);
 
 genv.drawingLoaded = true;
+
+return drawing;
